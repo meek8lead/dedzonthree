@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>INDUSTRIAL ROGUE SHOOTER v5.1</title>
+<style>
+body{margin:0;overflow:hidden;font-family:'Courier New',monospace;background:#000}
+canvas{display:block}
+
+#crt-overlay{position:fixed;inset:0;pointer-events:none;z-index:9985;background:repeating-linear-gradient(0deg,rgba(0,0,0,.15) 0px,rgba(0,0,0,.15) 1px,transparent 1px,transparent 3px)}
+#crt-vignette{position:fixed;inset:0;pointer-events:none;z-index:9984;background:radial-gradient(ellipse at center,transparent 40%,rgba(0,0,0,.4) 100%)}
+
+#js-error-banner{position:fixed;top:0;left:0;right:0;padding:8px 14px;background:#f00;color:#fff;font-family:'Courier New',monospace;font-size:13px;font-weight:bold;z-index:999999;display:none;white-space:pre-wrap;line-height:1.4}
+
+#sys-bar{position:fixed;top:0;left:0;right:0;height:20px;display:flex;align-items:center;justify-content:center;gap:22px;background:linear-gradient(180deg,rgba(0,20,0,.95),rgba(0,0,0,.85));border-bottom:1px solid #0f0;font-size:10px;color:#0f0;font-family:'Courier New',monospace;letter-spacing:1px;pointer-events:none;z-index:9990;text-shadow:0 0 4px #0f0}
+.sys-item{display:flex;gap:5px;align-items:center}
+.sys-label{color:#080;font-weight:bold}
+.sys-val{min-width:22px;text-align:right;font-weight:bold}
+.sys-sep{color:#050}
+
+#ui{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;color:#0f0;text-shadow:0 0 5px #0f0}
+
+.ui-panel{position:absolute;background:rgba(0,20,0,.72);border:2px solid #0f0;padding:10px;font-size:14px;box-shadow:0 0 10px #0f0,inset 0 0 20px rgba(0,255,0,.08)}
+.ui-panel::before,.ui-panel::after{content:'';position:absolute;width:10px;height:10px;border:2px solid #0f0;box-shadow:0 0 4px #0f0}
+.ui-panel::before{top:-4px;left:-4px;border-right:none;border-bottom:none}
+.ui-panel::after{bottom:-4px;right:-4px;border-left:none;border-top:none}
+
+#weapon-info{top:30px;right:20px;width:280px}
+#health-panel{bottom:20px;left:20px;width:200px}
+#ammo-panel{bottom:20px;right:20px;width:250px;text-align:right}
+#wave-info{top:30px;left:20px;width:200px}
+#radar{top:50%;left:20px;width:180px;height:180px;transform:translateY(-50%);overflow:hidden}
+#radar::after{content:'';position:absolute;inset:2px;border-radius:50%;background:conic-gradient(from 0deg,transparent 0deg,rgba(0,255,0,.35) 22deg,transparent 44deg);animation:radarSweep 3s linear infinite;pointer-events:none}
+@keyframes radarSweep{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+
+#crosshair{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:32px;height:32px;border:2px solid #f00;border-radius:50%;box-shadow:0 0 10px #f00;transition:width .12s,height .12s,border-color .12s,box-shadow .12s}
+#crosshair.fire{width:42px;height:42px;border-color:#ff0;box-shadow:0 0 15px #ff0}
+#crosshair.ads{width:18px;height:18px;border-color:#0f0;box-shadow:0 0 8px #0f0}
+#crosshair.charged{border-color:#f80;box-shadow:0 0 20px #f80,0 0 35px #ff0}
+#crosshair::before,#crosshair::after{content:'';position:absolute;background:#f00;transition:background .12s}
+#crosshair::before{width:2px;height:100%;left:50%;transform:translateX(-50%)}
+#crosshair::after{width:100%;height:2px;top:50%;transform:translateY(-50%)}
+#crosshair.fire::before,#crosshair.fire::after{background:#ff0}
+#crosshair.ads::before,#crosshair.ads::after{background:#0f0}
+#crosshair.charged::before,#crosshair.charged::after{background:#f80}
+
+.warning{color:#f00!important;text-shadow:0 0 5px #f00!important;animation:blink .5s infinite}
+@keyframes blink{0%,50%{opacity:1}51%,100%{opacity:.3}}
+.blink-slow{animation:blinkSlow 2s infinite}
+@keyframes blinkSlow{0%,60%,100%{opacity:1}61%,95%{opacity:.35}}
+
+#reload-overlay{position:absolute;top:30%;left:50%;transform:translate(-50%,-50%);font-size:36px;font-weight:bold;color:#ff0;text-shadow:0 0 15px #ff0;display:none;z-index:999;letter-spacing:4px}
+#jam-overlay{position:absolute;top:46%;left:50%;transform:translate(-50%,-50%);font-size:22px;font-weight:bold;color:#f00;text-shadow:0 0 10px #f00;display:none;z-index:999;letter-spacing:3px;background:rgba(40,0,0,.85);border:2px solid #f00;padding:8px 20px;animation:blink .3s infinite}
+#freeze-overlay{position:absolute;top:38%;left:50%;transform:translate(-50%,-50%);font-size:28px;font-weight:bold;color:#6cf;text-shadow:0 0 15px #6cf;display:none;z-index:999;letter-spacing:3px}
+#debug-indicator{position:absolute;top:30px;left:50%;transform:translateX(-50%);font-size:16px;font-weight:bold;color:#0ff;text-shadow:0 0 10px #0ff;display:none;z-index:999;letter-spacing:2px;background:rgba(0,40,40,.8);border:2px solid #0ff;padding:8px 16px}
+#debug-toast{position:absolute;top:70px;left:50%;transform:translateX(-50%);font-size:14px;color:#0ff;text-shadow:0 0 8px #0ff;display:none;z-index:999;background:rgba(0,40,40,.8);border:1px solid #0ff;padding:6px 12px;transition:opacity .3s}
+
+#charge-indicator,#overheat-indicator{position:absolute;left:50%;transform:translateX(-50%);width:120px;height:6px;background:rgba(0,0,0,.7);border:1px solid #666;display:none;z-index:100;border-radius:3px;overflow:hidden}
+#charge-indicator{top:calc(50% + 32px)}
+#overheat-indicator{top:calc(50% + 40px)}
+#charge-fill{height:100%;width:0%;background:linear-gradient(90deg,#f80,#ff0);box-shadow:0 0 8px #f80}
+#overheat-fill{height:100%;width:0%;background:#0f0;box-shadow:0 0 8px #0f0}
+
+#weapon-slots{margin-top:8px}
+.wslot{border:1px solid #555;padding:4px 6px;margin:3px 0;background:rgba(30,30,30,.5);color:#888;font-size:12px;transition:all .2s;position:relative}
+.wslot.active{border-color:#0f0;background:rgba(0,60,0,.6);color:#0f0;box-shadow:0 0 8px rgba(0,255,0,.3),inset 0 0 8px rgba(0,255,0,.2)}
+.wslot.active::before{content:'▶';position:absolute;left:-14px;color:#0f0;animation:blinkSlow 1s infinite}
+
+.bar{width:100%;height:20px;background:rgba(20,0,0,.9);border:1px solid #f00;margin:5px 0;position:relative;overflow:hidden;box-shadow:inset 0 0 8px rgba(0,0,0,.9)}
+.bar::after{content:'';position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(90deg,transparent 0px,transparent 16px,rgba(0,0,0,.7) 16px,rgba(0,0,0,.7) 18px)}
+.bar-fill{height:100%;background:linear-gradient(180deg,#f00,#800);transition:width .25s;box-shadow:0 0 8px rgba(255,0,0,.6)}
+#armor-bar{background:linear-gradient(180deg,#06f,#046)!important}
+
+#ammo-text{font-size:24px;text-shadow:0 0 10px #0f0,0 0 20px #0f0,0 0 4px #0f0;font-weight:bold;display:inline-block;transition:transform .1s}
+#ammo-text.changed{animation:digitFlip .18s ease-out}
+@keyframes digitFlip{0%{transform:rotateX(-90deg) scale(1.3);color:#ff0}100%{transform:rotateX(0) scale(1);color:#0f0}}
+
+.wave-num-big{font-size:22px;text-shadow:0 0 12px #0f0,0 0 24px #0f0;animation:blinkSlow 3s infinite}
+
+#synergy-hud{position:absolute;top:50%;right:20px;transform:translateY(-50%);display:flex;flex-direction:column;gap:6px;z-index:998;pointer-events:none}
+.syn-item{display:flex;align-items:center;gap:6px;padding:4px 8px;background:rgba(0,0,0,.7);border:1px solid #333;border-radius:4px;font-size:14px;min-width:70px;transition:all .3s;opacity:.4}
+.syn-item.active{opacity:1;border-color:#0f0;box-shadow:0 0 8px rgba(0,255,0,.5)}
+.syn-item.r1{border-color:#ffd700;box-shadow:0 0 10px rgba(255,215,0,.6)}
+.syn-item.r2{border-color:#ff8c00;box-shadow:0 0 12px rgba(255,140,0,.8);animation:synPulse 1.5s infinite alternate}
+.syn-item.r3{border-color:#fff;box-shadow:0 0 16px rgba(255,255,255,.9);animation:synPulse 1s infinite alternate}
+@keyframes synPulse{from{transform:scale(1)}to{transform:scale(1.06)}}
+.syn-icon{font-size:18px;min-width:22px;text-align:center}
+.syn-count{font-size:11px;font-weight:bold;color:#0f0;font-family:'Courier New',monospace}
+.syn-item.r1 .syn-count{color:#ffd700}
+.syn-item.r2 .syn-count{color:#ff8c00}
+.syn-item.r3 .syn-count{color:#fff}
+
+#synergy-banner,#duo-banner{position:absolute;top:100px;left:50%;transform:translateX(-50%) translateY(-30px);padding:16px 40px;border-radius:8px;font-family:'Courier New',monospace;font-weight:bold;text-align:center;opacity:0;pointer-events:none;z-index:1500;transition:all .4s;letter-spacing:2px}
+#synergy-banner{background:linear-gradient(180deg,rgba(255,180,0,.95),rgba(200,100,0,.95));border:3px solid #ffd700;color:#000;font-size:22px;box-shadow:0 0 30px rgba(255,200,0,.8),inset 0 0 15px rgba(255,255,0,.4);text-shadow:0 1px 0 rgba(255,255,255,.5)}
+#duo-banner{background:linear-gradient(180deg,rgba(180,50,220,.95),rgba(80,20,120,.95));border:3px solid #e0f;color:#fff;font-size:24px;box-shadow:0 0 40px rgba(220,80,255,.9),inset 0 0 20px rgba(255,150,255,.3);text-shadow:0 0 8px #f0f}
+#synergy-banner.show,#duo-banner.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ═══ PAUSE OVERLAY (industrial) ═══ */
+#pause-overlay{position:fixed;inset:0;z-index:999;display:none;
+  background:
+    repeating-linear-gradient(45deg, transparent 0, transparent 24px, rgba(30,30,30,.55) 24px, rgba(30,30,30,.55) 48px),
+    repeating-linear-gradient(-45deg, transparent 0, transparent 24px, rgba(30,30,30,.55) 24px, rgba(30,30,30,.55) 48px),
+    linear-gradient(180deg,rgba(10,10,15,.96),rgba(5,5,8,.99));
+  animation:pauseFadeIn .25s ease-out}
+@keyframes pauseFadeIn{from{opacity:0}to{opacity:1}}
+#pause-overlay.show{display:block}
+#pause-overlay::before{content:'';position:absolute;top:0;left:0;right:0;height:8px;
+  background:repeating-linear-gradient(90deg,#f90 0,#f90 20px,#000 20px,#000 40px);
+  animation:industrialStripes 2s linear infinite}
+#pause-overlay::after{content:'';position:absolute;bottom:0;left:0;right:0;height:8px;
+  background:repeating-linear-gradient(90deg,#000 0,#000 20px,#f90 20px,#f90 40px);
+  animation:industrialStripes 2s linear infinite reverse}
+@keyframes industrialStripes{from{background-position:0 0}to{background-position:80px 0}}
+#pause-overlay .pause-mark{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  font-size:120px;font-weight:bold;color:rgba(255,200,0,.08);letter-spacing:30px;
+  text-shadow:0 0 60px rgba(255,200,0,.15);animation:pauseBlink 1.2s infinite alternate;
+  font-family:'Courier New',monospace;user-select:none}
+@keyframes pauseBlink{from{opacity:.3}to{opacity:.8}}
+
+/* ═══ KEY HINT ═══ */
+.key-hint{display:inline-block;padding:2px 8px;margin-left:8px;background:rgba(0,0,0,.7);
+  border:2px solid currentColor;border-radius:4px;font-size:.85em;font-weight:bold;
+  letter-spacing:1px;box-shadow:0 0 8px currentColor;opacity:.9}
+
+/* ═══ NEST SCREEN ═══ */
+#nest-screen{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:linear-gradient(180deg,rgba(10,0,0,.98),rgba(0,0,0,.99));border:4px solid #ff0;padding:28px 36px;display:none;pointer-events:all;text-align:center;box-shadow:0 0 60px #ff0,inset 0 0 30px rgba(255,255,0,.15);z-index:1000;min-width:780px;max-width:96vw;border-radius:10px}
+#nest-screen::before,#nest-screen::after{content:'';position:absolute;width:24px;height:24px;border:3px solid #ff0;box-shadow:0 0 12px #ff0}
+#nest-screen::before{top:-6px;left:-6px;border-right:none;border-bottom:none}
+#nest-screen::after{bottom:-6px;right:-6px;border-left:none;border-top:none}
+#nest-screen h2{color:#ff0;text-shadow:0 0 15px #ff0,0 0 30px #fa0;font-size:30px;margin:0 0 6px 0;letter-spacing:4px}
+#nest-hint{color:#8f8;font-size:13px;margin:0 0 16px;letter-spacing:1px}
+#nest-cards{display:flex;justify-content:center;gap:20px;margin:20px 0;perspective:1000px;flex-wrap:wrap}
+.nest-card{width:200px;min-height:280px;border:3px solid #666;background:linear-gradient(135deg,rgba(40,40,40,.95),rgba(20,20,20,.95));border-radius:8px;padding:14px;cursor:pointer;transition:all .18s;text-align:left;display:flex;flex-direction:column;position:relative;overflow:hidden}
+.nest-card:hover{transform:translateY(-8px) scale(1.04);z-index:10;border-color:#0f0;box-shadow:0 0 25px rgba(0,255,0,.7),0 10px 25px rgba(0,0,0,.5)}
+.nest-card.common{border-color:#888}
+.nest-card.rare{border-color:#48f;box-shadow:0 0 12px rgba(72,136,255,.4)}
+.nest-card.epic{border-color:#c4f;box-shadow:0 0 15px rgba(200,80,255,.5)}
+.nest-card.legendary{border-color:#f80;box-shadow:0 0 20px rgba(255,140,0,.7);animation:legendPulse 1s infinite alternate}
+.nest-card.curse{border-color:#f00;background:linear-gradient(135deg,rgba(60,0,0,.95),rgba(30,0,0,.95));box-shadow:0 0 15px rgba(255,0,0,.6)}
+.nest-card.curse:hover{border-color:#f88;box-shadow:0 0 30px rgba(255,0,0,.9),0 0 50px rgba(255,50,50,.5)}
+.nest-card.synergy-ready{border-color:#ffd700;box-shadow:0 0 30px rgba(255,215,0,.9),0 0 60px rgba(255,200,0,.4);animation:synergyReadyPulse .8s infinite alternate}
+@keyframes synergyReadyPulse{from{transform:scale(1)}to{transform:scale(1.04)}}
+@keyframes legendPulse{from{transform:scale(1)}to{transform:scale(1.03)}}
+.nest-card-icon{font-size:40px;text-align:center;margin-bottom:8px}
+.nest-card-type{font-size:10px;letter-spacing:1px;color:#888;text-transform:uppercase;margin-bottom:4px}
+.nest-card-name{font-size:15px;font-weight:bold;color:#fff;line-height:1.2;margin-bottom:6px;min-height:36px}
+.nest-card-desc{font-size:11px;color:#aaa;line-height:1.35;flex:1;margin-bottom:8px}
+.nest-card-tags{display:flex;gap:4px;flex-wrap:wrap;margin-top:auto}
+.nest-tag{padding:2px 6px;border-radius:3px;font-size:10px;font-weight:bold;background:rgba(0,0,0,.6);border:1px solid #444}
+.nest-tag.fire{border-color:#f60;color:#f60}
+.nest-tag.ice{border-color:#6cf;color:#6cf}
+.nest-tag.poison{border-color:#8f3;color:#8f3}
+.nest-tag.explosive{border-color:#f80;color:#f80}
+.nest-tag.crit{border-color:#ff0;color:#ff0}
+.nest-tag.tank{border-color:#48f;color:#48f}
+.nest-tag.speed{border-color:#0ff;color:#0ff}
+.nest-tag.aoe{border-color:#c4f;color:#c4f}
+.nest-tag.summon{border-color:#f0f;color:#f0f}
+.nest-tag.time{border-color:#8af;color:#8af}
+.nest-card-hint{margin-top:6px;font-size:10px;color:#ff0;text-align:center;padding:3px;border-top:1px dashed #333}
+.nest-card-key{position:absolute;top:6px;right:6px;padding:3px 10px;background:rgba(0,0,0,.85);border:2px solid #ff0;border-radius:4px;font-size:14px;font-weight:bold;color:#ff0;box-shadow:0 0 10px rgba(255,255,0,.7);z-index:5;font-family:'Courier New',monospace;letter-spacing:1px}
+
+#nest-buttons{display:flex;gap:12px;justify-content:center;margin-top:16px;flex-wrap:wrap}
+.nest-btn{padding:10px 20px;border-radius:6px;border:2px solid #000;cursor:pointer;font-family:'Courier New',monospace;font-weight:bold;font-size:14px;letter-spacing:1px;transition:all .15s;display:flex;align-items:center;justify-content:center}
+#reroll-btn{background:linear-gradient(135deg,#88f,#44f);color:#fff;box-shadow:0 0 15px rgba(100,140,255,.7)}
+#reroll-btn:hover:not(:disabled){transform:scale(1.06);box-shadow:0 0 25px rgba(100,140,255,1)}
+#reroll-btn:disabled{background:#333;color:#666;cursor:not-allowed;box-shadow:none}
+#skip-btn{background:linear-gradient(135deg,#0f0,#0a0);color:#000;box-shadow:0 0 15px rgba(0,255,0,.7)}
+#skip-btn:hover:not(:disabled){transform:scale(1.06);box-shadow:0 0 25px rgba(0,255,0,1)}
+#skip-btn:disabled{background:#333;color:#666;cursor:not-allowed;box-shadow:none}
+#info-btn{background:linear-gradient(135deg,#ff0,#a80);color:#000;box-shadow:0 0 15px rgba(255,200,0,.7)}
+#info-btn:hover{transform:scale(1.06);box-shadow:0 0 25px rgba(255,200,0,1)}
+
+#nest-synergy-status{margin-top:14px;font-size:12px;color:#8f8;letter-spacing:1px}
+
+/* ═══ SYNERGY PANEL (submenu) ═══ */
+#nest-synergy-panel{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  background:linear-gradient(180deg,rgba(0,20,0,.98),rgba(0,10,0,.99));
+  border:3px solid #0f0;padding:22px;z-index:1200;max-width:90vw;max-height:85vh;
+  overflow-y:auto;display:none;box-shadow:0 0 50px #0f0,inset 0 0 30px rgba(0,255,0,.1);
+  font-family:'Courier New',monospace;color:#0f0;min-width:560px;border-radius:8px}
+#nest-synergy-panel.show{display:block;animation:panelIn .25s ease-out}
+@keyframes panelIn{from{opacity:0;transform:translate(-50%,-50%) scale(.92)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+#nest-synergy-panel::before,#nest-synergy-panel::after{content:'';position:absolute;width:14px;height:14px;border:2px solid #0f0;box-shadow:0 0 8px #0f0}
+#nest-synergy-panel::before{top:-4px;left:-4px;border-right:none;border-bottom:none}
+#nest-synergy-panel::after{bottom:-4px;right:-4px;border-left:none;border-top:none}
+.syn-panel-header{font-size:22px;font-weight:bold;margin-bottom:16px;text-align:center;color:#ff0;letter-spacing:4px;border-bottom:2px solid #0f0;padding-bottom:12px;text-shadow:0 0 15px #ff0}
+.syn-panel-section{margin-bottom:18px;padding:10px;background:rgba(0,20,0,.4);border-left:3px solid #0f0;border-radius:3px}
+.syn-panel-section-title{font-size:14px;font-weight:bold;color:#ff0;margin-bottom:10px;letter-spacing:2px}
+.syn-panel-tag{display:flex;align-items:flex-start;gap:10px;padding:6px 8px;margin-bottom:6px;background:rgba(0,0,0,.3);border-left:3px solid #333;border-radius:3px}
+.syn-panel-tag-icon{font-size:24px;width:34px;text-align:center;flex-shrink:0}
+.syn-panel-tag-body{flex:1;min-width:0}
+.syn-panel-tag-name{font-weight:bold;margin-bottom:4px;font-size:13px}
+.syn-panel-tag-progress{font-size:11px;color:#888;margin-bottom:3px}
+.syn-panel-tag-bonus{font-size:11px;color:#8f8;padding-left:8px;line-height:1.4;margin-bottom:2px}
+.syn-panel-tag-locked{font-size:11px;color:#555;font-style:italic;padding-left:8px;line-height:1.4}
+.syn-panel-duo{padding:8px 10px;margin-bottom:6px;background:rgba(150,50,200,.15);border-left:3px solid #f0f;font-size:12px;border-radius:3px}
+.syn-panel-duo-name{color:#f0f;font-weight:bold;margin-bottom:3px}
+.syn-panel-duo-desc{color:#ccc;font-size:11px}
+.syn-panel-buffs{display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px}
+.syn-panel-buff{padding:5px 8px;background:rgba(0,0,0,.4);border:1px solid #333;border-radius:3px;display:flex;justify-content:space-between}
+.syn-panel-buff-label{color:#888}
+.syn-panel-buff-val{color:#0f0;font-weight:bold}
+.syn-panel-close{text-align:center;margin-top:16px;padding-top:12px;border-top:1px dashed #0f0;color:#8f8;font-size:12px;letter-spacing:1px}
+
+/* ═══ DOOM DIALOG ═══ */
+#doom-dialog{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:linear-gradient(180deg,rgba(30,0,0,.98),rgba(10,0,0,.98));border:4px solid #f00;padding:30px 40px;display:none;pointer-events:all;text-align:center;box-shadow:0 0 60px #f00,inset 0 0 30px rgba(255,0,0,.2);z-index:1500;min-width:460px;border-radius:10px}
+#doom-dialog h2{color:#f00;text-shadow:0 0 20px #f00;font-size:32px;margin:0 0 16px;letter-spacing:4px;animation:doomPulse 1s infinite alternate}
+@keyframes doomPulse{from{transform:scale(1)}to{transform:scale(1.05)}}
+#doom-dialog p{color:#fc8;font-size:14px;line-height:1.6;margin:6px 0}
+#doom-dialog .doom-buttons{display:flex;gap:16px;justify-content:center;margin-top:22px}
+#doom-yes,#doom-no{padding:14px 26px;color:#fff;border:2px solid #f88;border-radius:6px;cursor:pointer;font-family:'Courier New',monospace;font-weight:bold;font-size:16px;letter-spacing:2px}
+#doom-yes{background:linear-gradient(135deg,#f00,#800);box-shadow:0 0 20px rgba(255,0,0,.8)}
+#doom-yes:hover{transform:scale(1.06);box-shadow:0 0 35px #f00}
+#doom-no{background:linear-gradient(135deg,#0f0,#080);color:#000;border-color:#8f8;box-shadow:0 0 20px rgba(0,255,0,.6)}
+#doom-no:hover{transform:scale(1.06)}
+
+#curse-indicator{position:absolute;bottom:270px;left:20px;padding:6px 12px;background:rgba(60,0,0,.85);border:2px solid #f00;border-radius:5px;font-size:12px;color:#f88;font-weight:bold;display:none;letter-spacing:1px;box-shadow:0 0 10px rgba(255,0,0,.5)}
+#curse-indicator.show{display:block}
+#curse-indicator.critical{animation:cursePulse .8s infinite alternate}
+@keyframes cursePulse{from{box-shadow:0 0 10px rgba(255,0,0,.5)}to{box-shadow:0 0 25px rgba(255,0,0,1),0 0 40px rgba(255,50,50,.5)}}
+
+#game-over{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,.97);border:3px solid #f00;padding:36px;display:none;text-align:center;color:#f00;font-size:24px;z-index:1000;pointer-events:all;min-width:400px;max-width:600px;box-shadow:0 0 60px #f00}
+#final-damage-report{margin-top:15px;font-size:15px;text-align:left;max-height:200px;overflow-y:auto;padding:10px;background:rgba(0,0,0,.5);border:1px solid #500;border-radius:5px}
+#modifiers-list{max-height:150px;overflow-y:auto;font-size:12px}
+#hitmarker{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;opacity:0;transition:opacity .1s}
+#hitmarker.show{opacity:1}
+#headshot-text{position:absolute;top:40%;left:50%;transform:translate(-50%,-50%);color:#ff0;font-size:32px;font-weight:bold;text-shadow:0 0 10px #ff0,0 0 20px #fa0;pointer-events:none;opacity:0;transition:opacity .3s;letter-spacing:3px}
+#headshot-text.show{opacity:1;animation:headshotPop .4s}
+@keyframes headshotPop{0%{transform:translate(-50%,-50%) scale(1.6)}100%{transform:translate(-50%,-50%) scale(1)}}
+#map-style{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#ff0;font-size:48px;font-weight:bold;text-shadow:0 0 20px #ff0;pointer-events:none;opacity:0;transition:opacity 1s;z-index:999;text-align:center}
+#map-style.show{opacity:1}
+#map-sub{font-size:20px;color:#8f8;letter-spacing:4px}
+
+#dash-label{position:absolute;bottom:230px;left:20px;font-size:11px;color:#0ff;text-shadow:0 0 5px #0ff}
+#dash-indicator{position:absolute;bottom:230px;left:20px;width:100px;height:8px;background:#300;border:1px solid #0ff;box-shadow:0 0 4px #0ff}
+#dash-fill{height:100%;background:#0ff;width:100%;box-shadow:0 0 6px #0ff}
+#aim-hint{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);font-size:12px;color:#0a0;text-shadow:0 0 5px #0a0;opacity:.6}
+
+#slow-indicator{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9982;display:none;box-shadow:inset 0 0 100px rgba(100,150,255,.7)}
+#slow-indicator.active{display:block;animation:slowPulse .6s infinite alternate}
+#slow-indicator.frozen{box-shadow:inset 0 0 200px rgba(100,200,255,1);background:rgba(100,180,255,.15)}
+@keyframes slowPulse{0%{opacity:.5}100%{opacity:1}}
+.glitch-block{position:fixed;pointer-events:none;z-index:9996;mix-blend-mode:screen}
+#glitch-overlay{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9995;opacity:0;transition:opacity .15s}
+#glitch-overlay.active{opacity:1}
+.glitch-scanlines{position:absolute;top:0;left:0;width:100%;height:100%;background:repeating-linear-gradient(0deg,rgba(255,0,0,.1) 0px,rgba(255,0,0,.1) 1px,transparent 1px,transparent 3px)}
+#time-freeze-overlay{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9981;display:none}
+#time-freeze-overlay.slow{display:block;background:rgba(50,100,255,.1)}
+#time-freeze-overlay.fast{display:block;background:rgba(255,100,50,.08)}
+#hg-hud{position:absolute;bottom:260px;left:20px;display:none;z-index:999;text-align:center}
+#hg-bar-wrap{width:120px;height:12px;background:#222;border:1px solid #ffd700;margin-bottom:4px;box-shadow:0 0 6px #ffd700}
+#hg-bar-fill{height:100%;width:100%;background-color:#6cf;background-image:repeating-linear-gradient(90deg,transparent,transparent 8px,#222 8px,#222 10px);box-shadow:0 0 8px #6cf}
+#hg-mode-label{font-size:13px;font-weight:bold;text-shadow:0 0 6px currentColor}
+#trickster-overlay{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9993;display:none;justify-content:center;align-items:center;flex-direction:column}
+#trickster-overlay.active{display:flex}
+.trick-msg{font-size:48px;font-weight:bold;text-align:center;animation:trickAnim .3s infinite alternate}
+@keyframes trickAnim{0%{transform:scale(1) rotate(-5deg);filter:hue-rotate(0deg)}100%{transform:scale(1.2) rotate(5deg);filter:hue-rotate(90deg)}}
+@keyframes dmgFloat{0%{transform:translate(-50%,-50%) scale(1);opacity:1}100%{transform:translate(-50%,-160%) scale(.7);opacity:0}}
+.dmg-num{position:fixed;font-weight:bold;pointer-events:none;z-index:9000;font-family:'Courier New',monospace;animation:dmgFloat .7s ease-out forwards;will-change:transform,opacity}
+</style>
+</head>
+<body>
+
+<script>
+(function(){
+  window.addEventListener('error', function(e){
+    var el = document.getElementById('js-error-banner');
+    if(!el) return;
+    el.style.display = 'block';
+    var fname = (e.filename||'').split('/').pop() || '?';
+    el.textContent = '❌ JS ERROR: ' + e.message + '  @  ' + fname + ':' + e.lineno + ':' + e.colno;
+  }, true);
+})();
+</script>
+
+<div id="js-error-banner"></div>
+<div id="crt-overlay"></div>
+<div id="crt-vignette"></div>
+
+<div id="sys-bar">
+  <span class="sys-item"><span class="sys-label">FPS</span><span class="sys-val" id="sys-fps">60</span></span>
+  <span class="sys-sep">│</span>
+  <span class="sys-item"><span class="sys-label">PING</span><span class="sys-val" id="sys-ping">14</span><span class="sys-label">ms</span></span>
+  <span class="sys-sep">│</span>
+  <span class="sys-item"><span class="sys-label">CPU</span><span class="sys-val" id="sys-cpu">42%</span></span>
+  <span class="sys-sep">│</span>
+  <span class="sys-item"><span class="sys-label">MEM</span><span class="sys-val" id="sys-mem">1.8G</span></span>
+  <span class="sys-sep">│</span>
+  <span class="sys-item"><span class="sys-label">NET</span><span class="sys-val" style="color:#0f0">OK</span></span>
+  <span class="sys-sep">│</span>
+  <span class="sys-item"><span class="sys-label">REC</span><span class="sys-val" style="color:#f00;animation:blinkSlow 1s infinite">●</span></span>
+</div>
+
+<div id="pause-overlay"><div class="pause-mark">PAUSE</div></div>
+
+<div id="slow-indicator"></div>
+<div id="glitch-overlay"><div class="glitch-scanlines"></div></div>
+<div id="time-freeze-overlay"></div>
+<div id="trickster-overlay"><div class="trick-msg" id="trick-msg"></div></div>
+<div id="hg-hud"><div id="hg-bar-wrap"><div id="hg-bar-fill"></div></div><div id="hg-mode-label">⏳ ГОТОВО</div></div>
+
+<div id="ui">
+<div id="crosshair"></div>
+<div id="charge-indicator"><div id="charge-fill"></div></div>
+<div id="overheat-indicator"><div id="overheat-fill"></div></div>
+<div id="hitmarker"><svg width="30" height="30" viewBox="0 0 30 30">
+  <line x1="8" y1="8" x2="12" y2="12" stroke="#fff" stroke-width="2"/>
+  <line x1="22" y1="8" x2="18" y2="12" stroke="#fff" stroke-width="2"/>
+  <line x1="8" y1="22" x2="12" y2="18" stroke="#fff" stroke-width="2"/>
+  <line x1="22" y1="22" x2="18" y2="18" stroke="#fff" stroke-width="2"/>
+</svg></div>
+<div id="headshot-text">HEADSHOT!</div>
+<div id="reload-overlay">ПЕРЕЗАРЯДКА</div>
+<div id="jam-overlay">⚠ ЗАКЛИНИЛО! [R]</div>
+<div id="freeze-overlay">❄ ЗАМОРОЖЕН ❄</div>
+<div id="debug-indicator">⚙ DEBUG — &lt; &gt; смена оружия</div>
+<div id="debug-toast"></div>
+<div id="map-style"><div id="map-sub"></div></div>
+
+<div id="synergy-hud"></div>
+<div id="synergy-banner"></div>
+<div id="duo-banner"></div>
+
+<div id="weapon-info" class="ui-panel">
+  <div style="font-size:18px;font-weight:bold" id="weapon-name">ПИСТОЛЕТ</div>
+  <div>Тип: <span id="weapon-type">Базовый</span></div>
+  <div>Урон: <span id="weapon-damage">25</span></div>
+  <div>Скорострельность: <span id="weapon-rate">1.5</span>/с</div>
+  <div>Дальность: <span id="weapon-range">50</span>м</div>
+  <div id="weapon-slots"></div>
+</div>
+
+<div id="wave-info" class="ui-panel">
+  <div style="font-size:18px;font-weight:bold">ВОЛНА <span id="wave-num" class="wave-num-big">1</span></div>
+  <div>Враги: <span id="enemies-left">0</span></div>
+  <div>Убито: <span id="enemies-killed">0</span></div>
+  <div style="margin-top:10px">Модификаторы:</div>
+  <div id="modifiers-list"></div>
+</div>
+
+<div id="radar" class="ui-panel"><canvas id="radar-canvas" width="180" height="180"></canvas></div>
+
+<div id="health-panel" class="ui-panel">
+  <div style="font-size:16px;font-weight:bold">ЗДОРОВЬЕ</div>
+  <div class="bar"><div class="bar-fill" id="health-bar" style="width:100%"></div></div>
+  <div id="health-text">100 / 100</div>
+  <div style="margin-top:10px;font-size:16px;font-weight:bold">БРОНЯ</div>
+  <div class="bar"><div class="bar-fill" id="armor-bar" style="width:0%;background:#00f"></div></div>
+  <div id="armor-text">0 / 100</div>
+</div>
+
+<div id="ammo-panel" class="ui-panel">
+  <div style="font-size:16px;font-weight:bold">ПАТРОНЫ</div>
+  <div id="ammo-text">12 / 12</div>
+  <div id="reload-status"></div>
+</div>
+
+<div id="dash-label">РЫВОК [SHIFT] | ПРИЦЕЛ [RMB]</div>
+<div id="dash-indicator"><div id="dash-fill"></div></div>
+<div id="aim-hint">[RMB] — прицеливание (точность ↑)</div>
+
+<div id="curse-indicator">💀 КУРС: 0/3</div>
+
+<!-- ═══ NEST ═══ -->
+<div id="nest-screen">
+  <h2>🎰 ГНЕЗДО 🎰</h2>
+  <p id="nest-hint">Выбери карту: <span class="key-hint">Q</span> <span class="key-hint">W</span> <span class="key-hint">E</span> <span class="key-hint">R</span> <span class="key-hint">T</span></p>
+  <div id="nest-cards"></div>
+  <div id="nest-buttons">
+    <button id="reroll-btn" class="nest-btn">🔄 РЕРОЛЛ <span class="key-hint">[A]</span></button>
+    <button id="skip-btn" class="nest-btn">⏭ ПРОПУСК <span class="key-hint">[S]</span></button>
+    <button id="info-btn" class="nest-btn">📊 СИНЕРГИИ <span class="key-hint">[D]</span></button>
+  </div>
+  <div id="nest-synergy-status"></div>
+</div>
+
+<!-- ═══ SYNERGY PANEL ═══ -->
+<div id="nest-synergy-panel">
+  <div class="syn-panel-header">📊 СИНЕРГИИ И БАФФЫ</div>
+  <div id="nest-synergy-panel-body"></div>
+  <div class="syn-panel-close">[D] или [ESC] — закрыть</div>
+</div>
+
+<!-- ═══ DOOM DIALOG ═══ -->
+<div id="doom-dialog">
+  <h2>⚠ DOOM-ВОЛНА ⚠</h2>
+  <p>Враги: <span style="color:#f88">+50% HP, +30% DMG</span></p>
+  <p>Награда: <span style="color:#8f8">4 карты в драфте + гарантированный эпик</span></p>
+  <p>Риск: <span style="color:#f00">смерть = конец рана</span></p>
+  <div class="doom-buttons">
+    <button id="doom-yes">💀 ВЗЯТЬ РИСК <span class="key-hint">[Q]</span></button>
+    <button id="doom-no">⏭ ПРОПУСТИТЬ <span class="key-hint">[W]</span></button>
+  </div>
+</div>
+
+<!-- ═══ GAME OVER ═══ -->
+<div id="game-over">
+  <h1>ТЫ МЁРТВ</h1>
+  <p>Волна: <span id="final-wave">1</span></p>
+  <p>Убито врагов: <span id="final-kills">0</span></p>
+  <div id="final-damage-report"></div>
+  <button onclick="location.reload()" style="margin-top:20px;padding:15px 30px;font-size:20px;background:#f00;border:none;cursor:pointer;color:#fff;font-family:'Courier New',monospace;letter-spacing:2px">ЗАНОВО</button>
+</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="config.js"></script>
+<script src="engine.js"></script>
+<script src="weapons.js"></script>
+<script src="enemies.js"></script>
+<script src="game.js"></script>
+
+<script>
+(function(){
+  function rnd(a,b){return a+Math.floor(Math.random()*(b-a+1))}
+  setInterval(function(){
+    try{
+      var f=document.getElementById('sys-fps'),p=document.getElementById('sys-ping'),
+          c=document.getElementById('sys-cpu'),m=document.getElementById('sys-mem');
+      if(f) f.textContent=rnd(56,62);
+      if(p) p.textContent=rnd(8,32);
+      if(c) c.textContent=rnd(28,58)+'%';
+      if(m) m.textContent=(1.6+Math.random()*0.6).toFixed(1)+'G';
+    }catch(e){}
+  },900);
+})();
+</script>
+</body>
+</html>
