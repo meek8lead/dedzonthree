@@ -1,5 +1,5 @@
 'use strict';
-// INDUSTRIAL ROGUE SHOOTER v5.0 — ENEMIES (with synergy effects)
+// INDUSTRIAL ROGUE SHOOTER v5.2 — ENEMIES (ice dog + slug puddles + verkhushka stones + illusionist death)
 
 let _icegunShotCounter = 0;
 
@@ -36,7 +36,7 @@ class Enemy {
     this._wasFrozen = false;
     this.sawEmbedded = null;
     this.puddleTimer = 0;
-    this.puddleInterval = 2+Math.random()*2;
+    this.puddleInterval = 1 + Math.random()*0.6;
     this.shootTimer = 0;
     this.speedBoost = 0;
     this.chargeTime = 0;
@@ -82,6 +82,11 @@ class Enemy {
     this._ufoInit = false;
     this.cowCooldown = 2 + Math.random()*2;
     this.cowsDropped = 0;
+    // Ice Dog
+    this.dogState = 'charge';
+    this.freezeCooldown = 0;
+    this.discCooldown = 1.5 + Math.random();
+    this.dogLeapCooldown = 2 + Math.random();
 
     this.setupStats();
     this.buildModel();
@@ -145,7 +150,6 @@ class Enemy {
     const dm = modifiers.includes('2x_damage') ? 2 : 1;
     const sm = modifiers.includes('faster') ? 1.5 : 1;
     const sl = modifiers.includes('slow_time') ? .7 : 1;
-    // Global wave scaling (set by game.js)
     const surgeHP = window.waveSurgeHP || 1;
     const surgeDMG = window.waveSurgeDMG || 1;
     const waveHP = (1+(wave-1)*BALANCE.waveHPBase + Math.max(0,wave-10)*BALANCE.waveHPAccel) * surgeHP;
@@ -168,7 +172,8 @@ class Enemy {
       chess_horse:[180,0,0,40,.8,2.0,1.85,.4],chess_elephant:[180,0,0,40,.8,2.2,2.0,.4],
       cheerful:[60,.035,.01,25,.9,1.2,0,0],ufo:[200,.03,.005,15,1.5,1.2,0,0],
       cow:[300,0,0,0,1.0,1.5,0,0],green_alien:[40,.035,.01,12,.5,1.4,1.3,.25],
-      hothead:[70,.04,.01,15,.6,1.7,1.6,.3]
+      hothead:[70,.04,.01,15,.6,1.7,1.6,.3],
+      ice_dog:[95,.055,.015,18,.7,1.1,0,0]
     };
     const s = stats[this.type] || stats.human;
     this.health = s[0]*hm*waveHP;
@@ -201,16 +206,16 @@ class Enemy {
     if(this.type === 'tank'){ this.shootCooldown = 10; this.weaponType = 'tank_shell' }
     if(this.type === 'mortar'){ this.shootCooldown = 3.5+Math.random()*1.5 }
     if(this.type === 'illusionist'){ this.shootCooldown = 1.8+Math.random()*.5 }
-    if(this.type === 'verkhushka'){ this.shootCooldown = 2.5+Math.random()*1 }
+    if(this.type === 'verkhushka'){ this.shootCooldown = 1.8+Math.random()*.6 }
     if(this.type === 'wallbreaker'){ this.shootCooldown = 1.2+Math.random()*.4 }
     if(this.type === 'drone'){ this.isFlying = true; this.baseY = 1.5 + Math.random()*0.4 }
     if(this.type === 'ufo'){ this.isFlying = true; this.baseY = 4 + Math.random()*0.5 }
-    this.canDodge = ['runner','spider','gunner','sniper_enemy','spitter','ninja'].includes(this.type);
-    this.dodgeChance = this.type === 'ninja' ? .9 : .7;
+    this.canDodge = ['runner','spider','gunner','sniper_enemy','spitter','ninja','ice_dog'].includes(this.type);
+    this.dodgeChance = this.type === 'ninja' ? .9 : (this.type === 'ice_dog' ? 0.35 : 0.7);
   }
 
   buildModel(){
-    const b = {human:()=>this.mHuman(),robot:()=>this.mRobot(),runner:()=>this.mRunner(),tank:()=>this.mTank(),drone:()=>this.mDrone(),shooter:()=>this.mShooter(),bomber:()=>this.mBomber(),spitter:()=>this.mSpitter(),gunner:()=>this.mGunner(),sniper_enemy:()=>this.mSniperE(),shotgunner:()=>this.mShotgunner(),rocketeer:()=>this.mRocketeer(),spawner:()=>this.mSpawner(),enemy_shotgunner:()=>this.mEnemyShotgunner(),slug:()=>this.mSlug(),trickster:()=>this.mTrickster(),spider:()=>this.mSpider(),chariot:()=>this.mChariot(),ninja:()=>this.mNinja(),fortifier:()=>this.mFortifier(),worm:()=>this.mWorm(),mortar:()=>this.mMortar(),illusionist:()=>this.mIllusionist(),illusion_copy:()=>this.mIllusionCopy(),wallbreaker:()=>this.mWallbreaker(),verkhushka:()=>this.mVerkhushka(),chess_horse:()=>this.mChessHorse(),chess_elephant:()=>this.mChessElephant(),cheerful:()=>this.mCheerful(),ufo:()=>this.mUFO(),cow:()=>this.mCow(),green_alien:()=>this.mGreenAlien(),hothead:()=>this.mHothead()};
+    const b = {human:()=>this.mHuman(),robot:()=>this.mRobot(),runner:()=>this.mRunner(),tank:()=>this.mTank(),drone:()=>this.mDrone(),shooter:()=>this.mShooter(),bomber:()=>this.mBomber(),spitter:()=>this.mSpitter(),gunner:()=>this.mGunner(),sniper_enemy:()=>this.mSniperE(),shotgunner:()=>this.mShotgunner(),rocketeer:()=>this.mRocketeer(),spawner:()=>this.mSpawner(),enemy_shotgunner:()=>this.mEnemyShotgunner(),slug:()=>this.mSlug(),trickster:()=>this.mTrickster(),spider:()=>this.mSpider(),chariot:()=>this.mChariot(),ninja:()=>this.mNinja(),fortifier:()=>this.mFortifier(),worm:()=>this.mWorm(),mortar:()=>this.mMortar(),illusionist:()=>this.mIllusionist(),illusion_copy:()=>this.mIllusionCopy(),wallbreaker:()=>this.mWallbreaker(),verkhushka:()=>this.mVerkhushka(),chess_horse:()=>this.mChessHorse(),chess_elephant:()=>this.mChessElephant(),cheerful:()=>this.mCheerful(),ufo:()=>this.mUFO(),cow:()=>this.mCow(),green_alien:()=>this.mGreenAlien(),hothead:()=>this.mHothead(),ice_dog:()=>this.mIceDog()};
     if(b[this.type]) b[this.type]();
   }
 
@@ -345,6 +350,8 @@ class Enemy {
     const m=new THREE.MeshStandardMaterial({color:0x6a2a8a,metalness:.3,roughness:.6,emissive:0x440066,emissiveIntensity:.4});
     this.parts.body=this.eSph(.45,12,12,m,0,.25,0); this.parts.body.scale.set(1,.5,1.4);
     this.parts.bodyMat=m;
+    this.eCyl(.03,.03,.3,6,m,-.12,.55,.3,0).rotation.x=-.4;
+    this.eCyl(.03,.03,.3,6,m,.12,.55,.3,0).rotation.x=-.4;
     const eye=new THREE.MeshBasicMaterial({color:0xff00ff});
     this.parts.eyes=[this.eSph(.06,8,8,eye,-.12,.7,.38),this.eSph(.06,8,8,eye,.12,.7,.38)];
   }
@@ -618,6 +625,82 @@ class Enemy {
     this.parts.leftLeg=this.eBox(.16,.6,.16,pt,-.13,.35,0); this.parts.rightLeg=this.eBox(.16,.6,.16,pt,.13,.35,0);
   }
 
+  // ═══ NEW: ICE DOG ═══
+  mIceDog(){
+    const furM = new THREE.MeshStandardMaterial({color:0x6a8aa8, roughness:.7, metalness:.15, emissive:0x1a2a4a, emissiveIntensity:.3});
+    const darkFurM = new THREE.MeshStandardMaterial({color:0x3a4a6a, roughness:.75, metalness:.2});
+    const iceM = new THREE.MeshStandardMaterial({color:0xaaddff, emissive:0x4488ff, emissiveIntensity:.7, transparent:true, opacity:.85});
+    const eyeM = new THREE.MeshBasicMaterial({color:0x00ffff});
+    const teethM = new THREE.MeshStandardMaterial({color:0xffffff, roughness:.4});
+
+    // Body (horizontal, dog-like)
+    this.parts.body = this.eSph(.42, 12, 10, furM, 0, .62, 0);
+    this.parts.body.scale.set(1.3, .95, 1.6);
+    this.parts.bodyMat = furM;
+
+    // Chest / front
+    this.eSph(.38, 10, 8, furM, 0, .58, .32);
+
+    // Neck + head
+    const neck = this.eCyl(.18, .22, .35, 8, furM, 0, .78, .48, 0);
+    neck.rotation.x = -.6;
+    this.parts.head = this.eSph(.28, 12, 10, furM, 0, .82, .82);
+    this.parts.head.scale.set(1.15, 1, 1.2);
+
+    // Snout
+    this.eBox(.22, .18, .3, furM, 0, .74, 1.08);
+    this.eSph(.09, 8, 8, darkFurM, 0, .68, 1.2);
+
+    // Teeth
+    for(let i=0;i<4;i++){
+      const tooth = this.eCone(.025, .1, 4, teethM, -.08 + i*.055, .65, 1.14, Math.PI);
+      tooth.rotation.x = Math.PI;
+    }
+
+    // Eyes (glowing cyan)
+    this.parts.eyes = [
+      this.eSph(.055, 8, 8, eyeM, -.13, .95, .95),
+      this.eSph(.055, 8, 8, eyeM, .13, .95, .95)
+    ];
+
+    // Ears (pointy)
+    this.eCone(.09, .22, 5, darkFurM, -.16, 1.06, .74, -.2);
+    this.eCone(.09, .22, 5, darkFurM, .16, 1.06, .74, -.2);
+
+    // Ice crystals on back (signature)
+    for(let i=0;i<5;i++){
+      const angle = (i/5) * Math.PI - Math.PI/2;
+      const crystal = this.eCone(.06 + Math.random()*.03, .18 + Math.random()*.12, 4, iceM, Math.cos(angle)*.15, .95 - i*.05, -.15 + i*.1, .1);
+      crystal.rotation.z = Math.cos(angle)*.3;
+    }
+    // Big central ice spike
+    this.eCone(.1, .35, 5, iceM, 0, 1.05, -.05, -.1);
+
+    // Tail (icy)
+    const tail = this.eCyl(.06, .02, .55, 6, iceM, 0, .85, -.65, 0);
+    tail.rotation.x = -1.2;
+    this.parts.tail = tail;
+
+    // Legs (4, dog-style horizontal)
+    this.parts.legs = [];
+    const legPositions = [
+      [-.28, .22, .35], [.28, .22, .35],
+      [-.28, .22, -.25], [.28, .22, -.25]
+    ];
+    legPositions.forEach((p, i) => {
+      const upper = this.eCyl(.09, .075, .4, 6, darkFurM, p[0], .42, p[2], 0);
+      upper.rotation.x = .05;
+      const lower = this.eCyl(.06, .04, .35, 6, furM, p[0], .14, p[2], 0);
+      const paw = this.eSph(.1, 6, 6, darkFurM, p[0], .04, p[2] + .05);
+      paw.scale.set(1, .5, 1.4);
+      this.parts.legs.push({upper, lower, paw, side: p[0] < 0 ? -1 : 1, front: p[2] > 0 ? 1 : -1, phase: i * .5});
+    });
+
+    // Frost aura particles
+    this.parts.frost = this.eSph(.5, 10, 10, new THREE.MeshBasicMaterial({color:0x88ccff, transparent:true, opacity:.15, side:THREE.BackSide, depthWrite:false}), 0, .5, 0);
+    this.parts.frost.scale.set(1.5, 1, 2);
+  }
+
   getHitboxBounds(){
     if(this.isFlying) return {minY:this.group.position.y-this.height/2, maxY:this.group.position.y+this.height/2, headWorldY:this.group.position.y+this.height/4};
     return {minY:this.group.position.y, maxY:this.group.position.y+this.height, headWorldY:this.group.position.y+(this.headY||this.height*.85)};
@@ -629,6 +712,19 @@ class Enemy {
         if(wp.distanceTo(hitPoint) < .55){ this.lastHitSegment=i; return i===0?'head':'body' }
       }
       return null;
+    }
+    // Ice dog: horizontal hitbox, use radius larger
+    if(this.type === 'ice_dog'){
+      const dx = hitPoint.x-this.group.position.x, dz = hitPoint.z-this.group.position.z;
+      const distXZ = Math.sqrt(dx*dx+dz*dz);
+      if(distXZ > this.radius*1.6) return null;
+      if(hitPoint.y < 0.05 || hitPoint.y > 1.15) return null;
+      // Head is at z=0.82, y=0.82
+      const headDX = hitPoint.x-this.group.position.x;
+      const headDZ = hitPoint.z-(this.group.position.z + Math.cos(this.rotationY)*0.82);
+      const headDY = hitPoint.y-0.82;
+      if(Math.sqrt(headDX*headDX+headDY*headDY+headDZ*headDZ) < 0.45) return 'head';
+      return 'body';
     }
     const dx=hitPoint.x-this.group.position.x, dz=hitPoint.z-this.group.position.z;
     const distXZ=Math.sqrt(dx*dx+dz*dz);
@@ -698,6 +794,18 @@ class Enemy {
       enemies.push(copy);
       this.copiesLeft++;
     }
+  }
+  killAllCopies(){
+    // Kill all copies belonging to THIS illusionist
+    const myCopies = enemies.filter(e => !e.dead && e.type === 'illusion_copy' && e.parentIllusionist === this);
+    myCopies.forEach(copy => {
+      copy.dead = true;
+      // Small fade effect
+      createBloodEffect(copy.group.position, 'robot');
+      scene.remove(copy.group);
+      const idx = enemies.indexOf(copy);
+      if(idx > -1) enemies.splice(idx, 1);
+    });
   }
   splitAt(idx){
     if(idx<=0 || idx>=this.segments.length) return;
@@ -885,6 +993,113 @@ class Enemy {
     if(this.damageFlash > 0){ this.damageFlash -= dt; if(this.parts.bodyMat){ this.parts.bodyMat.emissive.setRGB(1,1,1); this.parts.bodyMat.emissiveIntensity=this.damageFlash*5 } }
   }
 
+  // ═══ NEW: ICE DOG AI ═══
+  updateIceDog(dt, dx, dz, dist){
+    // Freeze touch cooldown
+    if(this.freezeCooldown > 0) this.freezeCooldown -= dt;
+    if(this.discCooldown > 0) this.discCooldown -= dt;
+
+    // Face player smoothly
+    this.facePlayer(dt, 10);
+
+    // Animate legs (running on 4 legs)
+    if(this.parts.legs){
+      this.walkPhase += dt * 12;
+      this.parts.legs.forEach((leg, i) => {
+        const ph = this.walkPhase + leg.phase;
+        // Front legs and back legs move in opposite phase (diagonal gait)
+        const offset = leg.front * Math.PI;
+        leg.upper.rotation.x = Math.sin(ph + offset) * .7;
+        leg.lower.rotation.x = Math.sin(ph + offset + .5) * .5;
+      });
+    }
+    if(this.parts.tail){
+      this.parts.tail.rotation.z = Math.sin(Date.now() * .008) * .3;
+    }
+    if(this.parts.frost){
+      this.parts.frost.material.opacity = .1 + Math.sin(Date.now() * .006) * .08;
+    }
+
+    // Bite: if close to player
+    if(dist < 2.2 && this.freezeCooldown <= 0){
+      // Freeze player for 0.7s
+      player.freezeTimer = Math.max(player.freezeTimer, 0.7);
+      damagePlayer(this.damage * 0.8, this.type, 1.0);
+      this.freezeCooldown = 3.0;
+      audio.freezeBurst();
+      // Small leap back
+      const kb = new THREE.Vector3(-dx, 0, -dz).normalize();
+      this.group.position.add(kb.multiplyScalar(.6));
+      return;
+    }
+
+    // Disc attack: if in range 2.5-20 and cd ready
+    if(dist > 2.5 && dist < 20 && this.discCooldown <= 0 && hasLineOfSight(this.group.position, player.position)){
+      this.discCooldown = 2.2 + Math.random() * 1.0;
+      audio.enemyShoot();
+      const from = this.group.position.clone();
+      from.y += .75;
+      const to = new THREE.Vector3(player.position.x, player.position.y - 0.2, player.position.z);
+      const dir = to.clone().sub(from).normalize();
+      // Ice disc — flattened cylinder, slow
+      const disc = new THREE.Group();
+      const discMesh = new THREE.Mesh(
+        new THREE.CylinderGeometry(.32, .32, .06, 16),
+        new THREE.MeshBasicMaterial({color:0x88ddff, transparent:true, opacity:.9})
+      );
+      discMesh.rotation.x = Math.PI / 2;
+      disc.add(discMesh);
+      // Inner glow
+      const innerDisc = new THREE.Mesh(
+        new THREE.CylinderGeometry(.22, .22, .08, 16),
+        new THREE.MeshBasicMaterial({color:0xffffff, transparent:true, opacity:.7})
+      );
+      innerDisc.rotation.x = Math.PI / 2;
+      disc.add(innerDisc);
+      // Frost trail
+      const trail = new THREE.Mesh(
+        new THREE.ConeGeometry(.18, .5, 8),
+        new THREE.MeshBasicMaterial({color:0xaaddff, transparent:true, opacity:.4})
+      );
+      trail.rotation.x = Math.PI / 2;
+      trail.position.z = .35;
+      disc.add(trail);
+      disc.position.copy(from);
+      disc.lookAt(to);
+      disc.userData.velocity = dir.multiplyScalar(.38); // slow
+      disc.userData.damage = this.damage * 0.7;
+      disc.userData.isEnemyProjectile = true;
+      disc.userData.sourceType = 'ice_dog';
+      disc.userData.life = 220;
+      disc.userData.isIceDisc = true;
+      disc.userData.slowsPlayer = true;
+      disc.userData.armorMult = 2.5; // Strips lots of armor
+      disc.userData.hpMult = 1.0;
+      scene.add(disc);
+      projectiles.push(disc);
+    }
+
+    // Charge towards player if too far
+    if(dist > 2.0){
+      const np = this.group.position.clone();
+      const spd = this.speed * 55 * dt;
+      np.x += (dx / Math.max(.01, dist)) * spd;
+      np.z += (dz / Math.max(.01, dist)) * spd;
+      if(!this.checkColliderCollision(np) && Math.abs(np.x) < 23 && Math.abs(np.z) < 23){
+        this.group.position.x = np.x;
+        this.group.position.z = np.z;
+      }
+    }
+
+    if(this.damageFlash > 0){
+      this.damageFlash -= dt;
+      if(this.parts.bodyMat){
+        this.parts.bodyMat.emissive.setRGB(1,1,1);
+        this.parts.bodyMat.emissiveIntensity = this.damageFlash * 5;
+      }
+    }
+  }
+
   update(dt){
     if(this.dead) return;
 
@@ -894,7 +1109,6 @@ class Enemy {
       if(this.frozenTimer <= 0 && this.parts.bodyMat){ this.parts.bodyMat.emissive.copy(this.origEmissive); this.parts.bodyMat.emissiveIntensity=this.origEmissiveIntensity }
       if(!this._wasFrozen){
         this._wasFrozen = true;
-        // ICE R3: крио-взрыв при заморозке
         if(hasSynergy('ice',3)){
           createAOESphere(this.group.position, 4, 0x88ccff);
           enemies.slice().forEach(e=>{
@@ -909,14 +1123,12 @@ class Enemy {
     if(this._wasFrozen){ this._wasFrozen = false }
     if(this.iceResetTimer > 0){ this.iceResetTimer -= dt; if(this.iceResetTimer <= 0) this.iceHits = 0 }
 
-    // BURN DOT
     if(this.burnTimer > 0){
       this.burnTimer -= dt;
       if(!isEnemyShielded(this)){
         this.health -= dt * (this.burnDps || 10);
         if(this.parts.bodyMat){ this.parts.bodyMat.emissive.setRGB(1,.4,0); this.parts.bodyMat.emissiveIntensity=.6 }
       }
-      // FIRE R2 spread
       if(this.burnSpread > 0 && !this._burnSpreadApplied){
         this._burnSpreadApplied = true;
         enemies.slice().forEach(e=>{
@@ -928,7 +1140,6 @@ class Enemy {
       if(this.burnTimer <= 0 && this.parts.bodyMat){ this.parts.bodyMat.emissive.copy(this.origEmissive); this.parts.bodyMat.emissiveIntensity=this.origEmissiveIntensity }
       if(this.health <= 0){ this.die(); return }
     }
-    // POISON DOT
     if(this.poisonTimer > 0){
       this.poisonTimer -= dt;
       if(!isEnemyShielded(this)){
@@ -938,7 +1149,6 @@ class Enemy {
       if(this.poisonTimer <= 0 && this.parts.bodyMat){ this.parts.bodyMat.emissive.copy(this.origEmissive); this.parts.bodyMat.emissiveIntensity=this.origEmissiveIntensity }
       if(this.health <= 0){ this.die(); return }
     }
-    // BLEED DOT (CRIT R3)
     if(this.bleedTimer > 0){
       this.bleedTimer -= dt;
       this.health -= dt * (this.bleedDps || 5);
@@ -960,21 +1170,34 @@ class Enemy {
     let sm=1;
     if(this.slowTimer > 0){ this.slowTimer -= dt; sm=.5 }
     if(modifiers.includes('ice_aura') && dist < 5) sm *= .5;
-    // TIME R1: аура замедления вокруг игрока
     if(hasSynergy('time',1) && dist < 4) sm *= .85;
-    // CHRONOS curse
     if(playerBuffs.enemySpeedMult > 1) sm *= playerBuffs.enemySpeedMult;
     if(this.type !== 'trickster' && !hgFrozen){
       if(hgState === 'slow') sm *= SLOW_TIMESCALE;
       else if(hgState === 'fast') sm *= FAST_TIMESCALE;
     }
 
+    // Dispatch new AIs
     if(this.type === 'chess_horse' || this.type === 'chess_elephant'){ this.updateChess(dt,dx,dz,dist); return }
     if(this.type === 'cheerful'){ this.updateCheerful(dt,dx,dz,dist); return }
     if(this.type === 'ufo'){ this.updateUFO(dt,dx,dz,dist); return }
     if(this.type === 'cow'){ this.updateCow(dt); return }
     if(this.type === 'green_alien'){ this.updateGreenAlien(dt,dx,dz,dist); return }
     if(this.type === 'hothead'){ this.updateHothead(dt,dx,dz,dist); return }
+    if(this.type === 'ice_dog'){ this.updateIceDog(dt,dx,dz,dist); return }
+
+    // ═══ SLUG — puddle dropping ═══
+    if(this.type === 'slug'){
+      this.puddleTimer += dt;
+      if(this.puddleTimer >= this.puddleInterval){
+        this.puddleTimer = 0;
+        this.puddleInterval = 1 + Math.random()*0.6;
+        // Leave purple damaging puddle
+        const puddlePos = this.group.position.clone();
+        puddlePos.y = 0.05;
+        createPoisonPuddle(puddlePos);
+      }
+    }
 
     if(this.type === 'worm'){
       this.group.rotation.y=0;
@@ -1198,19 +1421,45 @@ class Enemy {
       }
       if(this.vkState === 'active'){
         this.facePlayer(dt,4);
-        this.group.position.y=.35+Math.sin(Date.now()*.003)*.05;
+        this.group.position.y=0.35+Math.sin(Date.now()*.003)*.05;
         this.group.rotation.z=Math.sin(Date.now()*.01)*.3;
+        if(this.parts.emitter){ const s=1+Math.sin(Date.now()*.008)*.3; this.parts.emitter.scale.setScalar(s) }
         this.shootTimer += dt;
         if(this.shootTimer >= this.shootCooldown && dist < 25){
           this.shootTimer=0;
-          audio.beamFire();
-          const from=this.group.position.clone(); from.y+=.3;
-          const to=player.position.clone(); to.y-=.4;
-          const geo=new THREE.TubeGeometry(new THREE.CatmullRomCurve3([from,to]),8,.05,6,false);
-          const beam=new THREE.Mesh(geo,new THREE.MeshBasicMaterial({color:0xffdd00,transparent:true,opacity:.9}));
-          scene.add(beam);
-          lightningBolts.push({mesh:beam, life:.2, maxLife:.2});
-          damagePlayer(this.damage,'verkhushka',.7,{armorMult:2.0,hpMult:.25,burn:true});
+          audio.play('mortarLaunch');
+          // Fire BIG stone
+          const from = this.group.position.clone();
+          from.y += .5;
+          const to = new THREE.Vector3(player.position.x, player.position.y - 0.3, player.position.z);
+          const dir = to.clone().sub(from).normalize();
+          // Big stone — thick sphere + a few small rocks around for bulk
+          const stone = new THREE.Group();
+          const mainRock = new THREE.Mesh(
+            new THREE.IcosahedronGeometry(.35, 0),
+            new THREE.MeshStandardMaterial({color:0x6a5a4a, roughness:.95, metalness:.1})
+          );
+          stone.add(mainRock);
+          for(let r=0;r<4;r++){
+            const chip = new THREE.Mesh(
+              new THREE.IcosahedronGeometry(.12 + Math.random()*.08, 0),
+              new THREE.MeshStandardMaterial({color:0x5a4a3a, roughness:.9})
+            );
+            chip.position.set((Math.random()-.5)*.35, (Math.random()-.5)*.35, (Math.random()-.5)*.35);
+            stone.add(chip);
+          }
+          stone.position.copy(from);
+          stone.lookAt(to);
+          stone.userData.velocity = dir.multiplyScalar(.32); // SLOW — very slow
+          stone.userData.damage = this.damage * 0.9;
+          stone.userData.isEnemyProjectile = true;
+          stone.userData.sourceType = 'verkhushka';
+          stone.userData.life = 320;
+          stone.userData.isStone = true;
+          stone.userData.armorMult = 2.0; // Strips armor
+          stone.userData.hpMult = 1.0;
+          scene.add(stone);
+          projectiles.push(stone);
         }
         return;
       }
@@ -1437,12 +1686,10 @@ class Enemy {
     else if(this.type === 'slug') this.group.scale.y=1+Math.sin(p*2)*.15;
   }
 
-  // ═══ TAKE DAMAGE — главный апдейт фазы 2 ═══
   takeDamage(dmg, hitPoint, damageType, opts){
     if(this.dead) return false;
     opts = opts || {};
 
-    // Whip signature — 1-shot на <50 HP
     if(currentWeapon && currentWeapon.weaponClass === 'whip' && hasSignature('whip','crit',2)){
       if(this.health < 50){
         spawnDamageNumber(hitPoint, 9999, true);
@@ -1451,7 +1698,6 @@ class Enemy {
       }
     }
 
-    // Cheerful whip = insta
     if(this.type === 'cheerful' && currentWeapon && currentWeapon.weaponClass === 'whip'){
       spawnDamageNumber(hitPoint, 9999, true);
       this.die();
@@ -1485,13 +1731,11 @@ class Enemy {
     const _dt = damageType !== undefined ? damageType : (currentWeapon ? currentWeapon.damageType : undefined);
     let fd = dmg;
 
-    // ═══ THERMAL SHOCK ═══
     if(this.burnTimer > 0 && _dt === 'ice') fd *= 1.3;
     if(this.frozenTimer > 0 && _dt === 'fire') fd *= 1.5;
     if(this.poisonTimer > 0 && _dt === 'explosive') fd *= 1.3;
     if(this.slowTimer > 0 && opts.isCrit) fd *= 1.2;
 
-    // Headshot
     if(ht === 'head'){
       fd *= 2.5;
       audio.headshot();
@@ -1506,14 +1750,13 @@ class Enemy {
       showHitmarker(false);
     } else {
       audio.hit();
-      createBloodEffect(hitPoint, ['robot','tank','drone','spawner','trickster','chariot','fortifier','mortar','wallbreaker','ufo'].includes(this.type)?'robot':'human');
+      createBloodEffect(hitPoint, ['robot','tank','drone','spawner','trickster','chariot','fortifier','mortar','wallbreaker','ufo','ice_dog'].includes(this.type)?'robot':'human');
       showHitmarker(false);
     }
 
     if(modifiers.includes('always_crit') || (modifiers.includes('critical') && Math.random()<.2)){ fd *= 3; cameraShake(.1,.2) }
     if(modifiers.includes('lifesteal')){ player.health=Math.min(player.maxHealth,player.health+5); updateUI() }
 
-    // Apply status effects from opts (set by weapons.js via game.js)
     if(opts.burn){ this.burnTimer=Math.max(this.burnTimer, opts.burn.duration); this.burnDps=opts.burn.dps; this.burnSpread=opts.burn.spread||0; this._burnSpreadApplied=false }
     if(opts.poison){
       this.poisonTimer=Math.max(this.poisonTimer, opts.poison.duration);
@@ -1524,7 +1767,6 @@ class Enemy {
       this.slowTimer=Math.max(this.slowTimer, opts.slow.duration);
       this.iceHits++;
       this.iceResetTimer=2;
-      // ICE R2: 3 замедления → заморозка
       if(hasSynergy('ice',2) && this.iceHits >= 3){
         this.frozenTimer=Math.max(this.frozenTimer, 2);
         this.iceHits=0;
@@ -1543,12 +1785,10 @@ class Enemy {
         }
       });
     }
-    // CRIT R3: криты накладывают кровотечение
     if(opts.isCrit && hasSynergy('crit',3)){
       this.bleedTimer=Math.max(this.bleedTimer, 5);
       this.bleedDps=5;
     }
-    // Icegun signature — каждый 3-й выстрел = заморозка
     if(currentWeapon && currentWeapon.weaponClass === 'icegun'){
       _icegunShotCounter++;
       if(hasSignature('icegun','ice',2) && _icegunShotCounter % 3 === 0){
@@ -1557,7 +1797,6 @@ class Enemy {
       }
     }
 
-    // Legacy damage type effects
     if(_dt === 'fire') this.burnTimer=Math.max(this.burnTimer, 3);
     if(_dt === 'acid') this.poisonTimer=Math.max(this.poisonTimer, 3);
     if(_dt === 'ice'){
@@ -1614,23 +1853,43 @@ class Enemy {
       return;
     }
 
+    // ILLUSIONIST death — kill all its copies
+    if(this.type === 'illusionist'){
+      this.killAllCopies();
+    }
+
     this.dead=true;
     audio.death();
-    createBloodEffect(this.group.position, ['robot','tank','drone','spawner','trickster','chariot','fortifier','mortar','wallbreaker','ufo'].includes(this.type)?'robot':'human');
+    createBloodEffect(this.group.position, ['robot','tank','drone','spawner','trickster','chariot','fortifier','mortar','wallbreaker','ufo','ice_dog'].includes(this.type)?'robot':'human');
     cameraShake(.1,.2);
     hitstopTime = Math.max(hitstopTime, .07);
 
-    // BERZERKER duo — огонь лечит
     if(activeDuos.includes('berzerker') && this.burnTimer > 0){
       player.health = Math.min(player.maxHealth, player.health + Math.floor(this.maxHealth * 0.1));
       updateUI();
     }
 
-    // POISON R2 — лужа при убийстве
-    if(hasSynergy('poison',2) && (this.poisonTimer > 0 || currentWeapon && currentWeapon.damageType === 'acid')){
+    // SLUG death — leave puddle
+    if(this.type === 'slug'){
+      createPoisonPuddle(this.group.position.clone());
+      // Extra 2 puddles in a small circle
+      const ang1 = Math.random() * Math.PI * 2;
+      const ang2 = ang1 + Math.PI * 0.7;
+      createPoisonPuddle(new THREE.Vector3(
+        this.group.position.x + Math.cos(ang1) * 0.8,
+        0.05,
+        this.group.position.z + Math.sin(ang1) * 0.8
+      ));
+      createPoisonPuddle(new THREE.Vector3(
+        this.group.position.x + Math.cos(ang2) * 0.8,
+        0.05,
+        this.group.position.z + Math.sin(ang2) * 0.8
+      ));
+    }
+
+    if(hasSynergy('poison',2) && (this.poisonTimer > 0 || (currentWeapon && currentWeapon.damageType === 'acid'))){
       createPoisonPuddle(this.group.position.clone());
     }
-    // FIRE R3 — огненный взрыв
     if(hasSynergy('fire',3) && this.burnTimer > 0){
       createExplosion(this.group.position);
       createAOESphere(this.group.position, 3, 0xff4400);
@@ -1639,7 +1898,6 @@ class Enemy {
           e.takeDamage(30, e.group.position, 'fire');
       });
     }
-    // EXPLOSIVE R3 — взрыв при смерти
     if(hasSynergy('explosive',3)){
       createExplosion(this.group.position);
       createAOESphere(this.group.position, 3, 0xff8800);
@@ -1648,7 +1906,6 @@ class Enemy {
           e.takeDamage(40, e.group.position, 'explosive');
       });
     }
-    // SUMMON R3 — миньон
     if(hasSynergy('summon',3)){
       const mn = new Enemy('runner', this.group.position.clone().add(new THREE.Vector3(1,0,0)), {friendlyMinion:true});
       mn.isFriendlyMinion = true;
@@ -1656,7 +1913,6 @@ class Enemy {
       mn.parts.bodyMat.color.setHex(0x00ff66);
       enemies.push(mn);
     }
-    // Necro signature — зомби
     if(currentWeapon && currentWeapon.weaponClass === 'necro' && hasSignature('necro','poison',3)){
       const z = new Enemy('runner', this.group.position.clone(), {friendlyMinion:true});
       z.isFriendlyMinion = true;
@@ -1664,7 +1920,6 @@ class Enemy {
       z.parts.bodyMat.color.setHex(0x66cc00);
       enemies.push(z);
     }
-    // AOE R3 — стягивание при убийстве
     if(hasSynergy('aoe',3)){
       enemies.slice().forEach(e=>{
         if(!e.dead && e !== this && e.group.position.distanceTo(this.group.position) < 6){
@@ -1673,10 +1928,6 @@ class Enemy {
           e.group.position.add(pull.multiplyScalar(1.5));
         }
       });
-    }
-    // Death bomb utility
-    if(playerBuffs.deathBomb > 0 && this.type === 'bomber'){
-      // handled by bomber explode
     }
 
     if(modifiers.includes('vampire')) player.health=Math.min(player.maxHealth,player.health+10);
