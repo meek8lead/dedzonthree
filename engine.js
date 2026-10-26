@@ -1157,20 +1157,55 @@ function createMuzzleFlash(){
     piercing:0x00ffff, explosive:0xff8800, poison:0x88ff33
   };
   const color = cols[currentWeapon.damageType] || 0xffff00;
-  const f = new THREE.Mesh(new THREE.SphereGeometry(.35,8,8), new THREE.MeshBasicMaterial({color, transparent:true, opacity:1}));
+  // Bigger, longer-lived flash
+  const f = new THREE.Mesh(new THREE.SphereGeometry(.48,8,8), new THREE.MeshBasicMaterial({color, transparent:true, opacity:1}));
   f.position.copy(camera.position);
   const d = new THREE.Vector3(0,0,-1);
   d.applyQuaternion(camera.quaternion);
-  f.position.add(d.multiplyScalar(1));
-  f.userData.life = 5;
+  f.position.add(d.clone().multiplyScalar(1.1));
+  f.userData.life = 10;
   scene.add(f);
   particles.push(f);
-  const flash = new THREE.PointLight(color, 3, 4);
-  flash.position.copy(camera.position).add(d.clone().multiplyScalar(1));
+  // Additional side sparks
+  for(let i=0;i<4;i++){
+    const sp = new THREE.Mesh(new THREE.SphereGeometry(.1,4,4), new THREE.MeshBasicMaterial({color, transparent:true, opacity:1}));
+    sp.position.copy(camera.position).add(d.clone().multiplyScalar(1.1));
+    sp.userData.velocity = new THREE.Vector3(
+      d.x*.15 + (Math.random()-.5)*.15,
+      d.y*.15 + (Math.random()-.5)*.15,
+      d.z*.15 + (Math.random()-.5)*.15
+    );
+    sp.userData.life = 6 + Math.random()*4;
+    scene.add(sp);
+    particles.push(sp);
+  }
+  const flash = new THREE.PointLight(color, 4, 5);
+  flash.position.copy(camera.position).add(d.clone().multiplyScalar(1.1));
   scene.add(flash);
-  setTimeout(()=>scene.remove(flash), 60);
+  setTimeout(()=>scene.remove(flash), 80);
+
+  // ═══ PISTOL SMOKE ═══
+  if(currentWeapon.weaponClass === 'pistol' || currentWeapon.weaponClass === 'revolver'){
+    for(let i=0;i<5;i++){
+      const smoke = new THREE.Mesh(
+        new THREE.SphereGeometry(.14 + Math.random()*.1, 6, 6),
+        new THREE.MeshBasicMaterial({color:0xaaaaaa, transparent:true, opacity:.35})
+      );
+      smoke.position.copy(camera.position).add(d.clone().multiplyScalar(1.2));
+      const spread = .3;
+      smoke.userData.velocity = new THREE.Vector3(
+        d.x*.15 + (Math.random()-.5)*spread,
+        d.y*.15 + (Math.random()-.5)*spread + .08,
+        d.z*.15 + (Math.random()-.5)*spread
+      );
+      smoke.userData.life = 30 + Math.random()*20;
+      scene.add(smoke);
+      particles.push(smoke);
+    }
+  }
+
   DOM.crosshair.classList.add('fire');
-  setTimeout(()=>DOM.crosshair.classList.remove('fire'), 100);
+  setTimeout(()=>DOM.crosshair.classList.remove('fire'), 120);
 }
 function createWallSpark(p){
   for(let i=0;i<8;i++){
