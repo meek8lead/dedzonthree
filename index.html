@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>INDUSTRIAL ROGUE SHOOTER v5.1</title>
+<title>INDUSTRIAL ROGUE SHOOTER v5.3</title>
 <style>
 body{margin:0;overflow:hidden;font-family:'Courier New',monospace;background:#000}
 canvas{display:block}
@@ -95,7 +95,6 @@ canvas{display:block}
 #duo-banner{background:linear-gradient(180deg,rgba(180,50,220,.95),rgba(80,20,120,.95));border:3px solid #e0f;color:#fff;font-size:24px;box-shadow:0 0 40px rgba(220,80,255,.9),inset 0 0 20px rgba(255,150,255,.3);text-shadow:0 0 8px #f0f}
 #synergy-banner.show,#duo-banner.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
-/* ═══ PAUSE OVERLAY (industrial) ═══ */
 #pause-overlay{position:fixed;inset:0;z-index:999;display:none;
   background:
     repeating-linear-gradient(45deg, transparent 0, transparent 24px, rgba(30,30,30,.55) 24px, rgba(30,30,30,.55) 48px),
@@ -117,10 +116,23 @@ canvas{display:block}
   font-family:'Courier New',monospace;user-select:none}
 @keyframes pauseBlink{from{opacity:.3}to{opacity:.8}}
 
-/* ═══ KEY HINT ═══ */
-.key-hint{display:inline-block;padding:2px 8px;margin-left:8px;background:rgba(0,0,0,.7);
-  border:2px solid currentColor;border-radius:4px;font-size:.85em;font-weight:bold;
-  letter-spacing:1px;box-shadow:0 0 8px currentColor;opacity:.9}
+/* ═══ PRESS Y OVERLAY ═══ */
+#press-y-overlay{position:fixed;inset:0;z-index:1010;display:none;
+  align-items:center;justify-content:center;flex-direction:column;
+  pointer-events:none;background:rgba(0,0,0,.35)}
+#press-y-overlay.show{display:flex}
+.press-y-key{font-size:120px;font-weight:bold;color:#ff0;
+  text-shadow:0 0 30px #ff0,0 0 60px #fa0,0 0 90px #f80;
+  font-family:'Courier New',monospace;
+  animation:yPulse .8s infinite alternate;
+  border:4px solid #ff0;border-radius:12px;padding:10px 50px;
+  background:rgba(0,0,0,.85);
+  box-shadow:0 0 50px #ff0,inset 0 0 30px rgba(255,255,0,.3);
+  line-height:1}
+.press-y-text{font-size:22px;color:#ff0;margin-top:24px;letter-spacing:5px;
+  font-family:'Courier New',monospace;animation:yPulse .8s infinite alternate;
+  text-shadow:0 0 15px #ff0,0 0 30px #fa0;font-weight:bold}
+@keyframes yPulse{0%{transform:scale(1);opacity:.7}100%{transform:scale(1.06);opacity:1}}
 
 /* ═══ NEST SCREEN ═══ */
 #nest-screen{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:linear-gradient(180deg,rgba(10,0,0,.98),rgba(0,0,0,.99));border:4px solid #ff0;padding:28px 36px;display:none;pointer-events:all;text-align:center;box-shadow:0 0 60px #ff0,inset 0 0 30px rgba(255,255,0,.15);z-index:1000;min-width:780px;max-width:96vw;border-radius:10px}
@@ -130,17 +142,31 @@ canvas{display:block}
 #nest-screen h2{color:#ff0;text-shadow:0 0 15px #ff0,0 0 30px #fa0;font-size:30px;margin:0 0 6px 0;letter-spacing:4px}
 #nest-hint{color:#8f8;font-size:13px;margin:0 0 16px;letter-spacing:1px}
 #nest-cards{display:flex;justify-content:center;gap:20px;margin:20px 0;perspective:1000px;flex-wrap:wrap}
-.nest-card{width:200px;min-height:280px;border:3px solid #666;background:linear-gradient(135deg,rgba(40,40,40,.95),rgba(20,20,20,.95));border-radius:8px;padding:14px;cursor:pointer;transition:all .18s;text-align:left;display:flex;flex-direction:column;position:relative;overflow:hidden}
-.nest-card:hover{transform:translateY(-8px) scale(1.04);z-index:10;border-color:#0f0;box-shadow:0 0 25px rgba(0,255,0,.7),0 10px 25px rgba(0,0,0,.5)}
+
+.nest-card{width:200px;min-height:280px;border:3px solid #666;background:linear-gradient(135deg,rgba(40,40,40,.95),rgba(20,20,20,.95));border-radius:8px;padding:14px;cursor:pointer;transition:all .18s;text-align:left;display:flex;flex-direction:column;position:relative;overflow:hidden;
+  animation:cardFloat 3s ease-in-out infinite alternate;
+  will-change:transform}
+@keyframes cardFloat{
+  0%{transform:rotate(-1deg) translateY(0px)}
+  100%{transform:rotate(1deg) translateY(-4px)}
+}
+.nest-card:hover{animation:none;transform:translateY(-8px) scale(1.04);z-index:10;border-color:#0f0;box-shadow:0 0 25px rgba(0,255,0,.7),0 10px 25px rgba(0,0,0,.5)}
 .nest-card.common{border-color:#888}
 .nest-card.rare{border-color:#48f;box-shadow:0 0 12px rgba(72,136,255,.4)}
 .nest-card.epic{border-color:#c4f;box-shadow:0 0 15px rgba(200,80,255,.5)}
-.nest-card.legendary{border-color:#f80;box-shadow:0 0 20px rgba(255,140,0,.7);animation:legendPulse 1s infinite alternate}
+.nest-card.legendary{border-color:#f80;box-shadow:0 0 20px rgba(255,140,0,.7)}
 .nest-card.curse{border-color:#f00;background:linear-gradient(135deg,rgba(60,0,0,.95),rgba(30,0,0,.95));box-shadow:0 0 15px rgba(255,0,0,.6)}
 .nest-card.curse:hover{border-color:#f88;box-shadow:0 0 30px rgba(255,0,0,.9),0 0 50px rgba(255,50,50,.5)}
-.nest-card.synergy-ready{border-color:#ffd700;box-shadow:0 0 30px rgba(255,215,0,.9),0 0 60px rgba(255,200,0,.4);animation:synergyReadyPulse .8s infinite alternate}
-@keyframes synergyReadyPulse{from{transform:scale(1)}to{transform:scale(1.04)}}
-@keyframes legendPulse{from{transform:scale(1)}to{transform:scale(1.03)}}
+.nest-card.synergy-ready{border-color:#ffd700;box-shadow:0 0 30px rgba(255,215,0,.9),0 0 60px rgba(255,200,0,.4)}
+
+/* Cards locked until Y pressed */
+#nest-cards.waiting-y .nest-card{
+  opacity:.35;
+  pointer-events:none;
+  filter:grayscale(.6) blur(1px);
+  animation-play-state:paused;
+}
+
 .nest-card-icon{font-size:40px;text-align:center;margin-bottom:8px}
 .nest-card-type{font-size:10px;letter-spacing:1px;color:#888;text-transform:uppercase;margin-bottom:4px}
 .nest-card-name{font-size:15px;font-weight:bold;color:#fff;line-height:1.2;margin-bottom:6px;min-height:36px}
@@ -173,20 +199,28 @@ canvas{display:block}
 
 #nest-synergy-status{margin-top:14px;font-size:12px;color:#8f8;letter-spacing:1px}
 
-/* ═══ SYNERGY PANEL (submenu) ═══ */
+.key-hint{display:inline-block;padding:2px 8px;margin-left:8px;background:rgba(0,0,0,.7);border:2px solid currentColor;border-radius:4px;font-size:.85em;font-weight:bold;letter-spacing:1px;box-shadow:0 0 8px currentColor;opacity:.9}
+
+/* ═══ SYNERGY PANEL — scrollable ═══ */
 #nest-synergy-panel{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
   background:linear-gradient(180deg,rgba(0,20,0,.98),rgba(0,10,0,.99));
-  border:3px solid #0f0;padding:22px;z-index:1200;max-width:90vw;max-height:85vh;
-  overflow-y:auto;display:none;box-shadow:0 0 50px #0f0,inset 0 0 30px rgba(0,255,0,.1);
-  font-family:'Courier New',monospace;color:#0f0;min-width:560px;border-radius:8px}
+  border:3px solid #0f0;padding:22px;z-index:1200;max-width:90vw;
+  max-height:85vh;overflow-y:auto;overflow-x:hidden;
+  display:none;box-shadow:0 0 50px #0f0,inset 0 0 30px rgba(0,255,0,.1);
+  font-family:'Courier New',monospace;color:#0f0;min-width:560px;border-radius:8px;
+  scrollbar-width:thin;scrollbar-color:#0f0 rgba(0,20,0,.5)}
+#nest-synergy-panel::-webkit-scrollbar{width:14px}
+#nest-synergy-panel::-webkit-scrollbar-track{background:rgba(0,20,0,.6);border:1px solid #0f0;border-radius:4px}
+#nest-synergy-panel::-webkit-scrollbar-thumb{background:linear-gradient(180deg,#0f0,#080);border:1px solid #0a0;border-radius:3px;box-shadow:inset 0 0 8px rgba(0,255,0,.5)}
+#nest-synergy-panel::-webkit-scrollbar-thumb:hover{background:linear-gradient(180deg,#0f0,#0f0)}
 #nest-synergy-panel.show{display:block;animation:panelIn .25s ease-out}
 @keyframes panelIn{from{opacity:0;transform:translate(-50%,-50%) scale(.92)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
-#nest-synergy-panel::before,#nest-synergy-panel::after{content:'';position:absolute;width:14px;height:14px;border:2px solid #0f0;box-shadow:0 0 8px #0f0}
+#nest-synergy-panel::before,#nest-synergy-panel::after{content:'';position:absolute;width:14px;height:14px;border:2px solid #0f0;box-shadow:0 0 8px #0f0;z-index:2}
 #nest-synergy-panel::before{top:-4px;left:-4px;border-right:none;border-bottom:none}
 #nest-synergy-panel::after{bottom:-4px;right:-4px;border-left:none;border-top:none}
 .syn-panel-header{font-size:22px;font-weight:bold;margin-bottom:16px;text-align:center;color:#ff0;letter-spacing:4px;border-bottom:2px solid #0f0;padding-bottom:12px;text-shadow:0 0 15px #ff0}
 .syn-panel-section{margin-bottom:18px;padding:10px;background:rgba(0,20,0,.4);border-left:3px solid #0f0;border-radius:3px}
-.syn-panel-section-title{font-size:14px;font-weight:bold;color:#ff0;margin-bottom:10px;letter-spacing:2px}
+.syn-panel-section-title{font-size:14px;font-weight:bold;color:#ff0;margin-bottom:10px;letter-spacing:2px;position:sticky;top:-22px;background:linear-gradient(180deg,rgba(0,20,0,.98),rgba(0,20,0,.85));padding:6px 0;z-index:1}
 .syn-panel-tag{display:flex;align-items:flex-start;gap:10px;padding:6px 8px;margin-bottom:6px;background:rgba(0,0,0,.3);border-left:3px solid #333;border-radius:3px}
 .syn-panel-tag-icon{font-size:24px;width:34px;text-align:center;flex-shrink:0}
 .syn-panel-tag-body{flex:1;min-width:0}
@@ -201,7 +235,7 @@ canvas{display:block}
 .syn-panel-buff{padding:5px 8px;background:rgba(0,0,0,.4);border:1px solid #333;border-radius:3px;display:flex;justify-content:space-between}
 .syn-panel-buff-label{color:#888}
 .syn-panel-buff-val{color:#0f0;font-weight:bold}
-.syn-panel-close{text-align:center;margin-top:16px;padding-top:12px;border-top:1px dashed #0f0;color:#8f8;font-size:12px;letter-spacing:1px}
+.syn-panel-close{text-align:center;margin-top:16px;padding-top:12px;border-top:1px dashed #0f0;color:#8f8;font-size:12px;letter-spacing:1px;position:sticky;bottom:0;background:linear-gradient(180deg,rgba(0,10,0,.85),rgba(0,10,0,.98));padding-bottom:6px}
 
 /* ═══ DOOM DIALOG ═══ */
 #doom-dialog{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:linear-gradient(180deg,rgba(30,0,0,.98),rgba(10,0,0,.98));border:4px solid #f00;padding:30px 40px;display:none;pointer-events:all;text-align:center;box-shadow:0 0 60px #f00,inset 0 0 30px rgba(255,0,0,.2);z-index:1500;min-width:460px;border-radius:10px}
@@ -294,6 +328,12 @@ canvas{display:block}
 
 <div id="pause-overlay"><div class="pause-mark">PAUSE</div></div>
 
+<!-- PRESS Y OVERLAY -->
+<div id="press-y-overlay">
+  <div class="press-y-key">Y</div>
+  <div class="press-y-text">НАЖМИ Y ЧТОБЫ ПРОДОЛЖИТЬ</div>
+</div>
+
 <div id="slow-indicator"></div>
 <div id="glitch-overlay"><div class="glitch-scanlines"></div></div>
 <div id="time-freeze-overlay"></div>
@@ -362,11 +402,10 @@ canvas{display:block}
 
 <div id="curse-indicator">💀 КУРС: 0/3</div>
 
-<!-- ═══ NEST ═══ -->
 <div id="nest-screen">
   <h2>🎰 ГНЕЗДО 🎰</h2>
-  <p id="nest-hint">Выбери карту: <span class="key-hint">Q</span> <span class="key-hint">W</span> <span class="key-hint">E</span> <span class="key-hint">R</span> <span class="key-hint">T</span></p>
-  <div id="nest-cards"></div>
+  <p id="nest-hint">Выбери карту</p>
+  <div id="nest-cards" class="waiting-y"></div>
   <div id="nest-buttons">
     <button id="reroll-btn" class="nest-btn">🔄 РЕРОЛЛ <span class="key-hint">[A]</span></button>
     <button id="skip-btn" class="nest-btn">⏭ ПРОПУСК <span class="key-hint">[S]</span></button>
@@ -375,14 +414,12 @@ canvas{display:block}
   <div id="nest-synergy-status"></div>
 </div>
 
-<!-- ═══ SYNERGY PANEL ═══ -->
 <div id="nest-synergy-panel">
   <div class="syn-panel-header">📊 СИНЕРГИИ И БАФФЫ</div>
   <div id="nest-synergy-panel-body"></div>
-  <div class="syn-panel-close">[D] или [ESC] — закрыть</div>
+  <div class="syn-panel-close">[D] / [ESC] — закрыть · [↑][↓] — скролл</div>
 </div>
 
-<!-- ═══ DOOM DIALOG ═══ -->
 <div id="doom-dialog">
   <h2>⚠ DOOM-ВОЛНА ⚠</h2>
   <p>Враги: <span style="color:#f88">+50% HP, +30% DMG</span></p>
@@ -394,7 +431,6 @@ canvas{display:block}
   </div>
 </div>
 
-<!-- ═══ GAME OVER ═══ -->
 <div id="game-over">
   <h1>ТЫ МЁРТВ</h1>
   <p>Волна: <span id="final-wave">1</span></p>
