@@ -399,8 +399,17 @@ function triggerSynergyUp(tag, level){
   const meta = SYNERGY_META[tag];
   showSynergyBanner(meta.icon + ' ' + bonus.name + ' — ' + bonus.desc);
   audio.synergyUp();
-  // Visual aura - короткая вспышка
   spawnPlayerAura(meta.color);
+  // Apply permanent effects
+  if(tag === 'tank'){
+    if(level === 1){
+      player.maxHealth += 25;
+      player.health += 25;
+      updateUI();
+    } else if(level === 2){
+      playerBuffs.regenRate += 1.5;
+    }
+  }
 }
 function showSynergyBanner(text){
   const el = DOM.synergyBanner;
