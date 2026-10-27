@@ -1,5 +1,5 @@
 'use strict';
-// INDUSTRIAL ROGUE SHOOTER v6.1 — GAME (Pity + Credits + Shop + Hub)
+// INDUSTRIAL ROGUE SHOOTER v6.3 — GAME (Pity + Credits + Shop + Hub)
 
 let doomThisWave = false;
 let nextWaveDoom = false;
@@ -9,6 +9,8 @@ let isWaveTransitioning = false;
 let isSynergyPanelOpen = false;
 let pickLocked = false;
 let waveSpawnTimers = [];
+let nestOpenedAt = 0;
+const NEST_PICK_COOLDOWN_MS = 300;
 
 let credits = 0;
 let _lastEnemiesKilled = 0;
@@ -17,7 +19,6 @@ SYNERGY_TAGS.forEach(t => pityCounters[t] = 0);
 
 const CARD_PRICES = { common: 20, rare: 40, epic: 70, legendary: 120, curse: 10 };
 const REROLL_PRICE = 20;
-const CARD_KEY_LABELS = ['Q','W','E','R','T'];
 
 function updatePityAfterPick(pickedCard){
   const pickedTags = (pickedCard && pickedCard.tags) || [];
@@ -498,14 +499,12 @@ function createCardElement(card, idx){
     cardDesc = card.utility.desc;
   }
   if(card.isMemWeapon) typeName = '💀 МЕМ-ОРУЖИЕ';
-  const keyLabels = CARD_KEY_LABELS;
   let pityHint = '';
   if(card.pityForced) pityHint = `<div class="nest-card-hint" style="color:#0ff">🎁 ГАРАНТИЯ: ${SYNERGY_META[card.pityForced].icon}</div>`;
   else if(card.pityBoosted) pityHint = `<div class="nest-card-hint" style="color:#8f8">✨ БУСТ: ${SYNERGY_META[card.pityBoosted].icon}</div>`;
   const priceClass = canAfford ? '' : 'poor';
-  const priceLabel = card.bought ? '✓ КУПЛЕНО' : `💰 ${price}  [${keyLabels[idx] || '?'}]`;
+  const priceLabel = card.bought ? '✓ КУПЛЕНО' : `💰 ${price}`;
   el.innerHTML = `
-    <div class="nest-card-key">${keyLabels[idx] || '?'}</div>
     <div class="nest-card-icon">${icon}</div>
     <div class="nest-card-type">${typeName}</div>
     <div class="nest-card-name">${cardName}</div>
@@ -530,7 +529,7 @@ function updateRerollButton(){
   if(!btn) return;
   const canAfford = credits >= REROLL_PRICE;
   btn.disabled = !canAfford;
-  btn.innerHTML = `🔄 РЕРОЛЛ (-${REROLL_PRICE}💰) <span class="key-hint">[A]</span>`;
+  btn.innerHTML = `🔄 РЕРОЛЛ (-${REROLL_PRICE}💰)`;
 }
 function refreshNestCards(){
   if(!DOM.nestCards) return;
@@ -550,7 +549,7 @@ function refreshNestCards(){
       const p = el.querySelector('.nest-card-price');
       if(p){
         p.classList.toggle('poor', !affordable);
-        p.textContent = `💰 ${price}  [${CARD_KEY_LABELS[i] || '?'}]`;
+        p.textContent = `💰 ${price}`;
       }
     }
   });
@@ -559,24 +558,35 @@ function refreshNestCards(){
 function renderNestScreen(){
   if(!DOM.nestScreen) return;
   DOM.nestScreen.style.display = 'block';
-  DOM.nestHint.innerHTML = `Выбери карту для покупки: <span class="key-hint">Q</span> <span class="key-hint">W</span> <span class="key-hint">E</span> <span class="key-hint">R</span> <span class="key-hint">T</span>  |  💰 <span style="color:#ff0">${credits}</span>`;
+  DOM.nestHint.innerHTML = `Выбери карту для покупки мышкой  |  💰 <span style="color:#ff0">${credits}</span>`;
   const cardsEl = DOM.nestCards;
   cardsEl.innerHTML = '';
   cardsEl.classList.remove('waiting-y');
+  nestOpenedAt = performance.now();
   currentDraft.forEach((card, i) => {
     const cardEl = createCardElement(card, i);
+    if(performance.now() - nestOpenedAt < NEST_PICK_COOLDOWN_MS){
+      cardEl.classList.add('locked');
+    }
     cardEl.style.opacity = '0';
     cardsEl.appendChild(cardEl);
     cardEl.addEventListener('click', (e) => {
       e.stopPropagation();
+      if(performance.now() - nestOpenedAt < NEST_PICK_COOLDOWN_MS) return;
       pickCard(i);
     });
     setTimeout(() => {
       cardEl.style.transition = 'opacity .4s';
       cardEl.style.opacity = '1';
+      cardEl.classList.remove('locked');
       audio.slotDing();
     }, i * 280);
   });
+  // Через 300мс разлочиваем все карточки
+  setTimeout(() => {
+    if(!DOM.nestCards) return;
+    DOM.nestCards.querySelectorAll('.nest-card.locked').forEach(el => el.classList.remove('locked'));
+  }, NEST_PICK_COOLDOWN_MS);
   updateRerollButton();
   renderNestSynergyStatus();
 }
@@ -1596,35 +1606,12 @@ function buildOpts(p){
   return opts;
 }
 
+// В меню (nest, casino, dice, blood) — никаких клавиш. Всё мышкой.
 document.addEventListener('keydown', e=>{
-  // В хабе играем только если открыт драфт/синергии. Иначе hub.js обрабатывает.
-  if(hubMode && !isNestActive && !isSynergyPanelOpen) return;
-
-  if(isSynergyPanelOpen){
-    if(e.code === 'KeyD' || e.code === 'Escape'){ toggleSynergyPanel(); e.preventDefault(); return; }
-    const panel = document.getElementById('nest-synergy-panel');
-    if(panel){
-      if(e.code === 'ArrowUp'){ panel.scrollTop -= 60; e.preventDefault(); return; }
-      if(e.code === 'ArrowDown'){ panel.scrollTop += 60; e.preventDefault(); return; }
-      if(e.code === 'PageUp'){ panel.scrollTop -= 400; e.preventDefault(); return; }
-      if(e.code === 'PageDown'){ panel.scrollTop += 400; e.preventDefault(); return; }
-    }
-    return;
-  }
-  const nestEl = document.getElementById('nest-screen');
-  if(isNestActive && nestEl && nestEl.style.display === 'block'){
-    const idxMap = {KeyQ:0, KeyW:1, KeyE:2, KeyR:3, KeyT:4};
-    if(idxMap[e.code] !== undefined){
-      const idx = idxMap[e.code];
-      if(idx < currentDraft.length) pickCard(idx);
-      e.preventDefault();
-      return;
-    }
-    if(e.code === 'KeyA'){ rerollNest(); e.preventDefault(); return; }
-    if(e.code === 'KeyS' || e.code === 'Escape'){ exitNest(); e.preventDefault(); return; }
-    if(e.code === 'KeyD'){ toggleSynergyPanel(); e.preventDefault(); return; }
-    return;
-  }
+  if(hubMode) return; // всё в hub.js
+  if(isSynergyPanelOpen) return; // панель — только мышкой (кнопка закрытия)
+  if(isNestActive) return; // карты — только мышкой
+  // Обычная игровая логика
 
   keys[e.code] = true;
   if(e.code === 'KeyR' && !isGameOver && !isNestActive) reload();
@@ -1661,6 +1648,7 @@ document.addEventListener('mouseup', e=>{
 });
 document.addEventListener('contextmenu', e=>e.preventDefault());
 document.addEventListener('wheel', e=>{
+  if(hubMode) return;
   if(isNestActive || ownedWeapons.length < 2) return;
   switchSlot(e.deltaY > 0 ? 1 : -1);
 });
@@ -1686,6 +1674,8 @@ const exitBtn = document.getElementById('exit-btn');
 if(exitBtn) exitBtn.addEventListener('click', e=>{ e.stopPropagation(); if(isNestActive) exitNest() });
 const infoBtn = document.getElementById('info-btn');
 if(infoBtn) infoBtn.addEventListener('click', e=>{ e.stopPropagation(); if(isNestActive) toggleSynergyPanel() });
+const synPanelCloseBtn = document.getElementById('syn-panel-close-btn');
+if(synPanelCloseBtn) synPanelCloseBtn.addEventListener('click', e=>{ e.stopPropagation(); if(isSynergyPanelOpen) toggleSynergyPanel() });
 
 function doomAccept(){ pendingDoomChoice = false; nextWaveDoom = true; }
 function doomSkip(){ pendingDoomChoice = false; nextWaveDoom = false; }
@@ -1750,5 +1740,5 @@ window.onerror = function(message, source, lineno, colno, error){
   }
 };
 window.addEventListener('unhandledrejection', event=>{ GameLogger.error(`UNHANDLED PROMISE: ${event.reason}`) });
-GameLogger.info('=== v6.2 STARTED (Hub shooting + stage + economy) ===');
+GameLogger.info('=== v6.3 STARTED (lava lamp, prog rock, mouse-only menus) ===');
 window.GameLogger = GameLogger;
