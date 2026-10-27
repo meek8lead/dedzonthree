@@ -112,7 +112,8 @@ body.hub-mode #glitch-overlay{display:none!important}
 
 .nest-card{width:200px;min-height:280px;border:3px solid #666;background:linear-gradient(135deg,rgba(40,40,40,.95),rgba(20,20,20,.95));border-radius:8px;padding:14px 14px 46px 14px;cursor:pointer;transition:all .18s;text-align:left;display:flex;flex-direction:column;position:relative;overflow:hidden;
   animation:cardFloat 3s ease-in-out infinite alternate;
-  will-change:transform}
+  will-change:transform;
+  user-select:none;-webkit-user-select:none}
 @keyframes cardFloat{
   0%{transform:rotate(-1deg) translateY(0px)}
   100%{transform:rotate(1deg) translateY(-4px)}
@@ -269,8 +270,22 @@ body.hub-mode #glitch-overlay{display:none!important}
   font-size:16px;font-weight:bold;color:#f88;z-index:1500;pointer-events:none;
   border-radius:6px;box-shadow:0 0 15px #f00;display:none;
 }
+#hub-ammo{
+  position:absolute;top:120px;right:20px;background:rgba(40,40,0,.95);
+  border:2px solid #fa0;padding:6px 14px;font-family:'Courier New',monospace;
+  font-size:16px;font-weight:bold;color:#ff0;z-index:1500;pointer-events:none;
+  border-radius:6px;box-shadow:0 0 15px #fa0;display:none;
+}
+#hub-reloading{
+  position:absolute;top:170px;right:20px;background:rgba(0,20,0,.95);
+  border:2px solid #0f0;padding:6px 14px;font-family:'Courier New',monospace;
+  font-size:14px;font-weight:bold;color:#0f0;z-index:1500;pointer-events:none;
+  border-radius:6px;box-shadow:0 0 15px #0f0;display:none;
+  animation:blink .4s infinite;
+}
 body.hub-mode #hub-credits,
 body.hub-mode #hub-hp,
+body.hub-mode #hub-ammo,
 body.hub-mode #hub-wave{display:block}
 
 #credits-display{color:#ff0}
@@ -478,6 +493,8 @@ body.hub-mode #hub-wave{display:block}
 <!-- ═══ HUB UI ═══ -->
 <div id="hub-credits">💰 0</div>
 <div id="hub-hp">❤ HP: 100</div>
+<div id="hub-ammo">🔫 12/12</div>
+<div id="hub-reloading">🔄 ПЕРЕЗАРЯДКА</div>
 <div id="hub-wave">ВОЛНА 1</div>
 <div id="hub-interact-hint"></div>
 <div id="dps-display">DPS<span class="dps-val">0</span></div>
@@ -485,8 +502,8 @@ body.hub-mode #hub-wave{display:block}
 
 <!-- ═══ NEST (DRAFT) ═══ -->
 <div id="nest-screen">
-  <h2>🎰 ГНЕЗДО 🎰</h2>
-  <p id="nest-hint">Выбери карту</p>
+  <h2>🎰 СТОЛ КАРТ 🎰</h2>
+  <p id="nest-hint">Выбери карту для покупки</p>
   <div id="nest-cards"></div>
   <div id="nest-buttons">
     <button id="reroll-btn" class="nest-btn">🔄 РЕРОЛЛ <span class="key-hint">[A]</span></button>
