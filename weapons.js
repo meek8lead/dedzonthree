@@ -1,5 +1,5 @@
 'use strict';
-// INDUSTRIAL ROGUE SHOOTER v5.0 — WEAPONS (with synergy effects)
+// INDUSTRIAL ROGUE SHOOTER v6.0 — WEAPONS
 
 let _shotCounter = 0;
 let _iceShotCounter = 0;
@@ -8,10 +8,9 @@ function getJam(){ return !!(ownedWeapons[curIdx] && ownedWeapons[curIdx].jammed
 function setJam(v){ if(ownedWeapons[curIdx]) ownedWeapons[curIdx].jammed = !!v }
 function updateJamUI(){
   const el = document.getElementById('jam-overlay');
-  if(el) el.style.display = (getJam() && !isNestActive) ? 'block' : 'none';
+  if(el) el.style.display = (getJam() && !isNestActive && !hubMode) ? 'block' : 'none';
 }
 
-// ═══ SIGNATURE COMBOS ═══
 function hasSignature(weaponClass, tag, level){
   return currentWeapon.weaponClass === weaponClass && hasSynergy(tag, level);
 }
@@ -750,9 +749,8 @@ function switchWeapon(dir){
   showDebugToast('['+(debugWeaponIdx+1)+'/'+weapons.length+'] '+def.name);
 }
 
-// ═══ SHOOT ═══
 function shoot(){
-  if(isGameOver) return;
+  if(isGameOver || hubMode) return;
   if(currentWeapon.chargeable) return;
   const now = Date.now();
   if(isReloading || isNestActive) return;
@@ -764,7 +762,6 @@ function shoot(){
     return;
   }
 
-  // Self damage on shot (BERSERK)
   if(playerBuffs.selfDamageOnShot){
     player.health -= playerBuffs.selfDamageOnShot;
     updateUI();
@@ -779,7 +776,6 @@ function shoot(){
       weaponHeat = MAX_HEAT;
       isOverheated = true;
       audio.overheat();
-      // POISON R3: перегрев = ядовитая нова
       if(hasSynergy('poison',3)){
         createExplosion(player.position);
         createAOESphere(player.position, 5, 0x00ff00);
@@ -807,7 +803,7 @@ function shoot(){
 
 function executeShoot(isBurst = false){
   const now = Date.now();
-  if(isGameOver) return;
+  if(isGameOver || hubMode) return;
   if(isReloading || isNestActive) return;
   if(currentWeapon.weaponClass === 'lohostvol' && getJam()) return;
 
@@ -827,7 +823,6 @@ function executeShoot(isBurst = false){
   if(currentWeapon.weaponClass === 'turret'){ deployTurret(); return }
   if(currentWeapon.weaponClass === 'melee'){ doMeleeAttack(now); return }
 
-  // Ammo save (speed R3 / minigun signature)
   const ghostSave = (hasSynergy('speed',3) || hasSignature('minigun','speed',3)) && Math.random() < 0.30;
   const isAcidO = currentWeapon.weaponClass === 'acidotronator';
   if(!modifiers.includes('infinite_ammo') && !isAcidO && !ghostSave){
@@ -846,7 +841,6 @@ function executeShoot(isBurst = false){
   if(modifiers.includes('glass_cannon')) dmg *= 2;
   dmg *= playerBuffs.damageMult;
 
-  // Crit roll
   let critHappened = false;
   const finalCritChance = playerBuffs.critChance + (hasSynergy('crit',1) ? 0.10 : 0) + (modifiers.includes('critical') ? 0.20 : 0);
   if(modifiers.includes('always_crit') || Math.random() < finalCritChance){
@@ -892,7 +886,6 @@ function executeShoot(isBurst = false){
   const moveInacc = (!isAiming && player.isMoving) ? .22 : 0;
   const weaponFalloff = currentWeapon.falloff || false;
 
-  // Explosive R2 / BERSERK every N-th shot AOE
   let forceAoe = false;
   if((hasSynergy('explosive',2) && _shotCounter % 5 === 0) ||
      (playerBuffs.everyNthAoe > 0 && _shotCounter % playerBuffs.everyNthAoe === 0)){
@@ -985,7 +978,6 @@ function executeShoot(isBurst = false){
       || currentWeapon.weaponClass === 'revolver'
       || currentWeapon.weaponClass === 'singularity'
       || currentWeapon.weaponClass === 'sun';
-    // SNIPER signature: crit R3 → пробивает 3
     if(hasSignature('sniper','crit',3)) finalPiercing = true;
     p.userData.piercing = finalPiercing;
 
@@ -1009,7 +1001,6 @@ function executeShoot(isBurst = false){
     p.userData.falloff = weaponFalloff;
     p.userData.weaponRange = currentWeapon.range;
 
-    // ═══ SYNERGY TAG EFFECTS на снаряде ═══
     if(hasSynergy('fire',1) && Math.random() < 0.25){
       p.userData.burn = {
         duration: 3 * playerBuffs.burnDur * (hasSynergy('fire',3)?2:1),
@@ -1030,23 +1021,18 @@ function executeShoot(isBurst = false){
         stacks: playerBuffs.poisonStacks
       };
     }
-    // TIME R2 — каждое попадание замедляет
-    if(hasSynergy('time',2)){
+    if(hasSynergy('ice',2)){
       if(!p.userData.slow) p.userData.slow = {duration: .3, power: .3};
     }
-    // CHRONOS curse
     if(playerBuffs.allShotsSlow > 0){
       if(!p.userData.slow) p.userData.slow = {duration: playerBuffs.allShotsSlow, power: .3};
     }
-    // TIME R3 — 8% шанс заморозки всех в 12м
-    if(hasSynergy('time',3) && Math.random() < 0.08){
+    if(hasSynergy('ice',3) && Math.random() < 0.08){
       p.userData.freezeAoe = 12;
     }
-    // Deadshot duo — криты поджигают
     if(critHappened && activeDuos.includes('deadshot')){
       p.userData.burn = {duration: 3, dps: 6, spread: 0};
     }
-    // Frostsniper duo — криты замораживают
     if(critHappened && activeDuos.includes('frostsniper')){
       p.userData.freeze = {duration: 1.5};
     }
@@ -1055,7 +1041,6 @@ function executeShoot(isBurst = false){
     projectiles.push(p);
   }
 
-  // double_shot modifier
   if(modifiers.includes('double_shot') && pellets === 1){
     for(let k=0; k<2; k++){
       const d2 = new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion);
@@ -1091,7 +1076,7 @@ function executeShoot(isBurst = false){
 }
 
 function fireChargedShot(charge){
-  if(isGameOver || isNestActive || isReloading) return;
+  if(isGameOver || isNestActive || isReloading || hubMode) return;
   if(!currentWeapon.chargeable) return;
   const now = Date.now();
   if(now-lastShotTime < 1000/currentWeapon.fireRate) return;
@@ -1153,7 +1138,6 @@ function fireChargedShot(charge){
     proj.userData.aoe = 0;
     proj.userData.isPlayerBullet = true;
     proj.userData.falloff = false;
-    // Tag effects
     if(hasSynergy('fire',1) && Math.random() < 0.25){
       proj.userData.burn = {duration: 3*playerBuffs.burnDur*(hasSynergy('fire',3)?2:1), dps: 5*(hasSynergy('fire',3)?1.5:1), spread: hasSynergy('fire',2)?3:0};
     }
@@ -1210,7 +1194,7 @@ function fireChargedShot(charge){
 }
 
 function reload(){
-  if(isGameOver) return;
+  if(isGameOver || hubMode) return;
   resetChargingState();
   if(currentWeapon.weaponClass === 'hourglass' || currentWeapon.weaponClass === 'melee') return;
   const jammed = getJam();
