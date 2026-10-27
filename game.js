@@ -350,15 +350,15 @@ function onYPressed(){
   const yEl = document.getElementById('press-y-overlay');
   if(yEl) yEl.classList.remove('show');
 
-  if((wave + 1) % BALANCE.doomEvery === 0 && !doomThisWave){
-    pendingDoomChoice = true;
-    const doomEl = document.getElementById('doom-dialog');
-    if(doomEl) doomEl.style.display = 'block';
-    audio.doomWarning();
-    return;
-  }
+  // ФАЗА: вместо карт — вход в хаб
+  const pauseEl = document.getElementById('pause-overlay');
+  if(pauseEl) pauseEl.classList.remove('show');
+  const nestEl = document.getElementById('nest-screen');
+  if(nestEl) nestEl.style.display = 'none';
+  isNestActive = false;
 
-  activateCards();
+  document.body.classList.add('hub-mode');
+  enterHub();
 }
 
 function activateCards(){
@@ -833,7 +833,9 @@ function skipNest(){
   });
   setTimeout(() => { continueToWave(); }, 500);
 }
+window.continueToWave = continueToWave;
 function continueToWave(){
+  document.body.classList.remove('hub-mode');
   if(pauseTimerId){ clearTimeout(pauseTimerId); pauseTimerId = null; }
   closeShop();
   const pauseEl = document.getElementById('pause-overlay');
@@ -1015,7 +1017,11 @@ function animate(){
   let dt = Math.min(realDt, .1);
   if(hitstopTime > 0){ hitstopTime -= realDt; dt = Math.min(realDt, .1)*.08 }
   if(isGameOver){ renderer.render(scene, camera); return }
-
+if(hubMode){
+  if(hub) hub.update(dt);
+  renderer.render(hubScene, camera);
+  return;
+}
   // ═══ CREDITS POLLING (ФАЗА B) ═══
   if(enemiesKilled > _lastEnemiesKilled){
     credits += (enemiesKilled - _lastEnemiesKilled);
