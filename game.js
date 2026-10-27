@@ -1,5 +1,5 @@
 'use strict';
-// INDUSTRIAL ROGUE SHOOTER v6.0 — GAME (Pity + Credits + Shop)
+// INDUSTRIAL ROGUE SHOOTER v6.0 — GAME (Pity + Credits + Shop + Hub)
 
 let doomThisWave = false;
 let nextWaveDoom = false;
@@ -12,7 +12,7 @@ let isWaitingForY = false;
 let pauseTimerId = null;
 let waveSpawnTimers = [];
 
-// ═══ ФАЗА B: КРЕДИТЫ + PITY + МАГАЗИН ═══
+// Кредиты + PITY + Магазин
 let credits = 0;
 let _lastEnemiesKilled = 0;
 let pityCounters = {};
@@ -20,7 +20,7 @@ SYNERGY_TAGS.forEach(t => pityCounters[t] = 0);
 let shopOpen = false;
 let shopItems = [];
 
-// ═══ PITY SYSTEM ═══
+// PITY SYSTEM
 function updatePityAfterPick(pickedCard){
   const pickedTags = (pickedCard && pickedCard.tags) || [];
   for(const tag of SYNERGY_TAGS){
@@ -31,14 +31,12 @@ function updatePityAfterPick(pickedCard){
 
 function pickCardForTag(tag){
   const pool = [];
-  // Weapons
   for(const w of weapons){
     if(w.memWeapon) continue;
     if(w.tags && w.tags.includes(tag)){
       pool.push({cardType:'weapon', weapon:w, rarity:w.rarity, tags:w.tags});
     }
   }
-  // Modifiers (positive only, not already owned)
   for(const m of allModifiers){
     if(m.negative) continue;
     if(modifiers.includes(m.id)) continue;
@@ -46,7 +44,6 @@ function pickCardForTag(tag){
       pool.push({cardType:'modifier', modifier:m, rarity:modifierRarity(m), tags:m.tags});
     }
   }
-  // Upgrades
   for(const u of UPGRADE_CARDS){
     if(u.tag === tag){
       pool.push({cardType:'upgrade', upgrade:u, rarity:u.rarity, tags:[u.tag]});
@@ -57,7 +54,6 @@ function pickCardForTag(tag){
 }
 
 function rollCardSmart(isElite = false){
-  // 1. Guarantee — если pity достиг порога
   const guaranteed = SYNERGY_TAGS.filter(t => pityCounters[t] >= PITY.guaranteeAfter);
   if(guaranteed.length > 0){
     const tag = guaranteed[Math.floor(Math.random()*guaranteed.length)];
@@ -67,7 +63,6 @@ function rollCardSmart(isElite = false){
       return card;
     }
   }
-  // 2. Boost — 50% шанс принудительного тега
   const boosted = SYNERGY_TAGS.filter(t => pityCounters[t] >= PITY.boostAfter);
   if(boosted.length > 0 && Math.random() < 0.5){
     const tag = boosted[Math.floor(Math.random()*boosted.length)];
@@ -77,11 +72,9 @@ function rollCardSmart(isElite = false){
       return card;
     }
   }
-  // 3. Обычный ролл
   return rollCard(isElite);
 }
 
-// ═══ WEIGHT / RARITY ═══
 function pickWeighted(arr){
   const total = arr.reduce((s, x) => s + (x.weight || 1), 0);
   let r = Math.random() * total;
@@ -179,7 +172,6 @@ function rollCard(isElite = false){
   return rollCardOfType('weapon');
 }
 
-// ═══ HIT SPARKS ═══
 function createHitSpark(pos, damageType){
   const colors = {
     acid:0x00ff00, fire:0xff4400, ice:0x88ccff, piercing:0x00ffff,
@@ -187,34 +179,22 @@ function createHitSpark(pos, damageType){
     gravity:0xcc00ff, dark:0x880088, light:0xffff00
   };
   const color = colors[damageType] || 0xffdd44;
-  const flash = new THREE.Mesh(
-    new THREE.SphereGeometry(.18, 6, 6),
-    new THREE.MeshBasicMaterial({color, transparent:true, opacity:.9})
-  );
+  const flash = new THREE.Mesh(new THREE.SphereGeometry(.18, 6, 6), new THREE.MeshBasicMaterial({color, transparent:true, opacity:.9}));
   flash.position.copy(pos);
   flash.userData.life = 8;
   scene.add(flash);
   particles.push(flash);
   for(let i=0;i<7;i++){
-    const pt = new THREE.Mesh(
-      new THREE.SphereGeometry(.035 + Math.random()*.035, 4, 4),
-      new THREE.MeshBasicMaterial({color, transparent:true, opacity:1})
-    );
+    const pt = new THREE.Mesh(new THREE.SphereGeometry(.035 + Math.random()*.035, 4, 4), new THREE.MeshBasicMaterial({color, transparent:true, opacity:1}));
     pt.position.copy(pos);
     const spd = .35 + Math.random()*.4;
-    pt.userData.velocity = new THREE.Vector3(
-      (Math.random()-.5)*spd,
-      Math.random()*spd + .15,
-      (Math.random()-.5)*spd
-    );
+    pt.userData.velocity = new THREE.Vector3((Math.random()-.5)*spd, Math.random()*spd + .15, (Math.random()-.5)*spd);
     pt.userData.life = 15 + Math.random()*12;
     pt.userData.gravity = true;
-    scene.add(pt);
-    particles.push(pt);
+    scene.add(pt); particles.push(pt);
   }
 }
 
-// ═══ WAVE ═══
 function startWave(){
   waveSpawnTimers.forEach(t => clearTimeout(t));
   waveSpawnTimers = [];
@@ -255,7 +235,6 @@ function startWave(){
   if(modifiers.includes('ice_dog_wave')) types.push('ice_dog','ice_dog','ice_dog');
   if(wave>=2) types.push('shooter','gunner','enemy_shotgunner','slug','spider','worm','mortar');
   if(wave>=3) types.push('spitter','shotgunner','spider','ninja','fortifier','fortifier','wallbreaker','illusionist');
-  // ФАЗА А: ice_dog с 5-й волны (было 3+)
   if(wave>=5) types.push('ice_dog','rocketeer','spider','spider','ninja','wallbreaker');
   if(wave>=4) types.push('bomber','sniper_enemy','worm','mortar');
   if(wave>=6) types.push('chariot','mortar','illusionist','ice_dog');
@@ -283,7 +262,6 @@ function startWave(){
     }, i*500);
     waveSpawnTimers.push(timerId);
   }
-  // Verkhushka spawn (порог 50% в enemies.js)
   if(wave >= 3){
     const vCount = 1+Math.floor(Math.random()*2);
     for(let i=0;i<vCount;i++){
@@ -309,7 +287,6 @@ function startWave(){
   updateUI();
 }
 
-// ═══ WAVE CLEARED ═══
 function onWaveCleared(){
   if(waveCleared) return;
   waveCleared = true;
@@ -321,7 +298,6 @@ function onWaveCleared(){
   waveSpawnTimers.forEach(t => clearTimeout(t));
   waveSpawnTimers = [];
 
-  // Bonus credits за волну
   credits += 10;
 
   keys = {};
@@ -330,7 +306,6 @@ function onWaveCleared(){
   resetChargingState();
 
   generateAndRenderDraft(true);
-  // Магазин тоже готовим
   generateShop();
 
   const pauseEl = document.getElementById('pause-overlay');
@@ -350,14 +325,13 @@ function onYPressed(){
   const yEl = document.getElementById('press-y-overlay');
   if(yEl) yEl.classList.remove('show');
 
-  // ФАЗА: вместо карт — вход в хаб
   const pauseEl = document.getElementById('pause-overlay');
   if(pauseEl) pauseEl.classList.remove('show');
   const nestEl = document.getElementById('nest-screen');
   if(nestEl) nestEl.style.display = 'none';
   isNestActive = false;
 
-  document.body.classList.add('hub-mode');
+  // ВХОД В ХАБ
   enterHub();
 }
 
@@ -367,7 +341,6 @@ function activateCards(){
   audio.cardPick();
 }
 
-// ═══ UI UPDATE ═══
 let _lastAmmoForUI = -1;
 
 function updateWeaponSlotsUI(){
@@ -423,7 +396,6 @@ function updateUI(){
   if(DOM.healthPanel) DOM.healthPanel.classList.toggle('warning', player.health < 30);
   if(DOM.ammoPanel) DOM.ammoPanel.classList.toggle('warning',
     curAmmo<=2 && !modifiers.includes('infinite_ammo') && !isMelee && !isHg && !isAcid);
-  // Кредиты в HUD
   const creditEl = document.getElementById('credits-display');
   if(creditEl) creditEl.textContent = '💰 ' + credits;
   updateWeaponSlotsUI();
@@ -431,7 +403,6 @@ function updateUI(){
   updateCurseIndicator();
 }
 
-// ═══ RADAR ═══
 function updateRadar(){
   const c = document.getElementById('radar-canvas');
   if(!c) return;
@@ -512,7 +483,6 @@ function updateRadar(){
   ctx.strokeRect(0,0,sz,sz);
 }
 
-// ═══ CARDS ═══
 function cardWillTriggerSynergy(card){
   if(!card || !card.tags) return false;
   for(const t of card.tags){
@@ -563,7 +533,6 @@ function createCardElement(card, idx){
   }
   if(card.isMemWeapon) typeName = '💀 МЕМ-ОРУЖИЕ';
   const keyLabels = ['Q', 'W', 'E', 'R', 'T'];
-  // Pity hint
   let pityHint = '';
   if(card.pityForced) pityHint = `<div class="nest-card-hint" style="color:#0ff">🎁 ГАРАНТИЯ: ${SYNERGY_META[card.pityForced].icon}</div>`;
   else if(card.pityBoosted) pityHint = `<div class="nest-card-hint" style="color:#8f8">✨ БУСТ: ${SYNERGY_META[card.pityBoosted].icon}</div>`;
@@ -659,7 +628,6 @@ function generateAndRenderDraft(waitingForY){
   renderNestScreen(!!waitingForY);
 }
 
-// ═══ SHOP ═══
 function generateShop(){
   shopItems = [];
   for(let i=0;i<3;i++){
@@ -689,12 +657,10 @@ function renderShop(){
     cardEl.style.cursor = canBuy ? 'pointer' : 'not-allowed';
     cardEl.style.opacity = canBuy ? '1' : '0.5';
     cardEl.style.margin = '0';
-    // Add price tag
     const priceTag = document.createElement('div');
     priceTag.style.cssText = 'position:absolute;bottom:6px;left:6px;right:6px;padding:5px;background:'+(canBuy?'rgba(255,180,0,.9)':'rgba(80,80,80,.9)')+';color:#000;font-weight:bold;font-size:14px;border-radius:4px;text-align:center;letter-spacing:1px;z-index:6';
     priceTag.textContent = '💰 ' + price + '  [' + ['Z','X','C'][i] + ']';
     cardEl.appendChild(priceTag);
-    cardEl.onclick = (e) => { e.stopPropagation(); if(canBuy) buyShopItem(i); };
     return cardEl.outerHTML;
   }).join('');
 
@@ -704,7 +670,6 @@ function renderShop(){
     <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin-bottom:16px">${cards}</div>
     <div style="color:#888;font-size:12px">[F] или [ESC] — закрыть</div>
   `;
-  // Rebind onclick (innerHTML loses events)
   const newCards = panel.querySelectorAll('.nest-card');
   newCards.forEach((el, i) => {
     const canBuy = credits >= shopPriceFor(shopItems[i]);
@@ -732,14 +697,12 @@ function buyShopItem(idx){
   applyCardEffect(card);
   updatePityAfterPick(card);
   audio.cardPick();
-  // Replace slot with new card
   shopItems[idx] = rollCardSmart(wave >= BALANCE.goldenEvery);
   renderShop();
   updateUI();
   renderNestSynergyStatus();
 }
 
-// ═══ PICK / SKIP / CONTINUE ═══
 function doomAccept(){
   if(!pendingDoomChoice) return;
   pendingDoomChoice = false;
@@ -820,7 +783,6 @@ function skipNest(){
   pickLocked = true;
   player.health = Math.min(player.maxHealth, player.health + 50);
   player.armor = Math.min(player.maxArmor, player.armor + 25);
-  // Пропуск = инкремент pity для всех тегов
   updatePityAfterPick(null);
   updateUI();
   audio.pickup();
@@ -833,7 +795,8 @@ function skipNest(){
   });
   setTimeout(() => { continueToWave(); }, 500);
 }
-window.continueToWave = continueToWave;
+
+// continueToWave — базовая версия (hub.js переопределит для работы из хаба)
 function continueToWave(){
   document.body.classList.remove('hub-mode');
   if(pauseTimerId){ clearTimeout(pauseTimerId); pauseTimerId = null; }
@@ -869,7 +832,6 @@ function continueToWave(){
   updateUI();
 }
 
-// ═══ SYNERGY PANEL ═══
 function renderSynergyPanel(){
   const body = document.getElementById('nest-synergy-panel-body');
   if(!body) return;
@@ -971,7 +933,6 @@ function toggleSynergyPanel(){
   }
 }
 
-// ═══ GAME OVER ═══
 function gameOver(){
   if(isGameOver) return;
   isGameOver = true;
@@ -1005,7 +966,6 @@ function gameOver(){
   damageGlitch(2);
 }
 
-// ═══ MAIN LOOP ═══
 let _hgHudVisible = null;
 let _radarFrame = 0;
 
@@ -1017,12 +977,14 @@ function animate(){
   let dt = Math.min(realDt, .1);
   if(hitstopTime > 0){ hitstopTime -= realDt; dt = Math.min(realDt, .1)*.08 }
   if(isGameOver){ renderer.render(scene, camera); return }
-if(hubMode){
-  if(hub) hub.update(dt);
-  renderer.render(hubScene, camera);
-  return;
-}
-  // ═══ CREDITS POLLING (ФАЗА B) ═══
+
+  // HUB MODE
+  if(hubMode){
+    if(hub) hub.update(dt);
+    renderer.render(hubScene, camera);
+    return;
+  }
+
   if(enemiesKilled > _lastEnemiesKilled){
     credits += (enemiesKilled - _lastEnemiesKilled);
     _lastEnemiesKilled = enemiesKilled;
@@ -1394,8 +1356,7 @@ if(hubMode){
           if(player.health <= 0) gameOver();
         }
         cameraShake(.3,.4);
-        scene.remove(m);
-        meteors.splice(i,1);
+        scene.remove(m); meteors.splice(i,1);
       }
     }
 
@@ -1455,7 +1416,6 @@ if(hubMode){
       if(puddle.life <= 0){ scene.remove(puddle.mesh); poisonPuddles.splice(i,1) }
     }
 
-    // PROJECTILES
     for(let i=projectiles.length-1;i>=0;i--){
       const p = projectiles[i];
       const prevP = p.position.clone();
@@ -1794,8 +1754,8 @@ function buildOpts(p){
   return opts;
 }
 
-// ═══ KEYBOARD ═══
 document.addEventListener('keydown', e=>{
+  if(hubMode) return; // hub.js обрабатывает
   if(isWaitingForY){
     if(e.code === 'KeyY'){ onYPressed(); e.preventDefault(); return; }
     return;
@@ -1806,7 +1766,6 @@ document.addEventListener('keydown', e=>{
     if(e.code === 'KeyW'){ doomSkip(); e.preventDefault(); return; }
     return;
   }
-  // SHOP
   if(shopOpen){
     if(e.code === 'KeyF' || e.code === 'Escape'){ closeShop(); e.preventDefault(); return; }
     if(e.code === 'KeyZ' && shopItems[0]){ buyShopItem(0); e.preventDefault(); return; }
@@ -1852,8 +1811,9 @@ document.addEventListener('keydown', e=>{
     if(e.code === 'Period') switchWeapon(1);
   }
 });
-document.addEventListener('keyup', e=>{ keys[e.code] = false });
+document.addEventListener('keyup', e=>{ if(!hubMode) keys[e.code] = false; });
 document.addEventListener('mousedown', e=>{
+  if(hubMode) return;
   if(isNestActive || isSynergyPanelOpen || isGameOver || isWaitingForY || pendingDoomChoice || shopOpen) return;
   if(e.target.tagName !== 'BUTTON'){
     if(e.button === 0) mouseDown = true;
@@ -1874,14 +1834,17 @@ document.addEventListener('mouseup', e=>{
 });
 document.addEventListener('contextmenu', e=>e.preventDefault());
 document.addEventListener('wheel', e=>{
+  if(hubMode) return;
   if(isNestActive || ownedWeapons.length < 2) return;
   switchSlot(e.deltaY > 0 ? 1 : -1);
 });
 document.addEventListener('click', e=>{
+  if(hubMode) return;
   if(e.target.tagName !== 'BUTTON' && !isNestActive && !isPointerLocked && !isGameOver && !isWaitingForY)
     document.body.requestPointerLock();
 });
 document.addEventListener('mousemove', e=>{
+  if(hubMode) return;
   if(isPointerLocked && !isNestActive && !isGameOver && !isWaitingForY){
     player.yaw -= e.movementX*.002;
     player.pitch = Math.max(-Math.PI/2, Math.min(Math.PI/2, player.pitch-e.movementY*.002));
@@ -1963,5 +1926,5 @@ window.onerror = function(message, source, lineno, colno, error){
   }
 };
 window.addEventListener('unhandledrejection', event=>{ GameLogger.error(`UNHANDLED PROMISE: ${event.reason}`) });
-GameLogger.info('=== v6.0 STARTED (Pity + Credits + Shop) ===');
+GameLogger.info('=== v6.0 STARTED (Hub + Pity + Credits) ===');
 window.GameLogger = GameLogger;
