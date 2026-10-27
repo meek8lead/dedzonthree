@@ -2,13 +2,13 @@
 // INDUSTRIAL ROGUE SHOOTER v6.0 — CONFIG (Phase A balance + Phase B synergy rework)
 
 // ═══ CONSTANTS ═══
-const FORTIFIER_SHIELD_RADIUS = 4.0; // ФАЗА А: 5.0 → 4.0
+const FORTIFIER_SHIELD_RADIUS = 4.0;
 const HG_MAX_CHARGE = 5;
 const HG_TIME_PER_CHARGE = 3;
 const SLOW_TIMESCALE = 0.5;
 const FAST_TIMESCALE = 2.0;
 const MAX_HEAT = 100;
-const HEAT_RATE = 15;                // ФАЗА А: 10 → 15 (реже перегрев acidotronator)
+const HEAT_RATE = 15;
 const COOL_RATE = 10;
 const TURRET_COOLDOWN_MAX = 10;
 const TURRET_HP = 50;
@@ -20,7 +20,6 @@ const DASH_SPEED = 22;
 const FARTGUN_WAVE_AMP = 0.06;
 const FARTGUN_WAVE_FREQ = 3.5;
 
-// ═══ BALANCE (без изменений) ═══
 const BALANCE = {
   waveHPBase: 0.15, waveDMGBase: 0.07,
   waveHPAccel: 0.05, waveDMGAccel: 0.04,
@@ -30,7 +29,6 @@ const BALANCE = {
   goldenEvery: 5, bossEvery: 15, perditionEvery: 1,
 };
 
-// ═══ MAP STYLES ═══
 const mapStyles = [
   {name:'СУПЕРМАРКЕТ',sub:'АРЕНА',floor:0x888888,wall:0xaaaaaa,accent:0xff6600,accent2:0xffff00},
   {name:'ГОРОДСКАЯ УЛИЦА',sub:'ЛАБИРИНТ',floor:0x333333,wall:0x666666,accent:0xffff00,accent2:0xff0000},
@@ -39,7 +37,6 @@ const mapStyles = [
   {name:'БИОМЕХАНИЧЕСКАЯ ЛАБОРАТОРИЯ',sub:'КОЛЬЦО',floor:0x3a2a3a,wall:0x5a3a5a,accent:0xff00ff,accent2:0x00ff00}
 ];
 
-// ═══ SYNERGY TAGS — ФАЗА B: убраны time, summon ═══
 const SYNERGY_TAGS = ['fire','ice','poison','explosive','crit','tank','speed','aoe'];
 const SYNERGY_META = {
   fire:      {name:'ПИРОМАНТ',     icon:'🔥', color:'#f60'},
@@ -52,10 +49,8 @@ const SYNERGY_META = {
   aoe:       {name:'ШИРОКИЙ',      icon:'🌀', color:'#c4f'},
 };
 
-// ФАЗА B: R1=2, R2=4, R3=7 (было 3/6/9)
 const SYNERGY_THRESHOLDS = [2, 4, 7];
 
-// ═══ SYNERGY BONUSES — ФАЗА B: убраны time, summon ═══
 const SYNERGY_BONUSES = {
   fire: [
     {level:1, name:'PYROMANIAC', desc:'25% шанс поджога (5 dmg × 3с)'},
@@ -99,7 +94,6 @@ const SYNERGY_BONUSES = {
   ],
 };
 
-// ═══ DUO SYNERGIES — ФАЗА B: убраны 5 дуо с time/summon ═══
 const DUO_SYNERGIES = [
   {id:'pyroclasm',  tags:['fire','explosive'],      name:'PYROCLASM',     desc:'Взрывы поджигают 3м',        color:'#f80'},
   {id:'cryoblast',  tags:['ice','explosive'],       name:'CRYO BLAST',    desc:'Взрывы замораживают 1с',     color:'#6cf'},
@@ -113,7 +107,6 @@ const DUO_SYNERGIES = [
   {id:'toxictank',  tags:['poison','tank'],         name:'TOXIC TANK',    desc:'Получаешь урон = травишь 3м',color:'#8f3'},
 ];
 
-// ═══ SIGNATURE COMBOS — ФАЗА B: hourglass time→ice ═══
 const SIGNATURE_COMBOS = [
   {weaponClass:'whip',       tag:'crit',      level:2, desc:'1-shot на врагах <50 HP'},
   {weaponClass:'minigun',    tag:'speed',     level:3, desc:'30% не тратить патрон'},
@@ -121,71 +114,46 @@ const SIGNATURE_COMBOS = [
   {weaponClass:'icegun',     tag:'ice',       level:2, desc:'3-й выстрел = заморозка'},
   {weaponClass:'sniper',     tag:'crit',      level:3, desc:'Пробивает 3 врагов'},
   {weaponClass:'bfg',        tag:'explosive', level:3, desc:'Оставляет горящую землю'},
-  {weaponClass:'hourglass',  tag:'ice',       level:2, desc:'Заряд HG +50%'}, // ФАЗА B: time → ice
+  {weaponClass:'hourglass',  tag:'ice',       level:2, desc:'Заряд HG +50%'},
   {weaponClass:'necro',      tag:'poison',    level:3, desc:'Убийство = зомби-миньон'},
   {weaponClass:'hammer',     tag:'explosive', level:2, desc:'2 метеора'},
   {weaponClass:'melee',      tag:'tank',      level:3, desc:'+30% отражённый урон'},
 ];
 
-// ═══ WEAPONS — ФАЗА А: переработка баланса + стихии для слабых ═══
 const weapons = [
-  // ФАЗА А: Pistol 25/8 → 18/6 (был слишком сильный)
   {name:"ПИСТОЛЕТ",type:"Базовый",damage:18,fireRate:6.0,magSize:12,reloadTime:1.5,weaponClass:"pistol",spread:0,auto:false,range:50,aoe:0,rarity:'common',tags:[]},
   {name:"РЕВОЛЬВЕР 'МИРОТВОРЕЦ'",type:"Точный",damage:130,fireRate:1.2,magSize:6,reloadTime:2.5,weaponClass:"revolver",spread:0,auto:false,range:60,aoe:0,damageType:"piercing",rarity:'rare',tags:['crit']},
-  // ФАЗА А: SMG получает ICE стихию (морозный ПП) + dmg 14→16
   {name:"ПП 'ОСА'",type:"Автоматический",damage:16,fireRate:5.5,magSize:40,reloadTime:1.8,weaponClass:"smg",spread:.07,auto:true,range:35,aoe:0,damageType:"ice",rarity:'common',falloff:true,tags:['speed','ice']},
-  // ФАЗА А: Автомат 26/2 → 30/2.5, +FIRE стихия (зажигательный)
   {name:"АВТОМАТ 'МЯСОРУБКА'",type:"Автоматический",damage:30,fireRate:2.5,magSize:35,reloadTime:2.5,weaponClass:"rifle",spread:.04,auto:true,range:40,aoe:0,damageType:"fire",rarity:'common',falloff:true,tags:['fire']},
-  // ФАЗА А: Бёрст buff 26/2 → 28/2.4
   {name:"БЁРСТ 'ТРИПЛЕТ'",type:"Очередь",damage:28,fireRate:2.4,magSize:24,reloadTime:2.2,weaponClass:"burst",spread:.02,auto:false,range:50,aoe:0,burst:3,rarity:'rare',tags:['crit']},
   {name:"ДРОБОВИК 'ГРОМ'",type:"Дробовик",damage:38,fireRate:1.0,magSize:6,reloadTime:2.2,weaponClass:"shotgun",spread:.2,auto:false,range:15,aoe:0,pellets:10,rarity:'common',tags:['aoe']},
-  // ФАЗА А: Sniper reload 4→3.5 + piercing
   {name:"СНАЙПЕРСКАЯ 'ПРОБОЙ'",type:"Точная",damage:120,fireRate:.5,magSize:5,reloadTime:3.5,weaponClass:"sniper",spread:0,auto:false,range:100,aoe:0,damageType:"piercing",rarity:'rare',tags:['crit']},
-  // ФАЗА А: Railgun 200/3/6 → 250/4/4 (был слабее common)
   {name:"РЕЛЬСОТРОН",type:"Энергия",damage:250,fireRate:.3,magSize:4,reloadTime:4,damageType:"piercing",weaponClass:"railgun",spread:0,auto:false,range:150,aoe:0,rarity:'epic',tags:['aoe','crit']},
-  // ФАЗА А: Minigun rate 7→6
   {name:"МИНИГАН 'ИНДУСТРИЯ'",type:"Тяжелый",damage:32,fireRate:6,magSize:100,reloadTime:5,weaponClass:"minigun",spread:.06,auto:true,range:45,aoe:0,rarity:'rare',falloff:true,tags:['speed']},
   {name:"КИСЛОТНЫЙ ПЛЕВОК",type:"Химический",damage:35,fireRate:3,magSize:20,reloadTime:2,damageType:"acid",weaponClass:"acid",spread:.03,auto:false,range:25,aoe:0,rarity:'common',tags:['poison']},
-  // ФАЗА А: Acidotronator dmg 12→14
   {name:"КИСЛОТРОНАТОР",type:"Химический",damage:14,fireRate:6.0,magSize:999,reloadTime:0,damageType:"acid",weaponClass:"acidotronator",spread:.08,auto:true,range:40,aoe:0,rarity:'rare',tags:['poison']},
   {name:"ОГНЕМЁТ 'АД'",type:"Огонь",damage:14,fireRate:8,magSize:80,reloadTime:4,damageType:"fire",weaponClass:"flamethrower",spread:.25,auto:true,range:11,aoe:0,pellets:4,rarity:'rare',falloff:true,tags:['fire','aoe']},
-  // ФАЗА А: Icegun dmg 20→22
   {name:"ЛЕДЯНАЯ ПУШКА",type:"Крио",damage:22,fireRate:4,magSize:15,reloadTime:2.5,damageType:"ice",weaponClass:"icegun",spread:.02,auto:false,range:30,aoe:0,rarity:'common',tags:['ice']},
-  // ФАЗА А: Grenade dmg 80→100
   {name:"ГРАНАТОМЁТ 'КАРТЕЛЬ'",type:"Взрывной",damage:100,fireRate:.6,magSize:4,reloadTime:5,damageType:"explosive",weaponClass:"grenade",spread:.02,auto:false,range:35,aoe:4,rarity:'common',tags:['explosive']},
-  // ФАЗА А: BFG 300/2/8 → 400/3/6 (позор легендарки)
   {name:"BFG 'СУДНЫЙ ДЕНЬ'",type:"Плазма",damage:400,fireRate:.2,magSize:3,reloadTime:6,damageType:"explosive",weaponClass:"bfg",spread:0,auto:false,range:60,aoe:8,rarity:'legendary',tags:['explosive','aoe']},
-  // ФАЗА А: Plasma 35/8 → 40/4 (умеренный)
   {name:"ПЛАЗМА-ПУШКА",type:"Энергия",damage:40,fireRate:4.0,magSize:40,reloadTime:3,damageType:"fire",weaponClass:"plasma",spread:.15,auto:true,range:45,aoe:0,rarity:'rare',tags:['explosive']},
-  // ФАЗА А: Laser 15/18 → 18/12
   {name:"ЛАЗЕР 'ГЛАЗ БОГА'",type:"Энергия",damage:18,fireRate:12.0,magSize:60,reloadTime:4,damageType:"laser",weaponClass:"laser",spread:.01,auto:true,range:55,aoe:0,rarity:'rare',tags:['speed']},
-  // ФАЗА B: Tesla time тег → explosive (двойной explosive)
   {name:"ТЕСЛА-ПУШКА 'ГРОМОВЕРЖЕЦ'",type:"Молния",damage:50,fireRate:2.5,magSize:20,reloadTime:3,damageType:"lightning",weaponClass:"tesla",spread:.01,auto:false,range:35,aoe:0,rarity:'rare',falloff:true,tags:['explosive','explosive']},
-  // ФАЗА А: Saw dmg 45→60
   {name:"ПИЛО-МЁТ 'ЦИРКУЛЯРКА'",type:"Зарядный",damage:60,fireRate:2,magSize:10,reloadTime:3.5,damageType:"piercing",weaponClass:"saw",spread:.06,auto:false,range:30,aoe:0,rarity:'rare',chargeable:true,maxChargeTime:1.2,tags:['crit']},
   {name:"ПЛЕТЬ БОГА",type:"Божественный",damage:150,fireRate:1.2,magSize:10,reloadTime:3,damageType:"holy",weaponClass:"whip",spread:.08,auto:false,range:12,aoe:3,rarity:'epic',tags:['crit']},
-  // ФАЗА А: Melee dmg 180→250
   {name:"КУВАЛДА",type:"Ближний бой",damage:250,fireRate:.7,magSize:999,reloadTime:.4,weaponClass:"melee",spread:0,auto:false,range:4,aoe:0,rarity:'common',tags:['tank']},
   {name:"МЕТЕОРИТНЫЙ МОЛОТ",type:"Космический",damage:500,fireRate:.15,magSize:1,reloadTime:10,damageType:"explosive",weaponClass:"hammer",spread:0,auto:false,range:40,aoe:10,rarity:'epic',tags:['explosive']},
-  // ФАЗА А: Singularity rate 1.5→2 + ФАЗА B: убран time тег
   {name:"СИНГУЛЯТОР",type:"Гравитация",damage:60,fireRate:2,magSize:8,reloadTime:2.5,damageType:"gravity",weaponClass:"singularity",spread:0,auto:false,range:80,aoe:0,rarity:'epic',tags:[]},
-  // ФАЗА А: Necro rate 0.7→1.2, mag 8→10 + ФАЗА B: убран summon
   {name:"НЕКРОНОМИКОН",type:"Тёмная магия",damage:80,fireRate:1.2,magSize:10,reloadTime:5,damageType:"dark",weaponClass:"necro",spread:.03,auto:false,range:30,aoe:5,rarity:'epic',tags:['poison']},
   {name:"СОЛНЦЕ В КАРМАНЕ",type:"Свет",damage:50,fireRate:0.5,magSize:3,reloadTime:7,damageType:"fire",weaponClass:"sun",spread:0,auto:false,range:70,aoe:4,rarity:'legendary',tags:['fire','aoe']},
-  // ФАЗА B: Turret summon → crit (турели-криты)
   {name:"ВЫКИДНАЯ ТУРЕЛЬ",type:"Тактика",damage:30,fireRate:0.25,magSize:1,reloadTime:10,weaponClass:"turret",spread:0,auto:false,range:18,aoe:0,rarity:'rare',tags:['crit']},
-  // ФАЗА А: Crossbow + piercing
   {name:"КРОВАВОЙ АРБАЛЕТ",type:"Зарядный",damage:40,fireRate:2,magSize:1,reloadTime:0.8,weaponClass:"crossbow",spread:.02,auto:false,range:40,aoe:0,damageType:"piercing",rarity:'rare',chargeable:true,maxChargeTime:1.4,tags:['crit']},
   {name:"РОГАТКА 'КАМЕННЫЙ ВЕК'",type:"Зарядная",damage:12,fireRate:1.5,magSize:1,reloadTime:0.9,weaponClass:"slingshot",spread:.02,auto:false,range:35,aoe:0,rarity:'common',chargeable:true,maxChargeTime:1.0,tags:[]},
-  // ФАЗА B: Hourglass time → ice тег
   {name:"ПЕСОЧНЫЕ ЧАСЫ",type:"Время",damage:0,fireRate:2,magSize:1,reloadTime:1,weaponClass:"hourglass",spread:0,auto:false,range:0,aoe:0,rarity:'epic',tags:['ice']},
-  // ФАЗА А: Fartgun dmg 18→22
   {name:"ПЕРДОМЕТ",type:"Меметичный",damage:22,fireRate:1.5,magSize:8,reloadTime:1.2,damageType:"poison",weaponClass:"fartgun",spread:.05,auto:false,range:25,aoe:0,rarity:'common',wavy:true,tags:['poison'],memWeapon:true},
-  // ФАЗА А: Lohostvol jam 0.25→0.15
   {name:"ЛОХО-СТВОЛ",type:"Дробовик-мем",damage:42,fireRate:1.2,magSize:4,reloadTime:2.5,weaponClass:"lohostvol",spread:.22,auto:false,range:14,aoe:0,pellets:7,rarity:'common',jamChance:0.15,tags:['aoe'],memWeapon:true}
 ];
 
-// ═══ MODIFIERS — ФАЗА B: slow_time time→ice, chain_lightning time→explosive ═══
 const allModifiers=[
   {id:'2x_hp',name:'⚠ 2x HP врагов',desc:'Враги живучее в 2 раза',color:'#f80',weight:1,negative:true,tags:[]},
   {id:'2x_damage',name:'⚠ 2x урон врагов',desc:'Враги бьют сильнее',color:'#f00',weight:1,negative:true,tags:[]},
@@ -218,7 +186,7 @@ const allModifiers=[
   {id:'3x_damage',name:'3x урон игрока',desc:'Твой урон ×3',color:'#f00',weight:.7,negative:false,tags:['crit']},
   {id:'vampire_plus',name:'Супер вампиризм',desc:'+20 HP за убийство',color:'#f0f',weight:.7,negative:false,tags:['tank','tank']},
   {id:'double_jump',name:'Двойной прыжок',desc:'Прыжок в воздухе',color:'#88f',weight:.8,negative:false,tags:['speed']},
-  {id:'chain_lightning',name:'Цепная молния',desc:'Урон по цепочке',color:'#ff0',weight:.8,negative:false,tags:['explosive','explosive']}, // ФАЗА B: time→explosive
+  {id:'chain_lightning',name:'Цепная молния',desc:'Урон по цепочке',color:'#ff0',weight:.8,negative:false,tags:['explosive','explosive']},
   {id:'fire_trail',name:'Огненный след',desc:'Враги горят',color:'#f80',weight:.8,negative:false,tags:['fire']},
   {id:'ice_aura',name:'Ледяная аура',desc:'Замедление рядом',color:'#0ff',weight:.8,negative:false,tags:['ice']},
   {id:'always_crit',name:'100% крит',desc:'Все попадания крит',color:'#ff0',weight:.5,negative:false,tags:['crit','crit']},
@@ -228,14 +196,12 @@ const allModifiers=[
   {id:'ghost_bullets',name:'Призрачные пули',desc:'Сквозь стены',color:'#fff',weight:.6,negative:false,tags:[]},
   {id:'death_explosion',name:'Взрыв смерти',desc:'Взрыв при твоей смерти',color:'#f00',weight:.5,negative:false,tags:['explosive']},
   {id:'lifesteal',name:'Кража жизни',desc:'+5 HP за попадание',color:'#f0f',weight:.7,negative:false,tags:['tank']},
-  // ФАЗА B: slow_time time→ice
   {id:'slow_time',name:'Замедление времени',desc:'Враги медленнее',color:'#88f',weight:.8,negative:false,tags:['ice']},
   {id:'speed_boost',name:'Скорость +50%',desc:'Быстрее бегаешь',color:'#ff0',weight:.9,negative:false,tags:['speed']},
   {id:'glass_cannon',name:'💎 Стеклянная пушка',desc:'+100% урон, -50% HP',color:'#8cf',weight:.6,negative:false,tags:['crit','crit']},
   {id:'infinite_ammo',name:'∞ МАГАЗИН',desc:'Не перезаряжаться (-25% урон)',color:'#f0f',weight:.08,negative:false,tags:[]}
 ];
 
-// ═══ UPGRADE CARDS — ФАЗА B: убраны u_tur_1, u_hg_25; добавлены u_ice_dmg, u_aoe_dmg ═══
 const UPGRADE_CARDS = [
   {id:'u_dmg_12',   name:'+12% УРОН',          tag:'crit',      rarity:'common',icon:'⚔️', effect:'playerBuff', key:'damageMult', op:'mul', value:1.12},
   {id:'u_hp_18',    name:'+18 HP',             tag:'tank',      rarity:'common',icon:'❤️', effect:'player',     key:'maxHealth',  op:'add', value:18},
@@ -260,12 +226,10 @@ const UPGRADE_CARDS = [
   {id:'u_crit_25',  name:'+25% КРИТ',          tag:'crit',      rarity:'epic',  icon:'🏹', effect:'playerBuff', key:'critChance', op:'add', value:0.25},
   {id:'u_spd_30',   name:'+30% СКОРОСТЬ',      tag:'speed',     rarity:'epic',  icon:'🌟', effect:'playerBuff', key:'speedMult',  op:'mul', value:1.30},
   {id:'u_dmg_50',   name:'+50% УРОН',          tag:'crit',      rarity:'legendary',icon:'⚡', effect:'playerBuff',key:'damageMult',op:'mul', value:1.50},
-  // ФАЗА B: новые карты для ICE и AOE
   {id:'u_ice_dmg',  name:'+20% УРОН ЛЬДОМ',    tag:'ice',       rarity:'rare',  icon:'🧊', effect:'playerBuff', key:'iceDamageMult', op:'mul', value:1.20},
   {id:'u_aoe_dmg',  name:'+20% УРОН AOE',      tag:'aoe',       rarity:'rare',  icon:'💫', effect:'playerBuff', key:'aoeDamageMult', op:'mul', value:1.20},
 ];
 
-// ═══ CURSE CARDS — ФАЗА B: убраны c_chronos, c_cult ═══
 const CURSE_CARDS = [
   {id:'c_glass2',  name:'💎 СТЕКЛЯННАЯ ПУШКА+', tags:['crit','crit'], rarity:'epic',
    desc:'-50% max HP, +100% урон, криты ×5',
@@ -293,7 +257,6 @@ const CURSE_CARDS = [
    apply:{ buffs:{spreadMult:1.3, aoePull:true} }},
 ];
 
-// ═══ UTILITY CARDS (без изменений) ═══
 const UTILITY_CARDS = [
   {id:'ut_medkit', name:'💊 АПТЕЧКА',         rarity:'common', desc:'+60 HP',        apply:{player:{health:'+60'}}},
   {id:'ut_armor',  name:'🛡 БРОНЯ',            rarity:'common', desc:'+60 броня',     apply:{player:{armor:'+60'}}},
@@ -303,7 +266,6 @@ const UTILITY_CARDS = [
   {id:'ut_time',   name:'⏰ УСКОРЕНИЕ',        rarity:'common', desc:'5с замедл. след. волны',apply:{buff:{nextWaveSlow:5}}},
 ];
 
-// ═══ CARD / RARITY WEIGHTS ═══
 const CARD_WEIGHTS = { weapon:0.20, modifier:0.35, upgrade:0.28, curse:0.10, utility:0.07 };
 const RARITY_WEIGHTS = {
   early:  {common:70, rare:25, epic:5,  legendary:0},
@@ -317,13 +279,11 @@ function getRarityTier(wave){
   return 'late';
 }
 
-// ═══ DOOM / GOLDEN / BOSS / PERDITION (без изменений) ═══
 const DOOM_SETTINGS = { hpMult:1.5, dmgMult:1.3, extraCards:1, guaranteeEpic:true };
 const GOLDEN_SETTINGS = { extraCards:1, bonusReroll:1, onlyElite:true };
 const BOSS_SETTINGS = { hpMult:50, phases:3, rewardCards:2 };
 const PERDITION_SETTINGS = { maxLevel:10, hpPerLevel:1.5, dmgPerLevel:1.3, extraModifiersPerLevel:1 };
 
-// ═══ DAMAGE SOURCE / LOOT ═══
 const DMG_SOURCE_NAMES={
   human:'🖐 Человек',robot:'🤖 Робот',runner:'🏃 Бегун',tank:'🛡 Танк',drone:'🔮 Орб',shooter:'🎯 Стрелок',bomber:'💣 Бомбардир',spitter:'🟢 Плеватель',gunner:'🔫 Пулемётчик',sniper_enemy:'🎯 Снайпер',shotgunner:'🔫 Дробовик',rocketeer:'🚀 Ракетчик',spawner:'🥚 Спавнер',enemy_shotgunner:'🔫 Дробовик-2',slug:'🐌 Слизень',trickster:'🎭 Трикстер',spider:'🕷 Паук',chariot:'🛞 Колесница',ninja:'🥷 Ниндзя',fortifier:'🛡 ФОРТИФИКАТОР',worm:'🪱 Червь',mortar:'💣 Мортирщик',illusionist:'🎭 Иллюзионист',illusion_copy:'👤 Копия',wallbreaker:'🧱 Стенобитник',verkhushka:'🥕 Вершки-корешки',chess_horse:'♞ Конь',chess_elephant:'♝ Слон',cheerful:'😄 Весельчак',ufo:'🛸 НЛО',green_alien:'👽 Человечек',hothead:'🤸 Горячая голова',cow:'🐄 Корова',ice_dog:'🐺 Ледяной пёс',unknown:'❓ Неизвестно'
 };
@@ -331,18 +291,16 @@ const MEDKIT_CHANCE={tank:0.40,chariot:0.35,spawner:0.25,trickster:0.20,rocketee
 const ARMOR_CHANCE={human:0.20,robot:0.30,runner:0.15,gunner:0.25,shotgunner:0.25,tank:0.5,fortifier:0.3,worm:0.25,wallbreaker:0.25,mortar:0.25,ninja:0.2,chariot:0.4,bomber:0.2,spitter:0.2,shooter:0.2,rocketeer:0.25,sniper_enemy:0.2,enemy_shotgunner:0.25,illusionist:0.2,illusion_copy:0.05,slug:0.1,spider:0.1,trickster:0.2,chess_horse:0.2,chess_elephant:0.2,cheerful:0.15,ufo:0.2,green_alien:0.15,hothead:0.2,ice_dog:0.2};
 const TRICK_MSGS=['ХА-ХА-ХА!','ОЙ!','НЕ ТУДА!','ХАОС!','ЛОЛ','КЕК','ЧТО ЗА?!','А?','WTF','БРО...','НЕТ!','О НЕТ!','ХЕ-ХЕ','ОЙ-ОЙ','АХАХА','НЕТ БРО','ЗАЧЕМ?!','Э...','ХМММ','ОП!'];
 
-// ═══ PITY SYSTEM (ФАЗА B) ═══
 const PITY = {
   enabled: true,
-  boostAfter: 3,   // после 3 волн без тега X — +50% шанс
-  guaranteeAfter: 6, // после 6 — гарантия
+  boostAfter: 3,
+  guaranteeAfter: 6,
 };
 
-// ═══ CREDITS / SHOP (ФАЗА B) ═══
 const CREDITS = {
   perEnemy: 1,
   perElite: 5,
   perBoss: 20,
   startGold: 0,
-  shopPrices: [30, 60, 100], // 3 слота в магазине
+  shopPrices: [30, 60, 100],
 };
