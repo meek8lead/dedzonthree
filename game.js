@@ -1,5 +1,5 @@
 'use strict';
-// INDUSTRIAL ROGUE SHOOTER v5.3 — GAME
+// INDUSTRIAL ROGUE SHOOTER v6.0 — GAME (Pity + Credits + Shop)
 
 let doomThisWave = false;
 let nextWaveDoom = false;
@@ -12,6 +12,76 @@ let isWaitingForY = false;
 let pauseTimerId = null;
 let waveSpawnTimers = [];
 
+// ═══ ФАЗА B: КРЕДИТЫ + PITY + МАГАЗИН ═══
+let credits = 0;
+let _lastEnemiesKilled = 0;
+let pityCounters = {};
+SYNERGY_TAGS.forEach(t => pityCounters[t] = 0);
+let shopOpen = false;
+let shopItems = [];
+
+// ═══ PITY SYSTEM ═══
+function updatePityAfterPick(pickedCard){
+  const pickedTags = (pickedCard && pickedCard.tags) || [];
+  for(const tag of SYNERGY_TAGS){
+    if(pickedTags.includes(tag)) pityCounters[tag] = 0;
+    else pityCounters[tag] = (pityCounters[tag] || 0) + 1;
+  }
+}
+
+function pickCardForTag(tag){
+  const pool = [];
+  // Weapons
+  for(const w of weapons){
+    if(w.memWeapon) continue;
+    if(w.tags && w.tags.includes(tag)){
+      pool.push({cardType:'weapon', weapon:w, rarity:w.rarity, tags:w.tags});
+    }
+  }
+  // Modifiers (positive only, not already owned)
+  for(const m of allModifiers){
+    if(m.negative) continue;
+    if(modifiers.includes(m.id)) continue;
+    if(m.tags && m.tags.includes(tag)){
+      pool.push({cardType:'modifier', modifier:m, rarity:modifierRarity(m), tags:m.tags});
+    }
+  }
+  // Upgrades
+  for(const u of UPGRADE_CARDS){
+    if(u.tag === tag){
+      pool.push({cardType:'upgrade', upgrade:u, rarity:u.rarity, tags:[u.tag]});
+    }
+  }
+  if(pool.length === 0) return null;
+  return pool[Math.floor(Math.random()*pool.length)];
+}
+
+function rollCardSmart(isElite = false){
+  // 1. Guarantee — если pity достиг порога
+  const guaranteed = SYNERGY_TAGS.filter(t => pityCounters[t] >= PITY.guaranteeAfter);
+  if(guaranteed.length > 0){
+    const tag = guaranteed[Math.floor(Math.random()*guaranteed.length)];
+    const card = pickCardForTag(tag);
+    if(card){
+      card.pityForced = tag;
+      return card;
+    }
+  }
+  // 2. Boost — 50% шанс принудительного тега
+  const boosted = SYNERGY_TAGS.filter(t => pityCounters[t] >= PITY.boostAfter);
+  if(boosted.length > 0 && Math.random() < 0.5){
+    const tag = boosted[Math.floor(Math.random()*boosted.length)];
+    const card = pickCardForTag(tag);
+    if(card){
+      card.pityBoosted = tag;
+      return card;
+    }
+  }
+  // 3. Обычный ролл
+  return rollCard(isElite);
+}
+
+// ═══ WEIGHT / RARITY ═══
 function pickWeighted(arr){
   const total = arr.reduce((s, x) => s + (x.weight || 1), 0);
   let r = Math.random() * total;
@@ -30,6 +100,7 @@ function modifierRarity(m){
   if(m.weight >= 0.4) return 'epic';
   return 'legendary';
 }
+
 function rollCardOfType(type){
   const tier = getRarityTier(wave);
   const rw = RARITY_WEIGHTS[tier];
@@ -108,7 +179,7 @@ function rollCard(isElite = false){
   return rollCardOfType('weapon');
 }
 
-// ═══ HIT SPARKS — улучшенная визуалка попаданий ═══
+// ═══ HIT SPARKS ═══
 function createHitSpark(pos, damageType){
   const colors = {
     acid:0x00ff00, fire:0xff4400, ice:0x88ccff, piercing:0x00ffff,
@@ -116,7 +187,6 @@ function createHitSpark(pos, damageType){
     gravity:0xcc00ff, dark:0x880088, light:0xffff00
   };
   const color = colors[damageType] || 0xffdd44;
-  // Bright flash
   const flash = new THREE.Mesh(
     new THREE.SphereGeometry(.18, 6, 6),
     new THREE.MeshBasicMaterial({color, transparent:true, opacity:.9})
@@ -125,7 +195,6 @@ function createHitSpark(pos, damageType){
   flash.userData.life = 8;
   scene.add(flash);
   particles.push(flash);
-  // Sparks
   for(let i=0;i<7;i++){
     const pt = new THREE.Mesh(
       new THREE.SphereGeometry(.035 + Math.random()*.035, 4, 4),
@@ -145,6 +214,7 @@ function createHitSpark(pos, damageType){
   }
 }
 
+// ═══ WAVE ═══
 function startWave(){
   waveSpawnTimers.forEach(t => clearTimeout(t));
   waveSpawnTimers = [];
@@ -184,9 +254,10 @@ function startWave(){
   if(modifiers.includes('hothead_wave')) types.push('hothead','hothead','hothead');
   if(modifiers.includes('ice_dog_wave')) types.push('ice_dog','ice_dog','ice_dog');
   if(wave>=2) types.push('shooter','gunner','enemy_shotgunner','slug','spider','worm','mortar');
-  if(wave>=3) types.push('spitter','shotgunner','spider','ninja','fortifier','fortifier','wallbreaker','illusionist','ice_dog');
-  if(wave>=4) types.push('bomber','sniper_enemy','worm','mortar','ice_dog');
-  if(wave>=5) types.push('rocketeer','spider','spider','ninja','wallbreaker','ice_dog');
+  if(wave>=3) types.push('spitter','shotgunner','spider','ninja','fortifier','fortifier','wallbreaker','illusionist');
+  // ФАЗА А: ice_dog с 5-й волны (было 3+)
+  if(wave>=5) types.push('ice_dog','rocketeer','spider','spider','ninja','wallbreaker');
+  if(wave>=4) types.push('bomber','sniper_enemy','worm','mortar');
   if(wave>=6) types.push('chariot','mortar','illusionist','ice_dog');
 
   let spawnedCount = 0;
@@ -212,6 +283,7 @@ function startWave(){
     }, i*500);
     waveSpawnTimers.push(timerId);
   }
+  // Verkhushka spawn (порог 50% в enemies.js)
   if(wave >= 3){
     const vCount = 1+Math.floor(Math.random()*2);
     for(let i=0;i<vCount;i++){
@@ -237,7 +309,7 @@ function startWave(){
   updateUI();
 }
 
-// ═══ WAVE CLEARED — Y-FLOW ═══
+// ═══ WAVE CLEARED ═══
 function onWaveCleared(){
   if(waveCleared) return;
   waveCleared = true;
@@ -249,15 +321,18 @@ function onWaveCleared(){
   waveSpawnTimers.forEach(t => clearTimeout(t));
   waveSpawnTimers = [];
 
+  // Bonus credits за волну
+  credits += 10;
+
   keys = {};
   mouseDown = false;
   wasMouseDown = false;
   resetChargingState();
 
-  // Готовим драфт (карты сразу видны, но затемнены через waiting-y)
   generateAndRenderDraft(true);
+  // Магазин тоже готовим
+  generateShop();
 
-  // Показываем паузу + Y overlay
   const pauseEl = document.getElementById('pause-overlay');
   if(pauseEl) pauseEl.classList.add('show');
   const yEl = document.getElementById('press-y-overlay');
@@ -275,7 +350,6 @@ function onYPressed(){
   const yEl = document.getElementById('press-y-overlay');
   if(yEl) yEl.classList.remove('show');
 
-  // Check DOOM for next wave
   if((wave + 1) % BALANCE.doomEvery === 0 && !doomThisWave){
     pendingDoomChoice = true;
     const doomEl = document.getElementById('doom-dialog');
@@ -293,6 +367,7 @@ function activateCards(){
   audio.cardPick();
 }
 
+// ═══ UI UPDATE ═══
 let _lastAmmoForUI = -1;
 
 function updateWeaponSlotsUI(){
@@ -348,11 +423,15 @@ function updateUI(){
   if(DOM.healthPanel) DOM.healthPanel.classList.toggle('warning', player.health < 30);
   if(DOM.ammoPanel) DOM.ammoPanel.classList.toggle('warning',
     curAmmo<=2 && !modifiers.includes('infinite_ammo') && !isMelee && !isHg && !isAcid);
+  // Кредиты в HUD
+  const creditEl = document.getElementById('credits-display');
+  if(creditEl) creditEl.textContent = '💰 ' + credits;
   updateWeaponSlotsUI();
   renderSynergyHUD();
   updateCurseIndicator();
 }
 
+// ═══ RADAR ═══
 function updateRadar(){
   const c = document.getElementById('radar-canvas');
   if(!c) return;
@@ -457,7 +536,6 @@ function createCardElement(card, idx){
   el.className = 'nest-card ' + (card.rarity || 'common');
   if(card.cardType === 'curse') el.classList.add('curse');
   if(cardWillTriggerSynergy(card)) el.classList.add('synergy-ready');
-  // Random float animation (each card independent)
   el.style.animationDelay = (Math.random() * 1.5).toFixed(2) + 's';
   el.style.animationDuration = (2.6 + Math.random() * 1.2).toFixed(2) + 's';
   el.dataset.idx = idx;
@@ -485,6 +563,10 @@ function createCardElement(card, idx){
   }
   if(card.isMemWeapon) typeName = '💀 МЕМ-ОРУЖИЕ';
   const keyLabels = ['Q', 'W', 'E', 'R', 'T'];
+  // Pity hint
+  let pityHint = '';
+  if(card.pityForced) pityHint = `<div class="nest-card-hint" style="color:#0ff">🎁 ГАРАНТИЯ: ${SYNERGY_META[card.pityForced].icon}</div>`;
+  else if(card.pityBoosted) pityHint = `<div class="nest-card-hint" style="color:#8f8">✨ БУСТ: ${SYNERGY_META[card.pityBoosted].icon}</div>`;
   el.innerHTML = `
     <div class="nest-card-key">${keyLabels[idx] || '?'}</div>
     <div class="nest-card-icon">${icon}</div>
@@ -492,7 +574,7 @@ function createCardElement(card, idx){
     <div class="nest-card-name">${cardName}</div>
     <div class="nest-card-desc">${cardDesc}</div>
     <div class="nest-card-tags">${renderCardTags(card.tags)}</div>
-    ${cardWillTriggerSynergy(card) ? '<div class="nest-card-hint">✨ АКТИВИРУЕТ СИНЕРГИЮ!</div>' : ''}
+    ${pityHint || (cardWillTriggerSynergy(card) ? '<div class="nest-card-hint">✨ АКТИВИРУЕТ СИНЕРГИЮ!</div>' : '')}
   `;
   return el;
 }
@@ -503,7 +585,7 @@ function renderNestSynergyStatus(){
     .filter(t => synergies[t].count > 0)
     .map(t => `${SYNERGY_META[t].icon} ${synergies[t].count}/${SYNERGY_THRESHOLDS[0]}`)
     .join('  ');
-  el.textContent = 'СИНЕРГИИ: ' + (active || 'нет');
+  el.textContent = 'СИНЕРГИИ: ' + (active || 'нет') + `  |  💰 ${credits}`;
 }
 function maxRerolls(){
   const isGolden = (wave % BALANCE.goldenEvery === 0);
@@ -531,7 +613,7 @@ function renderNestScreen(waitingForY){
   DOM.nestScreen.style.display = 'block';
   DOM.nestHint.innerHTML = doomThisWave
     ? '⚠ DOOM-ВОЛНА АКТИВНА — выбери бонус: <span class="key-hint">Q</span> <span class="key-hint">W</span> <span class="key-hint">E</span> <span class="key-hint">R</span> <span class="key-hint">T</span>'
-    : 'Выбери карту: <span class="key-hint">Q</span> <span class="key-hint">W</span> <span class="key-hint">E</span> <span class="key-hint">R</span> <span class="key-hint">T</span>';
+    : 'Выбери карту: <span class="key-hint">Q</span> <span class="key-hint">W</span> <span class="key-hint">E</span> <span class="key-hint">R</span> <span class="key-hint">T</span>  |  💰 <span style="color:#ff0">${credits}</span>';
   const cardsEl = DOM.nestCards;
   cardsEl.innerHTML = '';
   if(waitingForY){
@@ -559,8 +641,8 @@ function generateAndRenderDraft(waitingForY){
   currentDraft = [];
   for(let i = 0; i < cardCount; i++){
     let card;
-    if(isGolden && i === cardCount - 1) card = rollCard(true);
-    else card = rollCard(false);
+    if(isGolden && i === cardCount - 1) card = rollCardSmart(true);
+    else card = rollCardSmart(false);
     currentDraft.push(card);
   }
   if(pendingMemWeapon){
@@ -576,6 +658,88 @@ function generateAndRenderDraft(waitingForY){
   }
   renderNestScreen(!!waitingForY);
 }
+
+// ═══ SHOP ═══
+function generateShop(){
+  shopItems = [];
+  for(let i=0;i<3;i++){
+    shopItems.push(rollCardSmart(wave >= BALANCE.goldenEvery));
+  }
+  shopOpen = false;
+}
+function shopPriceFor(card){
+  const prices = {common:20, rare:40, epic:80, legendary:120};
+  return prices[card.rarity] || 40;
+}
+function renderShop(){
+  let panel = document.getElementById('shop-panel');
+  if(!panel){
+    panel = document.createElement('div');
+    panel.id = 'shop-panel';
+    panel.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:1600;display:none;pointer-events:all;padding:24px 32px;background:linear-gradient(180deg,rgba(20,10,0,.98),rgba(10,5,0,.99));border:3px solid #fa0;border-radius:10px;box-shadow:0 0 60px #fa0,inset 0 0 30px rgba(255,150,0,.2);min-width:680px;max-width:92vw;text-align:center;font-family:"Courier New",monospace';
+    document.body.appendChild(panel);
+  }
+  const cards = shopItems.map((card, i) => {
+    const price = shopPriceFor(card);
+    const canBuy = credits >= price;
+    const cardEl = createCardElement(card, i);
+    cardEl.style.width = '180px';
+    cardEl.style.minHeight = '240px';
+    cardEl.style.animation = 'none';
+    cardEl.style.cursor = canBuy ? 'pointer' : 'not-allowed';
+    cardEl.style.opacity = canBuy ? '1' : '0.5';
+    cardEl.style.margin = '0';
+    // Add price tag
+    const priceTag = document.createElement('div');
+    priceTag.style.cssText = 'position:absolute;bottom:6px;left:6px;right:6px;padding:5px;background:'+(canBuy?'rgba(255,180,0,.9)':'rgba(80,80,80,.9)')+';color:#000;font-weight:bold;font-size:14px;border-radius:4px;text-align:center;letter-spacing:1px;z-index:6';
+    priceTag.textContent = '💰 ' + price + '  [' + ['Z','X','C'][i] + ']';
+    cardEl.appendChild(priceTag);
+    cardEl.onclick = (e) => { e.stopPropagation(); if(canBuy) buyShopItem(i); };
+    return cardEl.outerHTML;
+  }).join('');
+
+  panel.innerHTML = `
+    <h2 style="color:#fa0;font-size:26px;margin:0 0 8px;letter-spacing:3px;text-shadow:0 0 20px #fa0">🏪 МАГАЗИН</h2>
+    <div style="color:#fff;font-size:14px;margin-bottom:16px">💰 Кредиты: <b style="color:#ff0">${credits}</b></div>
+    <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin-bottom:16px">${cards}</div>
+    <div style="color:#888;font-size:12px">[F] или [ESC] — закрыть</div>
+  `;
+  // Rebind onclick (innerHTML loses events)
+  const newCards = panel.querySelectorAll('.nest-card');
+  newCards.forEach((el, i) => {
+    const canBuy = credits >= shopPriceFor(shopItems[i]);
+    el.onclick = (e) => { e.stopPropagation(); if(canBuy) buyShopItem(i); };
+  });
+}
+function openShop(){
+  if(!isNestActive || isWaitingForY || pendingDoomChoice) return;
+  shopOpen = true;
+  renderShop();
+  document.getElementById('shop-panel').style.display = 'block';
+  audio.cardPick();
+}
+function closeShop(){
+  shopOpen = false;
+  const panel = document.getElementById('shop-panel');
+  if(panel) panel.style.display = 'none';
+}
+function buyShopItem(idx){
+  const card = shopItems[idx];
+  if(!card) return;
+  const price = shopPriceFor(card);
+  if(credits < price){ showDebugToast('Недостаточно кредитов'); return; }
+  credits -= price;
+  applyCardEffect(card);
+  updatePityAfterPick(card);
+  audio.cardPick();
+  // Replace slot with new card
+  shopItems[idx] = rollCardSmart(wave >= BALANCE.goldenEvery);
+  renderShop();
+  updateUI();
+  renderNestSynergyStatus();
+}
+
+// ═══ PICK / SKIP / CONTINUE ═══
 function doomAccept(){
   if(!pendingDoomChoice) return;
   pendingDoomChoice = false;
@@ -601,6 +765,7 @@ function pickCard(idx){
   pickLocked = true;
   audio.cardPick();
   applyCardEffect(card);
+  updatePityAfterPick(card);
   const cards = DOM.nestCards.querySelectorAll('.nest-card');
   cards.forEach((el, i) => {
     el.style.pointerEvents = 'none';
@@ -629,8 +794,8 @@ function rerollNest(){
   currentDraft = [];
   for(let i = 0; i < cardCount; i++){
     let card;
-    if(isGolden && i === cardCount - 1 && !doomThisWave) card = rollCard(true);
-    else card = rollCard(false);
+    if(isGolden && i === cardCount - 1 && !doomThisWave) card = rollCardSmart(true);
+    else card = rollCardSmart(false);
     currentDraft.push(card);
   }
   if(DOM.nestCards){
@@ -655,6 +820,8 @@ function skipNest(){
   pickLocked = true;
   player.health = Math.min(player.maxHealth, player.health + 50);
   player.armor = Math.min(player.maxArmor, player.armor + 25);
+  // Пропуск = инкремент pity для всех тегов
+  updatePityAfterPick(null);
   updateUI();
   audio.pickup();
   const cards = DOM.nestCards.querySelectorAll('.nest-card');
@@ -668,6 +835,7 @@ function skipNest(){
 }
 function continueToWave(){
   if(pauseTimerId){ clearTimeout(pauseTimerId); pauseTimerId = null; }
+  closeShop();
   const pauseEl = document.getElementById('pause-overlay');
   const nestEl = document.getElementById('nest-screen');
   const synEl = document.getElementById('nest-synergy-panel');
@@ -706,16 +874,20 @@ function renderSynergyPanel(){
   let html = '';
 
   html += '<div class="syn-panel-section">';
-  html += '<div class="syn-panel-section-title">🔥 ТЕГИ СИНЕРГИЙ (3 / 6 / 9 карт)</div>';
+  html += '<div class="syn-panel-section-title">🔥 ТЕГИ СИНЕРГИЙ (2 / 4 / 7 карт)</div>';
   SYNERGY_TAGS.forEach(tag => {
     const s = synergies[tag];
     const meta = SYNERGY_META[tag];
     const lvl = s.level;
+    const pity = pityCounters[tag] || 0;
+    let pityStr = '';
+    if(pity >= PITY.guaranteeAfter) pityStr = ' <span style="color:#0ff">🎁 ГАРАНТИЯ</span>';
+    else if(pity >= PITY.boostAfter) pityStr = ' <span style="color:#8f8">✨ БУСТ</span>';
     html += `<div class="syn-panel-tag">`;
     html += `<div class="syn-panel-tag-icon">${meta.icon}</div>`;
     html += `<div class="syn-panel-tag-body">`;
-    html += `<div class="syn-panel-tag-name" style="color:${meta.color}">${meta.name} — ${s.count} карт</div>`;
-    html += `<div class="syn-panel-tag-progress">Уровень: ${lvl}/3</div>`;
+    html += `<div class="syn-panel-tag-name" style="color:${meta.color}">${meta.name} — ${s.count} карт${pityStr}</div>`;
+    html += `<div class="syn-panel-tag-progress">Уровень: ${lvl}/3 · Pity: ${pity}/${PITY.guaranteeAfter}</div>`;
     SYNERGY_BONUSES[tag].forEach((bonus, i) => {
       const need = SYNERGY_THRESHOLDS[i];
       if(lvl > i) html += `<div class="syn-panel-tag-bonus">✓ R${i+1} <b>${bonus.name}</b>: ${bonus.desc}</div>`;
@@ -753,15 +925,15 @@ function renderSynergyPanel(){
     ['reloadMult', 'ПЕРЕЗАРЯДКА', (v) => `×${v.toFixed(2)}`],
     ['aoeMult', 'РАДИУС AOE', (v) => `×${v.toFixed(2)}`],
     ['regenRate', 'РЕГЕН', (v) => `+${v.toFixed(1)}/с`],
-    ['maxTurrets', 'ТУРЕЛИ', (v) => `${v}`],
     ['maxDashes', 'РЫВКИ', (v) => `${v}`],
     ['burnDur', 'ВРЕМЯ ОГНЯ', (v) => `×${v.toFixed(2)}`],
     ['freezeDur', 'ВРЕМЯ ЛЬДА', (v) => `×${v.toFixed(2)}`],
     ['poisonDur', 'ВРЕМЯ ЯДА', (v) => `×${v.toFixed(2)}`],
     ['poisonStacks', 'СТАК ЯДА', (v) => `${v}`],
-    ['hgMaxCharge', 'ЗАРЯД HG', (v) => `×${v.toFixed(2)}`],
     ['medkitHeal', 'МЕДКИТЫ', (v) => `×${v.toFixed(2)}`],
     ['slowPower', 'ЗАМЕДЛЕНИЕ', (v) => `×${v.toFixed(2)}`],
+    ['iceDamageMult', 'УРОН ЛЬДОМ', (v) => `×${v.toFixed(2)}`],
+    ['aoeDamageMult', 'УРОН AOE', (v) => `×${v.toFixed(2)}`],
   ];
   let hasBuff = false;
   buffList.forEach(([key, label, fmt]) => {
@@ -797,6 +969,7 @@ function toggleSynergyPanel(){
   }
 }
 
+// ═══ GAME OVER ═══
 function gameOver(){
   if(isGameOver) return;
   isGameOver = true;
@@ -842,6 +1015,14 @@ function animate(){
   let dt = Math.min(realDt, .1);
   if(hitstopTime > 0){ hitstopTime -= realDt; dt = Math.min(realDt, .1)*.08 }
   if(isGameOver){ renderer.render(scene, camera); return }
+
+  // ═══ CREDITS POLLING (ФАЗА B) ═══
+  if(enemiesKilled > _lastEnemiesKilled){
+    credits += (enemiesKilled - _lastEnemiesKilled);
+    _lastEnemiesKilled = enemiesKilled;
+    const creditEl = document.getElementById('credits-display');
+    if(creditEl) creditEl.textContent = '💰 ' + credits;
+  }
 
   if(turretCooldown > 0) turretCooldown -= dt;
   if(activeTurret && activeTurret.hp > 0) activeTurret.update(dt);
@@ -1297,7 +1478,6 @@ function animate(){
         p.position.z += perpZ * delta;
       }
 
-      // ═══ ENEMY PROJECTILE WALL COLLISION ═══
       if(p.userData.isEnemyProjectile && !p.userData.gravity && !p.userData.isRocket && !p.userData.isMortar){
         if(p.userData._wallGrace === undefined) p.userData._wallGrace = 2;
         if(p.userData._wallGrace > 0){ p.userData._wallGrace--; }
@@ -1610,21 +1790,24 @@ function buildOpts(p){
 
 // ═══ KEYBOARD ═══
 document.addEventListener('keydown', e=>{
-  // Y PRESS — активирует карты
   if(isWaitingForY){
     if(e.code === 'KeyY'){ onYPressed(); e.preventDefault(); return; }
     return;
   }
-
-  // DOOM
   const doomEl = document.getElementById('doom-dialog');
   if(doomEl && doomEl.style.display === 'block'){
     if(e.code === 'KeyQ'){ doomAccept(); e.preventDefault(); return; }
     if(e.code === 'KeyW'){ doomSkip(); e.preventDefault(); return; }
     return;
   }
-
-  // SYNERGY PANEL
+  // SHOP
+  if(shopOpen){
+    if(e.code === 'KeyF' || e.code === 'Escape'){ closeShop(); e.preventDefault(); return; }
+    if(e.code === 'KeyZ' && shopItems[0]){ buyShopItem(0); e.preventDefault(); return; }
+    if(e.code === 'KeyX' && shopItems[1]){ buyShopItem(1); e.preventDefault(); return; }
+    if(e.code === 'KeyC' && shopItems[2]){ buyShopItem(2); e.preventDefault(); return; }
+    return;
+  }
   if(isSynergyPanelOpen){
     if(e.code === 'KeyD' || e.code === 'Escape'){ toggleSynergyPanel(); e.preventDefault(); return; }
     const panel = document.getElementById('nest-synergy-panel');
@@ -1636,8 +1819,6 @@ document.addEventListener('keydown', e=>{
     }
     return;
   }
-
-  // NEST SCREEN
   const nestEl = document.getElementById('nest-screen');
   if(isNestActive && nestEl && nestEl.style.display === 'block'){
     const idxMap = {KeyQ:0, KeyW:1, KeyE:2, KeyR:3, KeyT:4};
@@ -1650,10 +1831,9 @@ document.addEventListener('keydown', e=>{
     if(e.code === 'KeyA'){ rerollNest(); e.preventDefault(); return; }
     if(e.code === 'KeyS'){ skipNest(); e.preventDefault(); return; }
     if(e.code === 'KeyD'){ toggleSynergyPanel(); e.preventDefault(); return; }
+    if(e.code === 'KeyF'){ openShop(); e.preventDefault(); return; }
     return;
   }
-
-  // GAME
   keys[e.code] = true;
   if(e.code === 'KeyR' && !isGameOver && !isNestActive) reload();
   if(e.code === 'Space' && !isGameOver && !isNestActive){
@@ -1668,7 +1848,7 @@ document.addEventListener('keydown', e=>{
 });
 document.addEventListener('keyup', e=>{ keys[e.code] = false });
 document.addEventListener('mousedown', e=>{
-  if(isNestActive || isSynergyPanelOpen || isGameOver || isWaitingForY || pendingDoomChoice) return;
+  if(isNestActive || isSynergyPanelOpen || isGameOver || isWaitingForY || pendingDoomChoice || shopOpen) return;
   if(e.target.tagName !== 'BUTTON'){
     if(e.button === 0) mouseDown = true;
     if(e.button === 2){
@@ -1710,6 +1890,8 @@ if(DOM.rerollBtn) DOM.rerollBtn.addEventListener('click', e=>{ e.stopPropagation
 if(DOM.skipBtn) DOM.skipBtn.addEventListener('click', e=>{ e.stopPropagation(); if(isNestActive && !isWaitingForY) skipNest() });
 const infoBtn = document.getElementById('info-btn');
 if(infoBtn) infoBtn.addEventListener('click', e=>{ e.stopPropagation(); if(isNestActive && !isWaitingForY) toggleSynergyPanel() });
+const shopBtn = document.getElementById('shop-btn');
+if(shopBtn) shopBtn.addEventListener('click', e=>{ e.stopPropagation(); if(isNestActive && !isWaitingForY) openShop() });
 const doomYesBtn = document.getElementById('doom-yes');
 const doomNoBtn = document.getElementById('doom-no');
 if(doomYesBtn) doomYesBtn.addEventListener('click', e=>{ e.stopPropagation(); doomAccept() });
@@ -1775,5 +1957,5 @@ window.onerror = function(message, source, lineno, colno, error){
   }
 };
 window.addEventListener('unhandledrejection', event=>{ GameLogger.error(`UNHANDLED PROMISE: ${event.reason}`) });
-GameLogger.info('=== v5.3 STARTED (Y-flow + fixes) ===');
+GameLogger.info('=== v6.0 STARTED (Pity + Credits + Shop) ===');
 window.GameLogger = GameLogger;
