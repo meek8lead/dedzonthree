@@ -400,7 +400,7 @@ function triggerSynergyUp(tag, level){
   showSynergyBanner(meta.icon + ' ' + bonus.name + ' — ' + bonus.desc);
   audio.synergyUp();
   spawnPlayerAura(meta.color);
-  // Apply permanent effects
+  // Tank R1/R2 — постоянные бонусы
   if(tag === 'tank'){
     if(level === 1){
       player.maxHealth += 25;
