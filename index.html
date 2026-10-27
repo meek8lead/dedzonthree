@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>INDUSTRIAL ROGUE SHOOTER v5.3</title>
+<title>INDUSTRIAL ROGUE SHOOTER v6.0</title>
 <style>
 body{margin:0;overflow:hidden;font-family:'Courier New',monospace;background:#000}
 canvas{display:block}
@@ -116,7 +116,6 @@ canvas{display:block}
   font-family:'Courier New',monospace;user-select:none}
 @keyframes pauseBlink{from{opacity:.3}to{opacity:.8}}
 
-/* ═══ PRESS Y OVERLAY ═══ */
 #press-y-overlay{position:fixed;inset:0;z-index:1010;display:none;
   align-items:center;justify-content:center;flex-direction:column;
   pointer-events:none;background:rgba(0,0,0,.35)}
@@ -134,7 +133,6 @@ canvas{display:block}
   text-shadow:0 0 15px #ff0,0 0 30px #fa0;font-weight:bold}
 @keyframes yPulse{0%{transform:scale(1);opacity:.7}100%{transform:scale(1.06);opacity:1}}
 
-/* ═══ NEST SCREEN ═══ */
 #nest-screen{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:linear-gradient(180deg,rgba(10,0,0,.98),rgba(0,0,0,.99));border:4px solid #ff0;padding:28px 36px;display:none;pointer-events:all;text-align:center;box-shadow:0 0 60px #ff0,inset 0 0 30px rgba(255,255,0,.15);z-index:1000;min-width:780px;max-width:96vw;border-radius:10px}
 #nest-screen::before,#nest-screen::after{content:'';position:absolute;width:24px;height:24px;border:3px solid #ff0;box-shadow:0 0 12px #ff0}
 #nest-screen::before{top:-6px;left:-6px;border-right:none;border-bottom:none}
@@ -159,7 +157,6 @@ canvas{display:block}
 .nest-card.curse:hover{border-color:#f88;box-shadow:0 0 30px rgba(255,0,0,.9),0 0 50px rgba(255,50,50,.5)}
 .nest-card.synergy-ready{border-color:#ffd700;box-shadow:0 0 30px rgba(255,215,0,.9),0 0 60px rgba(255,200,0,.4)}
 
-/* Cards locked until Y pressed */
 #nest-cards.waiting-y .nest-card{
   opacity:.35;
   pointer-events:none;
@@ -181,8 +178,6 @@ canvas{display:block}
 .nest-tag.tank{border-color:#48f;color:#48f}
 .nest-tag.speed{border-color:#0ff;color:#0ff}
 .nest-tag.aoe{border-color:#c4f;color:#c4f}
-.nest-tag.summon{border-color:#f0f;color:#f0f}
-.nest-tag.time{border-color:#8af;color:#8af}
 .nest-card-hint{margin-top:6px;font-size:10px;color:#ff0;text-align:center;padding:3px;border-top:1px dashed #333}
 .nest-card-key{position:absolute;top:6px;right:6px;padding:3px 10px;background:rgba(0,0,0,.85);border:2px solid #ff0;border-radius:4px;font-size:14px;font-weight:bold;color:#ff0;box-shadow:0 0 10px rgba(255,255,0,.7);z-index:5;font-family:'Courier New',monospace;letter-spacing:1px}
 
@@ -196,12 +191,13 @@ canvas{display:block}
 #skip-btn:disabled{background:#333;color:#666;cursor:not-allowed;box-shadow:none}
 #info-btn{background:linear-gradient(135deg,#ff0,#a80);color:#000;box-shadow:0 0 15px rgba(255,200,0,.7)}
 #info-btn:hover{transform:scale(1.06);box-shadow:0 0 25px rgba(255,200,0,1)}
+#shop-btn{background:linear-gradient(135deg,#fa0,#a60);color:#000;box-shadow:0 0 15px rgba(255,150,0,.7)}
+#shop-btn:hover{transform:scale(1.06);box-shadow:0 0 25px rgba(255,150,0,1)}
 
 #nest-synergy-status{margin-top:14px;font-size:12px;color:#8f8;letter-spacing:1px}
 
 .key-hint{display:inline-block;padding:2px 8px;margin-left:8px;background:rgba(0,0,0,.7);border:2px solid currentColor;border-radius:4px;font-size:.85em;font-weight:bold;letter-spacing:1px;box-shadow:0 0 8px currentColor;opacity:.9}
 
-/* ═══ SYNERGY PANEL — scrollable ═══ */
 #nest-synergy-panel{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
   background:linear-gradient(180deg,rgba(0,20,0,.98),rgba(0,10,0,.99));
   border:3px solid #0f0;padding:22px;z-index:1200;max-width:90vw;
@@ -237,7 +233,6 @@ canvas{display:block}
 .syn-panel-buff-val{color:#0f0;font-weight:bold}
 .syn-panel-close{text-align:center;margin-top:16px;padding-top:12px;border-top:1px dashed #0f0;color:#8f8;font-size:12px;letter-spacing:1px;position:sticky;bottom:0;background:linear-gradient(180deg,rgba(0,10,0,.85),rgba(0,10,0,.98));padding-bottom:6px}
 
-/* ═══ DOOM DIALOG ═══ */
 #doom-dialog{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:linear-gradient(180deg,rgba(30,0,0,.98),rgba(10,0,0,.98));border:4px solid #f00;padding:30px 40px;display:none;pointer-events:all;text-align:center;box-shadow:0 0 60px #f00,inset 0 0 30px rgba(255,0,0,.2);z-index:1500;min-width:460px;border-radius:10px}
 #doom-dialog h2{color:#f00;text-shadow:0 0 20px #f00;font-size:32px;margin:0 0 16px;letter-spacing:4px;animation:doomPulse 1s infinite alternate}
 @keyframes doomPulse{from{transform:scale(1)}to{transform:scale(1.05)}}
@@ -292,6 +287,7 @@ canvas{display:block}
 @keyframes trickAnim{0%{transform:scale(1) rotate(-5deg);filter:hue-rotate(0deg)}100%{transform:scale(1.2) rotate(5deg);filter:hue-rotate(90deg)}}
 @keyframes dmgFloat{0%{transform:translate(-50%,-50%) scale(1);opacity:1}100%{transform:translate(-50%,-160%) scale(.7);opacity:0}}
 .dmg-num{position:fixed;font-weight:bold;pointer-events:none;z-index:9000;font-family:'Courier New',monospace;animation:dmgFloat .7s ease-out forwards;will-change:transform,opacity}
+
 /* ═══ HUB UI ═══ */
 #hub-interact-hint{
   position:absolute;bottom:120px;left:50%;transform:translateX(-50%);
@@ -299,6 +295,7 @@ canvas{display:block}
   font-family:'Courier New',monospace;font-size:18px;font-weight:bold;
   letter-spacing:2px;z-index:2000;pointer-events:none;
   transition:all .2s;border-radius:8px;
+  display:none;
 }
 #hub-zones{
   position:absolute;top:80px;right:20px;background:rgba(0,10,0,.85);
@@ -325,6 +322,8 @@ canvas{display:block}
 body.hub-mode #hub-credits,
 body.hub-mode #hub-wave,
 body.hub-mode #hub-zones{display:block}
+
+#credits-display{color:#ff0}
 
 #casino-overlay,#dice-overlay,#range-overlay{
   position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
@@ -421,7 +420,6 @@ body.hub-mode #hub-zones{display:block}
 
 <div id="pause-overlay"><div class="pause-mark">PAUSE</div></div>
 
-<!-- PRESS Y OVERLAY -->
 <div id="press-y-overlay">
   <div class="press-y-key">Y</div>
   <div class="press-y-text">НАЖМИ Y ЧТОБЫ ПРОДОЛЖИТЬ</div>
@@ -462,6 +460,40 @@ body.hub-mode #hub-zones{display:block}
   <div>Скорострельность: <span id="weapon-rate">1.5</span>/с</div>
   <div>Дальность: <span id="weapon-range">50</span>м</div>
   <div id="weapon-slots"></div>
+</div>
+
+<div id="wave-info" class="ui-panel">
+  <div style="font-size:18px;font-weight:bold">ВОЛНА <span id="wave-num" class="wave-num-big">1</span></div>
+  <div style="font-size:14px;color:#fa0">💰 <span id="credits-display">0</span></div>
+  <div>Враги: <span id="enemies-left">0</span></div>
+  <div>Убито: <span id="enemies-killed">0</span></div>
+  <div style="margin-top:10px">Модификаторы:</div>
+  <div id="modifiers-list"></div>
+</div>
+
+<div id="radar" class="ui-panel"><canvas id="radar-canvas" width="180" height="180"></canvas></div>
+
+<div id="health-panel" class="ui-panel">
+  <div style="font-size:16px;font-weight:bold">ЗДОРОВЬЕ</div>
+  <div class="bar"><div class="bar-fill" id="health-bar" style="width:100%"></div></div>
+  <div id="health-text">100 / 100</div>
+  <div style="margin-top:10px;font-size:16px;font-weight:bold">БРОНЯ</div>
+  <div class="bar"><div class="bar-fill" id="armor-bar" style="width:0%;background:#00f"></div></div>
+  <div id="armor-text">0 / 100</div>
+</div>
+
+<div id="ammo-panel" class="ui-panel">
+  <div style="font-size:16px;font-weight:bold">ПАТРОНЫ</div>
+  <div id="ammo-text">12 / 12</div>
+  <div id="reload-status"></div>
+</div>
+
+<div id="dash-label">РЫВОК [SHIFT] | ПРИЦЕЛ [RMB]</div>
+<div id="dash-indicator"><div id="dash-fill"></div></div>
+<div id="aim-hint">[RMB] — прицеливание (точность ↑)</div>
+
+<div id="curse-indicator">💀 КУРС: 0/3</div>
+
 <!-- ═══ HUB UI ═══ -->
 <div id="hub-credits">💰 0</div>
 <div id="hub-wave">ВОЛНА 1</div>
@@ -474,6 +506,37 @@ body.hub-mode #hub-zones{display:block}
   <div class="hub-zone-item"><span>🎯 Тир</span><span style="color:#8f0">[E]</span></div>
 </div>
 <div id="hub-interact-hint"></div>
+
+<!-- ═══ NEST ═══ -->
+<div id="nest-screen">
+  <h2>🎰 ГНЕЗДО 🎰</h2>
+  <p id="nest-hint">Выбери карту</p>
+  <div id="nest-cards" class="waiting-y"></div>
+  <div id="nest-buttons">
+    <button id="reroll-btn" class="nest-btn">🔄 РЕРОЛЛ <span class="key-hint">[A]</span></button>
+    <button id="skip-btn" class="nest-btn">⏭ ПРОПУСК <span class="key-hint">[S]</span></button>
+    <button id="info-btn" class="nest-btn">📊 СИНЕРГИИ <span class="key-hint">[D]</span></button>
+    <button id="shop-btn" class="nest-btn">🏪 МАГАЗИН <span class="key-hint">[F]</span></button>
+  </div>
+  <div id="nest-synergy-status"></div>
+</div>
+
+<div id="nest-synergy-panel">
+  <div class="syn-panel-header">📊 СИНЕРГИИ И БАФФЫ</div>
+  <div id="nest-synergy-panel-body"></div>
+  <div class="syn-panel-close">[D] / [ESC] — закрыть · [↑][↓] — скролл</div>
+</div>
+
+<div id="doom-dialog">
+  <h2>⚠ DOOM-ВОЛНА ⚠</h2>
+  <p>Враги: <span style="color:#f88">+50% HP, +30% DMG</span></p>
+  <p>Награда: <span style="color:#8f8">4 карты в драфте + гарантированный эпик</span></p>
+  <p>Риск: <span style="color:#f00">смерть = конец рана</span></p>
+  <div class="doom-buttons">
+    <button id="doom-yes">💀 ВЗЯТЬ РИСК <span class="key-hint">[Q]</span></button>
+    <button id="doom-no">⏭ ПРОПУСТИТЬ <span class="key-hint">[W]</span></button>
+  </div>
+</div>
 
 <!-- ═══ CASINO OVERLAY ═══ -->
 <div id="casino-overlay">
@@ -506,67 +569,6 @@ body.hub-mode #hub-zones{display:block}
   <div id="range-msg" style="min-height:50px"></div>
   <button id="range-shoot-btn" class="mini-btn">[E] СТРЕЛЯТЬ</button>
   <button class="mini-close" onclick="hub.closeRange()">[ESC] ЗАКРЫТЬ</button>
-</div>
-</div>
-
-<div id="wave-info" class="ui-panel">
-  <div style="font-size:18px;font-weight:bold">ВОЛНА <span id="wave-num" class="wave-num-big">1</span></div>
-  <div>Враги: <span id="enemies-left">0</span></div>
-  <div>Убито: <span id="enemies-killed">0</span></div>
-  <div style="margin-top:10px">Модификаторы:</div>
-  <div id="modifiers-list"></div>
-</div>
-
-<div id="radar" class="ui-panel"><canvas id="radar-canvas" width="180" height="180"></canvas></div>
-
-<div id="health-panel" class="ui-panel">
-  <div style="font-size:16px;font-weight:bold">ЗДОРОВЬЕ</div>
-  <div class="bar"><div class="bar-fill" id="health-bar" style="width:100%"></div></div>
-  <div id="health-text">100 / 100</div>
-  <div style="margin-top:10px;font-size:16px;font-weight:bold">БРОНЯ</div>
-  <div class="bar"><div class="bar-fill" id="armor-bar" style="width:0%;background:#00f"></div></div>
-  <div id="armor-text">0 / 100</div>
-</div>
-
-<div id="ammo-panel" class="ui-panel">
-  <div style="font-size:16px;font-weight:bold">ПАТРОНЫ</div>
-  <div id="ammo-text">12 / 12</div>
-  <div id="reload-status"></div>
-</div>
-
-<div id="dash-label">РЫВОК [SHIFT] | ПРИЦЕЛ [RMB]</div>
-<div id="dash-indicator"><div id="dash-fill"></div></div>
-<div id="aim-hint">[RMB] — прицеливание (точность ↑)</div>
-
-<div id="curse-indicator">💀 КУРС: 0/3</div>
-
-<div id="nest-screen">
-  <h2>🎰 ГНЕЗДО 🎰</h2>
-  <p id="nest-hint">Выбери карту</p>
-  <div id="nest-cards" class="waiting-y"></div>
-  <div id="nest-buttons">
-    <button id="reroll-btn" class="nest-btn">🔄 РЕРОЛЛ <span class="key-hint">[A]</span></button>
-    <button id="skip-btn" class="nest-btn">⏭ ПРОПУСК <span class="key-hint">[S]</span></button>
-    <button id="info-btn" class="nest-btn">📊 СИНЕРГИИ <span class="key-hint">[D]</span></button>
-  </div>
-  <div id="nest-synergy-status"></div>
-</div>
-
-<div id="nest-synergy-panel">
-  <div class="syn-panel-header">📊 СИНЕРГИИ И БАФФЫ</div>
-  <div id="nest-synergy-panel-body"></div>
-  <div class="syn-panel-close">[D] / [ESC] — закрыть · [↑][↓] — скролл</div>
-</div>
-
-<div id="doom-dialog">
-  <h2>⚠ DOOM-ВОЛНА ⚠</h2>
-  <p>Враги: <span style="color:#f88">+50% HP, +30% DMG</span></p>
-  <p>Награда: <span style="color:#8f8">4 карты в драфте + гарантированный эпик</span></p>
-  <p>Риск: <span style="color:#f00">смерть = конец рана</span></p>
-  <div class="doom-buttons">
-    <button id="doom-yes">💀 ВЗЯТЬ РИСК <span class="key-hint">[Q]</span></button>
-    <button id="doom-no">⏭ ПРОПУСТИТЬ <span class="key-hint">[W]</span></button>
-  </div>
 </div>
 
 <div id="game-over">
