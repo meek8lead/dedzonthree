@@ -122,7 +122,7 @@ class Hub {
     for(let i=0; i<60; i++){
       const theta = Math.random()*Math.PI*2;
       const r = Math.random()*ROOM_R*.9;
-      const star = this.sph(.02,4,4, new THREE.MeshBasicMaterial({color:0xffffff}), Math.cos(theta)*r, ROOM_H-.1, Math.sin(theta)*r);
+      this.sph(.02,4,4, new THREE.MeshBasicMaterial({color:0xffffff}), Math.cos(theta)*r, ROOM_H-.1, Math.sin(theta)*r);
     }
 
     return this.group;
@@ -147,7 +147,7 @@ class Hub {
     glow.position.set(0, 1.6, 0);
     g.add(glow);
     this.parts.teleporter = g;
-    this.registerInteractable('teleporter', g, 'ТЕЛЕПОРТЕР', 1.8, 0x8844ff);
+    this.registerInteractable('teleporter', g, 'ТЕЛЕПОРТЕР → СЛЕД. ВОЛНА', 1.8, 0x8844ff);
   }
 
   buildCardTable(x, z, ry){
@@ -163,7 +163,7 @@ class Hub {
     for(let i=0; i<3; i++){
       const card = this.box(.3, .42, .01, new THREE.MeshBasicMaterial({color:0xffaa00, transparent:true, opacity:.6}), -.6+i*.6, 1.15, 0, g);
     }
-    this.registerInteractable('cards', g, 'СТОЛ КАРТ', 2.5, 0xffaa00);
+    this.registerInteractable('cards', g, 'СТОЛ КАРТ — ВЫБРАТЬ КАРТУ', 2.5, 0xffaa00);
   }
 
   buildCasino(x, z, ry){
@@ -182,7 +182,7 @@ class Hub {
     this.cyl(.04,.04,.4,6, this.matMetal(), .8, 1.5, 0, g, Math.PI/2);
     this.sph(.1,8,8, new THREE.MeshStandardMaterial({color:0xff2222, emissive:0x880000, emissiveIntensity:.5}), .8, 1.5, .2, g);
     this.box(1.2, .3, .15, this.matMetal(), 0, .5, .45, g);
-    this.registerInteractable('casino', g, 'КАЗИНО (10💰)', 2.5, 0xff2266);
+    this.registerInteractable('casino', g, 'КАЗИНО (10💰/спин)', 2.5, 0xff2266);
   }
 
   buildDice(x, z, ry){
@@ -200,7 +200,7 @@ class Hub {
     const diceLight = new THREE.PointLight(0xffdd00, 1.5, 3);
     diceLight.position.set(0, 1.5, 0);
     g.add(diceLight);
-    this.registerInteractable('dice', g, 'КОСТИ (5💰)', 2.5, 0x00ddff);
+    this.registerInteractable('dice', g, 'КОСТИ СУДЬБЫ (5💰/бросок)', 2.5, 0x00ddff);
   }
 
   buildRange(x, z, ry){
@@ -224,7 +224,7 @@ class Hub {
     }
     this.box(2.5, .1, .1, this.matMetal(), 0, 1, 0, g);
     this.box(2.8, .15, .3, this.matDarkMetal(), 0, .05, 1.2, g);
-    this.registerInteractable('range', g, 'ТИР', 2.5, 0x88ff00);
+    this.registerInteractable('range', g, 'ТИР (10 выстрелов)', 2.5, 0x88ff00);
   }
 
   registerInteractable(id, group, label, radius, color){
@@ -268,7 +268,7 @@ class Hub {
     if(hintEl) hintEl.style.display = 'none';
     document.body.classList.add('hub-mode');
     updateHubHUD();
-    showDebugToast('🏨 УБЕЖИЩЕ — WASD ходьба, E взаимодействие');
+    showDebugToast('🏨 УБЕЖИЩЕ — WASD ходьба · [E] взаимодействие');
     audio.play('sun');
   }
 
@@ -358,6 +358,12 @@ class Hub {
   }
 
   checkInteract(){
+    const hintEl = document.getElementById('hub-interact-hint');
+    if(isNestActive || hubCasinoActive || hubDiceActive || hubRangeActive){
+      if(hintEl) hintEl.style.display = 'none';
+      hubNearest = null;
+      return;
+    }
     hubNearest = null;
     let minDist = 3;
     for(const zone of hubInteractables){
@@ -366,7 +372,6 @@ class Hub {
       const d = Math.sqrt(dx*dx+dz*dz);
       if(d < minDist){ minDist = d; hubNearest = zone }
     }
-    const hintEl = document.getElementById('hub-interact-hint');
     if(hubNearest && minDist < 2.8){
       if(hintEl){
         const c = colorHex(hubNearest.color);
@@ -639,12 +644,15 @@ function updateHubHUD(){
 
 function openHubDraft(){
   if(isNestActive) return;
-  currentDraft = [];
-  for(let i=0; i<3; i++){
-    currentDraft.push(rollCardSmart(false));
+  if(draftClaimedThisHub){
+    showDebugToast('Карты уже взяты. Иди к телепорту.');
+    return;
+  }
+  if(currentDraft.length === 0){
+    generateDraft();
   }
   isNestActive = true;
-  renderNestScreen(false);
+  renderNestScreen();
   const ns = document.getElementById('nest-screen');
   if(ns) ns.style.display = 'block';
   if(document.pointerLockElement) document.exitPointerLock();
@@ -668,6 +676,7 @@ document.addEventListener('keydown', e=>{
     return;
   }
   if(isNestActive) return;
+  if(isSynergyPanelOpen) return;
   keys[e.code] = true;
   if(e.code === 'KeyE'){ hub.interact(); e.preventDefault(); return; }
   if(e.code === 'Tab'){ e.preventDefault(); return; }
