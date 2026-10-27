@@ -650,19 +650,6 @@ function openHubDraft(){
   if(document.pointerLockElement) document.exitPointerLock();
 }
 
-const _originalContinueToWave = continueToWave;
-continueToWave = function(){
-  if(hubMode){
-    const ns = document.getElementById('nest-screen');
-    if(ns) ns.style.display = 'none';
-    isNestActive = false;
-    pickLocked = false;
-    if(!document.pointerLockElement) document.body.requestPointerLock();
-    return;
-  }
-  _originalContinueToWave.apply(this, arguments);
-};
-
 document.addEventListener('keydown', e=>{
   if(!hubMode) return;
   if(hubCasinoActive){
