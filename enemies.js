@@ -1,5 +1,5 @@
 'use strict';
-// INDUSTRIAL ROGUE SHOOTER v6.0 — ENEMIES (balance + Phase B cleanup)
+// INDUSTRIAL ROGUE SHOOTER v6.0 — ENEMIES (balance fixes + Phase B cleanup)
 
 let _icegunShotCounter = 0;
 
@@ -143,11 +143,11 @@ class Enemy {
     const waveHP = (1+(wave-1)*BALANCE.waveHPBase + Math.max(0,wave-10)*BALANCE.waveHPAccel) * surgeHP;
     const waveDMG = (1+(wave-1)*BALANCE.waveDMGBase + Math.max(0,wave-15)*BALANCE.waveDMGAccel) * surgeDMG;
     const S = (b,r)=>(b+Math.random()*r)*sm*sl;
-    // ФАЗА А фиксы: Tank 810→450, 25→50, Fortifier 120→250, Wallbreaker 140→280/8→12
+    // ФАЗА А: Tank 450/50, Fortifier 250, Wallbreaker 280/12, Chariot cd 4
     const stats = {
       human:[54,.03,.01,10,.7,1.75,1.55,.3],robot:[90,.02,.008,15,.9,1.7,1.45,.35],
       runner:[36,.06,.02,8,.6,.7,0,0],
-      tank:[450,.02,.008,50,1.4,2,1.6,.4],                // ФАЗА А
+      tank:[450,.02,.008,50,1.4,2,1.6,.4],
       drone:[45,.04,.015,12,.6,.8,0,0],shooter:[63,.025,.01,15,.7,1.75,1.5,.25],
       bomber:[72,.05,.02,5,.8,1.5,0,0],spitter:[54,.02,.01,20,.7,1.7,1.45,.35],
       gunner:[81,.02,.01,7,.7,1.75,1.55,.3],sniper_enemy:[72,.015,.005,40,.7,1.75,1.55,.3],
@@ -156,10 +156,10 @@ class Enemy {
       slug:[45,.012,.005,8,.65,.55,0,0],trickster:[120,.04,.015,15,.8,1.8,1.6,.35],
       spider:[80,.03,.005,8,.85,1.3,0,0],chariot:[480,.03,.008,28,1.3,1.5,0,0],
       ninja:[55,.055,.01,10,.6,1.7,1.55,.28],
-      fortifier:[250,.012,.005,6,.9,1.7,1.55,.3],          // ФАЗА А
+      fortifier:[250,.012,.005,6,.9,1.7,1.55,.3],
       worm:[75,.09,.02,14,.55,.9,0,0],mortar:[110,.02,.008,22,.75,1.7,1.55,.3],
       illusionist:[130,.03,.01,12,.65,1.75,1.55,.3],illusion_copy:[20,.04,.015,5,.55,1.65,1.5,.25],
-      wallbreaker:[280,.01,.005,12,1.1,1.6,0,0],           // ФАЗА А
+      wallbreaker:[280,.01,.005,12,1.1,1.6,0,0],
       verkhushka:[85,.012,.005,18,.6,1.4,0,0],
       chess_horse:[180,0,0,40,.8,2.0,1.85,.4],chess_elephant:[180,0,0,40,.8,2.2,2.0,.4],
       cheerful:[60,.035,.01,25,.9,1.2,0,0],ufo:[200,.03,.005,15,1.5,1.2,0,0],
@@ -187,7 +187,6 @@ class Enemy {
         : this.type === 'enemy_shotgunner' ? 'enemy_shotgun' : this.type === 'spider' ? 'spider_shot'
         : this.type === 'ninja' ? 'ninja_shuriken' : this.type === 'fortifier' ? 'fortifier_bolt' : 'pistol';
     }
-    // ФАЗА А: Tank fireRate 10→7, AOE 6
     if(this.type === 'tank'){ this.shootCooldown = 7; this.weaponType = 'tank_shell'; this.explodeRadius = 6 }
     if(this.type === 'mortar'){ this.shootCooldown = 3.5+Math.random()*1.5 }
     if(this.type === 'illusionist'){ this.shootCooldown = 1.8+Math.random()*.5 }
@@ -197,6 +196,7 @@ class Enemy {
     if(this.type === 'ufo'){ this.isFlying = true; this.baseY = 4 + Math.random()*0.5 }
     this.canDodge = ['runner','spider','gunner','sniper_enemy','spitter','ninja','ice_dog'].includes(this.type);
     this.dodgeChance = this.type === 'ninja' ? .92 : (this.type === 'ice_dog' ? 0.35 : 0.7);
+    if(this.type === 'ninja'){ this.dodgeCooldown = 0.5 + Math.random()*0.4; this.dodgeTimer = 0.3; }
   }
 
   buildModel(){
@@ -213,6 +213,8 @@ class Enemy {
     this.parts.head=this.eSph(.18,10,10,skin,0,1.55,0); this.parts.head.scale.set(1,1.1,1);
     const eye=new THREE.MeshBasicMaterial({color:0xff2200});
     this.eSph(.03,6,6,eye,-.07,1.58,.16); this.eSph(.03,6,6,eye,.07,1.58,.16);
+    const smile=this.eA(new THREE.TorusGeometry(.06,.012,6,12,Math.PI),new THREE.MeshBasicMaterial({color:0}),0,1.5,.17);
+    smile.rotation.z=Math.PI;
     const ag=new THREE.BoxGeometry(.14,.6,.14);
     this.parts.leftArm=this.eA(ag,cm,-.34,1,0); this.parts.rightArm=this.eA(ag,cm,.34,1,0);
     const lg=new THREE.BoxGeometry(.17,.7,.17), lm=new THREE.MeshStandardMaterial({color:0x333333});
@@ -1049,7 +1051,6 @@ class Enemy {
       if(this.frozenTimer <= 0 && this.parts.bodyMat){ this.parts.bodyMat.emissive.copy(this.origEmissive); this.parts.bodyMat.emissiveIntensity=this.origEmissiveIntensity }
       if(!this._wasFrozen){
         this._wasFrozen = true;
-        // ICE R3: крио-взрыв (ФАЗА B без time)
         if(hasSynergy('ice',3)){
           createAOESphere(this.group.position, 4, 0x88ccff);
           enemies.slice().forEach(e=>{
@@ -1111,7 +1112,6 @@ class Enemy {
     let sm=1;
     if(this.slowTimer > 0){ this.slowTimer -= dt; sm=.5 }
     if(modifiers.includes('ice_aura') && dist < 5) sm *= .5;
-    // ФАЗА B: время-аура убрана, но ice-аура осталась
     if(playerBuffs.enemySpeedMult > 1) sm *= playerBuffs.enemySpeedMult;
     if(this.type !== 'trickster' && !hgFrozen){
       if(hgState === 'slow') sm *= SLOW_TIMESCALE;
@@ -1373,7 +1373,7 @@ class Enemy {
     if(this.type === 'verkhushka'){
       if(this.vkState === 'buried'){
         const alive=enemies.filter(e=>!e.dead && e!==this).length;
-        // ФАЗА А: порог 50% (было 20%)
+        // ФАЗА А: порог 50%
         if(waveTotalEnemies > 0 && (alive < waveTotalEnemies*.5 || alive === 0)){
           this.vkState='emerging'; this.vkTimer=0; audio.play('beam');
         }
@@ -1504,7 +1504,7 @@ class Enemy {
         const np=this.group.position.clone();
         np.x+=this.chargeDir.x*this.speed*2.5*60*dt; np.z+=this.chargeDir.z*this.speed*2.5*60*dt;
         if(!this.checkColliderCollision(np)){ this.group.position.x=np.x; this.group.position.z=np.z }
-        if(this.group.position.distanceTo(player.position) < 1.8){ damagePlayer(this.damage,'chariot',1.5); cameraShake(.4,.5); this.chargeTime=0; this.chargeCooldown=4 }  // ФАЗА А: cd 5→4
+        if(this.group.position.distanceTo(player.position) < 1.8){ damagePlayer(this.damage,'chariot',1.5); cameraShake(.4,.5); this.chargeTime=0; this.chargeCooldown=4 }
         this.parts.wheels.forEach(w=>w.rotation.x-=.5);
         this.facePlayer(dt,4); return;
       }
@@ -1620,7 +1620,6 @@ class Enemy {
       bg.userData.life=200;
       scene.add(bg); projectiles.push(bg);
     }
-    // ФАЗА А: Tank AOE 4.5→6
     else if(this.weaponType === 'tank_shell') mk(.35,.35,0xff6600,300,{isRocket:true,tankShell:true,explodeRadius:6});
     else if(this.weaponType === 'shotgun'){
       for(let i=0;i<4;i++){
@@ -1804,8 +1803,8 @@ class Enemy {
       createAOESphere(this.group.position, 3, 0xff8800);
       enemies.slice().forEach(e=>{ if(!e.dead && e !== this && e.group.position.distanceTo(this.group.position) < 3) e.takeDamage(40, e.group.position, 'explosive') });
     }
-    // ФАЗА B: SUMMON R3 убран — миньоны не спавнятся
-    // Necro signature — тоже убран (summon не существует)
+    // SUMMON R3 убран — миньоны не спавнятся
+    // Necro signature зомби убран — summon тега нет
     if(hasSynergy('aoe',3)){
       enemies.slice().forEach(e=>{
         if(!e.dead && e !== this && e.group.position.distanceTo(this.group.position) < 6){
