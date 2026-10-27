@@ -8,8 +8,7 @@ let waveCleared = false;
 let isWaveTransitioning = false;
 let isSynergyPanelOpen = false;
 let pickLocked = false;
-let isWaitingForY = false;
-let pauseTimerId = null;
+let draftClaimedThisHub = false;
 let waveSpawnTimers = [];
 
 // Кредиты + PITY + Магазин
@@ -205,11 +204,9 @@ function startWave(){
   damageFrom = {};
 
   const isSurge = (wave % BALANCE.surgeEvery === 0);
-  const isDoom = doomThisWave;
 
   let hpMult = 1, dmgMult = 1, countMult = 1;
   if(isSurge){ hpMult *= BALANCE.surgeHP; dmgMult *= BALANCE.surgeDMG; countMult *= BALANCE.surgeCount }
-  if(isDoom){ hpMult *= BALANCE.doomHP; dmgMult *= BALANCE.doomDMG; countMult *= 1.3 }
   window.waveSurgeHP = hpMult;
   window.waveSurgeDMG = dmgMult;
 
@@ -283,7 +280,6 @@ function startWave(){
       waveSpawnTimers.push(timerId);
     }
   }
-  if(isDoom){ showDebugToast('⚠ DOOM-ВОЛНА АКТИВНА'); audio.doomWarning() }
   updateUI();
 }
 
@@ -291,10 +287,6 @@ function onWaveCleared(){
   if(waveCleared) return;
   waveCleared = true;
   isWaveTransitioning = true;
-  isNestActive = true;
-  isWaitingForY = true;
-  pickLocked = false;
-  isSynergyPanelOpen = false;
   waveSpawnTimers.forEach(t => clearTimeout(t));
   waveSpawnTimers = [];
 
@@ -305,33 +297,13 @@ function onWaveCleared(){
   wasMouseDown = false;
   resetChargingState();
 
-  generateAndRenderDraft(true);
+  // Готовим драфт для хаба
+  draftClaimedThisHub = false;
+  currentDraft = [];
+  generateDraft();
   generateShop();
 
-  const pauseEl = document.getElementById('pause-overlay');
-  if(pauseEl) pauseEl.classList.add('show');
-  const yEl = document.getElementById('press-y-overlay');
-  if(yEl) yEl.classList.add('show');
-
-  const doomEl = document.getElementById('doom-dialog');
-  if(doomEl) doomEl.style.display = 'none';
-  const synEl = document.getElementById('nest-synergy-panel');
-  if(synEl) synEl.classList.remove('show');
-}
-
-function onYPressed(){
-  if(!isWaitingForY) return;
-  isWaitingForY = false;
-  const yEl = document.getElementById('press-y-overlay');
-  if(yEl) yEl.classList.remove('show');
-
-  const pauseEl = document.getElementById('pause-overlay');
-  if(pauseEl) pauseEl.classList.remove('show');
-  const nestEl = document.getElementById('nest-screen');
-  if(nestEl) nestEl.style.display = 'none';
-  isNestActive = false;
-
-  // ВХОД В ХАБ
+  // Мгновенно в хаб — без пауз, оверлеев и попапа карт
   enterHub();
 }
 
@@ -577,19 +549,13 @@ function updateRerollButton(){
   else if(cost === 0) btn.innerHTML = '🔄 РЕРОЛЛ (бесплатно) <span class="key-hint">[A]</span>';
   else btn.innerHTML = `🔄 РЕРОЛЛ (-${cost} HP) <span class="key-hint">[A]</span>`;
 }
-function renderNestScreen(waitingForY){
+function renderNestScreen(){
   if(!DOM.nestScreen) return;
   DOM.nestScreen.style.display = 'block';
-  DOM.nestHint.innerHTML = doomThisWave
-    ? '⚠ DOOM-ВОЛНА АКТИВНА — выбери бонус: <span class="key-hint">Q</span> <span class="key-hint">W</span> <span class="key-hint">E</span> <span class="key-hint">R</span> <span class="key-hint">T</span>'
-    : 'Выбери карту: <span class="key-hint">Q</span> <span class="key-hint">W</span> <span class="key-hint">E</span> <span class="key-hint">R</span> <span class="key-hint">T</span>  |  💰 <span style="color:#ff0">${credits}</span>';
+  DOM.nestHint.innerHTML = `Выбери карту: <span class="key-hint">Q</span> <span class="key-hint">W</span> <span class="key-hint">E</span> <span class="key-hint">R</span> <span class="key-hint">T</span>  |  💰 <span style="color:#ff0">${credits}</span>`;
   const cardsEl = DOM.nestCards;
   cardsEl.innerHTML = '';
-  if(waitingForY){
-    cardsEl.classList.add('waiting-y');
-  } else {
-    cardsEl.classList.remove('waiting-y');
-  }
+  cardsEl.classList.remove('waiting-y');
   currentDraft.forEach((card, i) => {
     const cardEl = createCardElement(card, i);
     cardEl.style.opacity = '0';
@@ -603,10 +569,9 @@ function renderNestScreen(waitingForY){
   updateRerollButton();
   renderNestSynergyStatus();
 }
-function generateAndRenderDraft(waitingForY){
+function generateDraft(){
   const isGolden = (wave % BALANCE.goldenEvery === 0);
-  const doomBonus = doomThisWave ? 1 : 0;
-  const cardCount = 3 + doomBonus;
+  const cardCount = 3;
   currentDraft = [];
   for(let i = 0; i < cardCount; i++){
     let card;
@@ -625,7 +590,7 @@ function generateAndRenderDraft(waitingForY){
       showDebugToast('💀 МЕМ-ОРУЖИЕ ДОСТУПНО!');
     }
   }
-  renderNestScreen(!!waitingForY);
+  rerollsUsedThisWave = 0;
 }
 
 function generateShop(){
@@ -677,7 +642,7 @@ function renderShop(){
   });
 }
 function openShop(){
-  if(!isNestActive || isWaitingForY || pendingDoomChoice) return;
+  if(!isNestActive) return;
   shopOpen = true;
   renderShop();
   document.getElementById('shop-panel').style.display = 'block';
@@ -703,32 +668,15 @@ function buyShopItem(idx){
   renderNestSynergyStatus();
 }
 
-function doomAccept(){
-  if(!pendingDoomChoice) return;
-  pendingDoomChoice = false;
-  nextWaveDoom = true;
-  const doomEl = document.getElementById('doom-dialog');
-  if(doomEl) doomEl.style.display = 'none';
-  audio.cardPick();
-  activateCards();
-}
-function doomSkip(){
-  if(!pendingDoomChoice) return;
-  pendingDoomChoice = false;
-  nextWaveDoom = false;
-  const doomEl = document.getElementById('doom-dialog');
-  if(doomEl) doomEl.style.display = 'none';
-  audio.cardPick();
-  activateCards();
-}
 function pickCard(idx){
-  if(!isNestActive || pickLocked || isWaitingForY || pendingDoomChoice) return;
+  if(!isNestActive || pickLocked) return;
   const card = currentDraft[idx];
   if(!card) return;
   pickLocked = true;
   audio.cardPick();
   applyCardEffect(card);
   updatePityAfterPick(card);
+  draftClaimedThisHub = true;
   const cards = DOM.nestCards.querySelectorAll('.nest-card');
   cards.forEach((el, i) => {
     el.style.pointerEvents = 'none';
@@ -742,10 +690,10 @@ function pickCard(idx){
       el.style.opacity = '0';
     }
   });
-  setTimeout(() => { continueToWave(); }, 700);
+  setTimeout(() => { closeDraft(); }, 700);
 }
 function rerollNest(){
-  if(!isNestActive || pickLocked || isWaitingForY || pendingDoomChoice) return;
+  if(!isNestActive || pickLocked) return;
   if(rerollsUsedThisWave >= maxRerolls()) return;
   const cost = rerollCost();
   if(cost > 0 && player.health <= cost){ showDebugToast('Недостаточно HP'); return }
@@ -757,7 +705,7 @@ function rerollNest(){
   currentDraft = [];
   for(let i = 0; i < cardCount; i++){
     let card;
-    if(isGolden && i === cardCount - 1 && !doomThisWave) card = rollCardSmart(true);
+    if(isGolden && i === cardCount - 1) card = rollCardSmart(true);
     else card = rollCardSmart(false);
     currentDraft.push(card);
   }
@@ -777,67 +725,38 @@ function rerollNest(){
   updateRerollButton();
   renderNestSynergyStatus();
 }
-function skipNest(){
-  if(!isNestActive || pickLocked || isWaitingForY || pendingDoomChoice) return;
-  if(player.health < 30){ showDebugToast('Нельзя пропустить при HP < 30'); return }
-  pickLocked = true;
-  player.health = Math.min(player.maxHealth, player.health + 50);
-  player.armor = Math.min(player.maxArmor, player.armor + 25);
-  updatePityAfterPick(null);
-  updateUI();
-  audio.pickup();
-  const cards = DOM.nestCards.querySelectorAll('.nest-card');
-  cards.forEach(el => {
-    el.style.pointerEvents = 'none';
-    el.style.transition = 'all .4s';
-    el.style.opacity = '0';
-    el.style.transform = 'scale(0.7)';
-  });
-  setTimeout(() => { continueToWave(); }, 500);
+function exitNest(){
+  if(!isNestActive || pickLocked) return;
+  closeDraft();
 }
 
-// continueToWave — базовая версия (hub.js переопределит для работы из хаба)
-function continueToWave(){
-  // ─── ХАБ: если мы всё ещё в хабе — просто закрываем гнездо/магазин,
-  //     возвращаемся к ходьбе, волну НЕ начинаем ───
-  if(typeof hubMode !== 'undefined' && hubMode){
-    closeShop();
-    const ns = document.getElementById('nest-screen');
-    if(ns) ns.style.display = 'none';
-    const synEl = document.getElementById('nest-synergy-panel');
-    if(synEl) synEl.classList.remove('show');
-    isNestActive = false;
-    isSynergyPanelOpen = false;
-    pickLocked = false;
-    isWaitingForY = false;
-    rerollsUsedThisWave = 0;
-    if(!document.pointerLockElement) document.body.requestPointerLock();
-    return;
-  }
-  document.body.classList.remove('hub-mode');
-  if(pauseTimerId){ clearTimeout(pauseTimerId); pauseTimerId = null; }
+function closeDraft(){
   closeShop();
-  const pauseEl = document.getElementById('pause-overlay');
-  const nestEl = document.getElementById('nest-screen');
+  const ns = document.getElementById('nest-screen');
+  if(ns) ns.style.display = 'none';
   const synEl = document.getElementById('nest-synergy-panel');
-  const doomEl = document.getElementById('doom-dialog');
-  const yEl = document.getElementById('press-y-overlay');
-  if(pauseEl) pauseEl.classList.remove('show');
-  if(nestEl) nestEl.style.display = 'none';
   if(synEl) synEl.classList.remove('show');
-  if(doomEl) doomEl.style.display = 'none';
-  if(yEl) yEl.classList.remove('show');
-
   isNestActive = false;
-  isWaveTransitioning = false;
   isSynergyPanelOpen = false;
-  isWaitingForY = false;
   pickLocked = false;
+  if(hubMode && !document.pointerLockElement){
+    document.body.requestPointerLock();
+  }
+}
+
+// continueToWave вызывается ИЗ hub.exit() при телепорте — стартует следующую волну
+function continueToWave(){
+  closeShop();
+  const ns = document.getElementById('nest-screen');
+  if(ns) ns.style.display = 'none';
+  const synEl = document.getElementById('nest-synergy-panel');
+  if(synEl) synEl.classList.remove('show');
+  isNestActive = false;
+  isSynergyPanelOpen = false;
+  isWaveTransitioning = false;
+  pickLocked = false;
+  draftClaimedThisHub = false;
   turretCooldown = 0;
-  rerollsUsedThisWave = 0;
-  doomThisWave = nextWaveDoom;
-  nextWaveDoom = false;
-  pendingDoomChoice = false;
 
   keys = {};
   mouseDown = false;
@@ -937,7 +856,7 @@ function renderSynergyPanel(){
   body.scrollTop = 0;
 }
 function toggleSynergyPanel(){
-  if(!isNestActive || isWaitingForY || pendingDoomChoice) return;
+  if(!isNestActive) return;
   isSynergyPanelOpen = !isSynergyPanelOpen;
   const panel = document.getElementById('nest-synergy-panel');
   if(!panel) return;
@@ -1771,17 +1690,7 @@ function buildOpts(p){
 }
 
 document.addEventListener('keydown', e=>{
-  if(hubMode) return; // hub.js обрабатывает
-  if(isWaitingForY){
-    if(e.code === 'KeyY'){ onYPressed(); e.preventDefault(); return; }
-    return;
-  }
-  const doomEl = document.getElementById('doom-dialog');
-  if(doomEl && doomEl.style.display === 'block'){
-    if(e.code === 'KeyQ'){ doomAccept(); e.preventDefault(); return; }
-    if(e.code === 'KeyW'){ doomSkip(); e.preventDefault(); return; }
-    return;
-  }
+  if(hubMode) return;
   if(shopOpen){
     if(e.code === 'KeyF' || e.code === 'Escape'){ closeShop(); e.preventDefault(); return; }
     if(e.code === 'KeyZ' && shopItems[0]){ buyShopItem(0); e.preventDefault(); return; }
@@ -1810,7 +1719,7 @@ document.addEventListener('keydown', e=>{
       return;
     }
     if(e.code === 'KeyA'){ rerollNest(); e.preventDefault(); return; }
-    if(e.code === 'KeyS'){ skipNest(); e.preventDefault(); return; }
+    if(e.code === 'KeyS' || e.code === 'Escape'){ exitNest(); e.preventDefault(); return; }
     if(e.code === 'KeyD'){ toggleSynergyPanel(); e.preventDefault(); return; }
     if(e.code === 'KeyF'){ openShop(); e.preventDefault(); return; }
     return;
@@ -1830,7 +1739,7 @@ document.addEventListener('keydown', e=>{
 document.addEventListener('keyup', e=>{ if(!hubMode) keys[e.code] = false; });
 document.addEventListener('mousedown', e=>{
   if(hubMode) return;
-  if(isNestActive || isSynergyPanelOpen || isGameOver || isWaitingForY || pendingDoomChoice || shopOpen) return;
+  if(isNestActive || isSynergyPanelOpen || isGameOver || shopOpen) return;
   if(e.target.tagName !== 'BUTTON'){
     if(e.button === 0) mouseDown = true;
     if(e.button === 2){
@@ -1856,12 +1765,12 @@ document.addEventListener('wheel', e=>{
 });
 document.addEventListener('click', e=>{
   if(hubMode) return;
-  if(e.target.tagName !== 'BUTTON' && !isNestActive && !isPointerLocked && !isGameOver && !isWaitingForY)
+  if(e.target.tagName !== 'BUTTON' && !isNestActive && !isPointerLocked && !isGameOver)
     document.body.requestPointerLock();
 });
 document.addEventListener('mousemove', e=>{
   if(hubMode) return;
-  if(isPointerLocked && !isNestActive && !isGameOver && !isWaitingForY){
+  if(isPointerLocked && !isNestActive && !isGameOver){
     player.yaw -= e.movementX*.002;
     player.pitch = Math.max(-Math.PI/2, Math.min(Math.PI/2, player.pitch-e.movementY*.002));
     camera.rotation.order = 'YXZ';
@@ -1871,16 +1780,21 @@ document.addEventListener('mousemove', e=>{
 });
 document.addEventListener('pointerlockchange', ()=>{ isPointerLocked = !!document.pointerLockElement });
 
-if(DOM.rerollBtn) DOM.rerollBtn.addEventListener('click', e=>{ e.stopPropagation(); if(isNestActive && !isWaitingForY) rerollNest() });
-if(DOM.skipBtn) DOM.skipBtn.addEventListener('click', e=>{ e.stopPropagation(); if(isNestActive && !isWaitingForY) skipNest() });
+if(DOM.rerollBtn) DOM.rerollBtn.addEventListener('click', e=>{ e.stopPropagation(); if(isNestActive) rerollNest() });
+const exitBtn = document.getElementById('exit-btn');
+if(exitBtn) exitBtn.addEventListener('click', e=>{ e.stopPropagation(); if(isNestActive) exitNest() });
 const infoBtn = document.getElementById('info-btn');
-if(infoBtn) infoBtn.addEventListener('click', e=>{ e.stopPropagation(); if(isNestActive && !isWaitingForY) toggleSynergyPanel() });
+if(infoBtn) infoBtn.addEventListener('click', e=>{ e.stopPropagation(); if(isNestActive) toggleSynergyPanel() });
 const shopBtn = document.getElementById('shop-btn');
-if(shopBtn) shopBtn.addEventListener('click', e=>{ e.stopPropagation(); if(isNestActive && !isWaitingForY) openShop() });
+if(shopBtn) shopBtn.addEventListener('click', e=>{ e.stopPropagation(); if(isNestActive) openShop() });
 const doomYesBtn = document.getElementById('doom-yes');
 const doomNoBtn = document.getElementById('doom-no');
 if(doomYesBtn) doomYesBtn.addEventListener('click', e=>{ e.stopPropagation(); doomAccept() });
 if(doomNoBtn) doomNoBtn.addEventListener('click', e=>{ e.stopPropagation(); doomSkip() });
+
+// Устаревшие doom-функции: оставлены для совместимости, диалог убран из HTML
+function doomAccept(){ pendingDoomChoice = false; nextWaveDoom = true; }
+function doomSkip(){ pendingDoomChoice = false; nextWaveDoom = false; }
 
 window.addEventListener('resize', ()=>{
   camera.aspect = window.innerWidth/window.innerHeight;
