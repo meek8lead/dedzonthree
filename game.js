@@ -798,6 +798,22 @@ function skipNest(){
 
 // continueToWave — базовая версия (hub.js переопределит для работы из хаба)
 function continueToWave(){
+  // ─── ХАБ: если мы всё ещё в хабе — просто закрываем гнездо/магазин,
+  //     возвращаемся к ходьбе, волну НЕ начинаем ───
+  if(typeof hubMode !== 'undefined' && hubMode){
+    closeShop();
+    const ns = document.getElementById('nest-screen');
+    if(ns) ns.style.display = 'none';
+    const synEl = document.getElementById('nest-synergy-panel');
+    if(synEl) synEl.classList.remove('show');
+    isNestActive = false;
+    isSynergyPanelOpen = false;
+    pickLocked = false;
+    isWaitingForY = false;
+    rerollsUsedThisWave = 0;
+    if(!document.pointerLockElement) document.body.requestPointerLock();
+    return;
+  }
   document.body.classList.remove('hub-mode');
   if(pauseTimerId){ clearTimeout(pauseTimerId); pauseTimerId = null; }
   closeShop();
