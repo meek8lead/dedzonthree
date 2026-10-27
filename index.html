@@ -110,7 +110,7 @@ body.hub-mode #glitch-overlay{display:none!important}
 #nest-hint{color:#8f8;font-size:13px;margin:0 0 16px;letter-spacing:1px}
 #nest-cards{display:flex;justify-content:center;gap:20px;margin:20px 0;perspective:1000px;flex-wrap:wrap}
 
-.nest-card{width:200px;min-height:280px;border:3px solid #666;background:linear-gradient(135deg,rgba(40,40,40,.95),rgba(20,20,20,.95));border-radius:8px;padding:14px;cursor:pointer;transition:all .18s;text-align:left;display:flex;flex-direction:column;position:relative;overflow:hidden;
+.nest-card{width:200px;min-height:280px;border:3px solid #666;background:linear-gradient(135deg,rgba(40,40,40,.95),rgba(20,20,20,.95));border-radius:8px;padding:14px 14px 46px 14px;cursor:pointer;transition:all .18s;text-align:left;display:flex;flex-direction:column;position:relative;overflow:hidden;
   animation:cardFloat 3s ease-in-out infinite alternate;
   will-change:transform}
 @keyframes cardFloat{
@@ -125,6 +125,11 @@ body.hub-mode #glitch-overlay{display:none!important}
 .nest-card.curse{border-color:#f00;background:linear-gradient(135deg,rgba(60,0,0,.95),rgba(30,0,0,.95));box-shadow:0 0 15px rgba(255,0,0,.6)}
 .nest-card.curse:hover{border-color:#f88;box-shadow:0 0 30px rgba(255,0,0,.9),0 0 50px rgba(255,50,50,.5)}
 .nest-card.synergy-ready{border-color:#ffd700;box-shadow:0 0 30px rgba(255,215,0,.9),0 0 60px rgba(255,200,0,.4)}
+.nest-card.bought{opacity:.35;pointer-events:none;filter:grayscale(.85);cursor:default}
+.nest-card.bought:hover{transform:none;animation:cardFloat 3s ease-in-out infinite alternate}
+.nest-card.bought::after{content:'✓ КУПЛЕНО';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-15deg);font-size:24px;font-weight:bold;color:#0f0;text-shadow:0 0 10px #0f0,0 0 20px #0f0;letter-spacing:2px;z-index:20;pointer-events:none}
+.nest-card.no-money{opacity:.55}
+.nest-card.no-money:hover{transform:none;border-color:#a00;box-shadow:none;animation:cardFloat 3s ease-in-out infinite alternate;cursor:not-allowed}
 
 .nest-card-icon{font-size:40px;text-align:center;margin-bottom:8px}
 .nest-card-type{font-size:10px;letter-spacing:1px;color:#888;text-transform:uppercase;margin-bottom:4px}
@@ -142,6 +147,8 @@ body.hub-mode #glitch-overlay{display:none!important}
 .nest-tag.aoe{border-color:#c4f;color:#c4f}
 .nest-card-hint{margin-top:6px;font-size:10px;color:#ff0;text-align:center;padding:3px;border-top:1px dashed #333}
 .nest-card-key{position:absolute;top:6px;right:6px;padding:3px 10px;background:rgba(0,0,0,.85);border:2px solid #ff0;border-radius:4px;font-size:14px;font-weight:bold;color:#ff0;box-shadow:0 0 10px rgba(255,255,0,.7);z-index:5;font-family:'Courier New',monospace;letter-spacing:1px}
+.nest-card-price{position:absolute;bottom:6px;left:6px;right:6px;padding:7px;background:rgba(255,180,0,.92);color:#000;font-weight:bold;font-size:15px;border-radius:4px;text-align:center;letter-spacing:1px;z-index:6;font-family:'Courier New',monospace}
+.nest-card-price.poor{background:rgba(120,40,40,.92);color:#fff}
 
 #nest-buttons{display:flex;gap:12px;justify-content:center;margin-top:16px;flex-wrap:wrap}
 .nest-btn{padding:10px 20px;border-radius:6px;border:2px solid #000;cursor:pointer;font-family:'Courier New',monospace;font-weight:bold;font-size:14px;letter-spacing:1px;transition:all .15s;display:flex;align-items:center;justify-content:center}
@@ -150,11 +157,8 @@ body.hub-mode #glitch-overlay{display:none!important}
 #reroll-btn:disabled{background:#333;color:#666;cursor:not-allowed;box-shadow:none}
 #info-btn{background:linear-gradient(135deg,#ff0,#a80);color:#000;box-shadow:0 0 15px rgba(255,200,0,.7)}
 #info-btn:hover{transform:scale(1.06);box-shadow:0 0 25px rgba(255,200,0,1)}
-#shop-btn{background:linear-gradient(135deg,#fa0,#a60);color:#000;box-shadow:0 0 15px rgba(255,150,0,.7)}
-#shop-btn:hover{transform:scale(1.06);box-shadow:0 0 25px rgba(255,150,0,1)}
 #exit-btn{background:linear-gradient(135deg,#999,#444);color:#fff;box-shadow:0 0 15px rgba(160,160,160,.7)}
 #exit-btn:hover:not(:disabled){transform:scale(1.06);box-shadow:0 0 25px rgba(200,200,200,1)}
-#exit-btn:disabled{background:#333;color:#666;cursor:not-allowed;box-shadow:none}
 
 #nest-synergy-status{margin-top:14px;font-size:12px;color:#8f8;letter-spacing:1px}
 
@@ -170,7 +174,6 @@ body.hub-mode #glitch-overlay{display:none!important}
 #nest-synergy-panel::-webkit-scrollbar{width:14px}
 #nest-synergy-panel::-webkit-scrollbar-track{background:rgba(0,20,0,.6);border:1px solid #0f0;border-radius:4px}
 #nest-synergy-panel::-webkit-scrollbar-thumb{background:linear-gradient(180deg,#0f0,#080);border:1px solid #0a0;border-radius:3px;box-shadow:inset 0 0 8px rgba(0,255,0,.5)}
-#nest-synergy-panel::-webkit-scrollbar-thumb:hover{background:linear-gradient(180deg,#0f0,#0f0)}
 #nest-synergy-panel.show{display:block;animation:panelIn .25s ease-out}
 @keyframes panelIn{from{opacity:0;transform:translate(-50%,-50%) scale(.92)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
 #nest-synergy-panel::before,#nest-synergy-panel::after{content:'';position:absolute;width:14px;height:14px;border:2px solid #0f0;box-shadow:0 0 8px #0f0;z-index:2}
@@ -260,12 +263,58 @@ body.hub-mode #glitch-overlay{display:none!important}
   font-size:18px;font-weight:bold;color:#0f0;z-index:1500;pointer-events:none;
   border-radius:6px;box-shadow:0 0 15px #0f0;display:none;
 }
+#hub-hp{
+  position:absolute;top:70px;right:20px;background:rgba(40,0,0,.95);
+  border:2px solid #f00;padding:8px 16px;font-family:'Courier New',monospace;
+  font-size:16px;font-weight:bold;color:#f88;z-index:1500;pointer-events:none;
+  border-radius:6px;box-shadow:0 0 15px #f00;display:none;
+}
 body.hub-mode #hub-credits,
+body.hub-mode #hub-hp,
 body.hub-mode #hub-wave{display:block}
 
 #credits-display{color:#ff0}
 
-#casino-overlay,#dice-overlay,#range-overlay{
+#dps-display{
+  position:absolute;background:rgba(0,0,0,.92);border:2px solid #f80;
+  padding:8px 16px;font-family:'Courier New',monospace;font-size:12px;
+  color:#f80;font-weight:bold;z-index:2000;pointer-events:none;
+  border-radius:6px;box-shadow:0 0 20px #f80;
+  display:none;transform:translate(-50%,-100%);
+  letter-spacing:1px;text-align:center;
+  text-shadow:0 0 8px #f80;min-width:130px;
+}
+#dps-display .dps-val{font-size:24px;color:#ff0;display:block;text-shadow:0 0 14px #ff0;margin-top:2px}
+
+#bar-robot-chat{
+  position:absolute;bottom:60px;left:50%;transform:translateX(-50%);
+  background:rgba(0,20,0,.95);border:2px solid #0f0;padding:14px 24px;
+  font-family:'Courier New',monospace;font-size:14px;color:#0f0;
+  max-width:640px;z-index:2000;pointer-events:none;border-radius:6px;
+  box-shadow:0 0 25px #0f0;display:none;
+  animation:chatFadeIn .35s ease-out;
+  text-shadow:0 0 6px #0f0;line-height:1.4;
+}
+@keyframes chatFadeIn{from{opacity:0;transform:translateX(-50%) translateY(20px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+#bar-robot-chat .chat-name{color:#ff0;font-weight:bold;margin-right:8px}
+
+#blood-overlay{
+  position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+  z-index:2000;display:none;pointer-events:all;
+  background:linear-gradient(180deg,rgba(30,0,0,.98),rgba(15,0,0,.99));
+  border:4px solid #f00;border-radius:12px;padding:30px 40px;
+  font-family:'Courier New',monospace;color:#fff;text-align:center;
+  box-shadow:0 0 60px #f00,inset 0 0 30px rgba(255,0,0,.2);
+  min-width:520px;
+}
+#blood-overlay h2{
+  margin:0 0 16px;font-size:26px;letter-spacing:3px;color:#f44;
+  text-shadow:0 0 20px #f00;
+}
+#blood-info{font-size:14px;color:#fff;margin:10px 0;letter-spacing:1px}
+#blood-msg{font-size:18px;font-weight:bold;min-height:30px;margin:16px 0;letter-spacing:2px}
+
+#casino-overlay,#dice-overlay{
   position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
   z-index:2000;display:none;pointer-events:all;
   background:linear-gradient(180deg,rgba(20,0,0,.98),rgba(10,0,0,.99));
@@ -275,14 +324,12 @@ body.hub-mode #hub-wave{display:block}
   min-width:520px;
 }
 #dice-overlay{border-color:#00ddff;box-shadow:0 0 60px #00ddff,inset 0 0 30px rgba(0,221,255,.2)}
-#range-overlay{border-color:#88ff00;box-shadow:0 0 60px #88ff00,inset 0 0 30px rgba(136,255,0,.2)}
 
-#casino-overlay h2,#dice-overlay h2,#range-overlay h2{
+#casino-overlay h2,#dice-overlay h2{
   margin:0 0 16px;font-size:26px;letter-spacing:3px;color:#ff2266;
   text-shadow:0 0 20px #ff2266;
 }
 #dice-overlay h2{color:#00ddff;text-shadow:0 0 20px #00ddff}
-#range-overlay h2{color:#88ff00;text-shadow:0 0 20px #88ff00}
 
 .casino-reels{
   display:flex;justify-content:center;gap:12px;margin:20px 0;
@@ -299,10 +346,10 @@ body.hub-mode #hub-wave{display:block}
 }
 @keyframes dicePop{0%{transform:scale(1.8)}100%{transform:scale(1)}}
 
-#casino-info,#dice-info,#range-info{
+#casino-info,#dice-info{
   font-size:14px;color:#fff;margin:10px 0;letter-spacing:1px;
 }
-#casino-msg,#dice-msg,#range-msg{
+#casino-msg,#dice-msg{
   font-size:18px;font-weight:bold;min-height:30px;margin:16px 0;
   letter-spacing:2px;
 }
@@ -314,7 +361,7 @@ body.hub-mode #hub-wave{display:block}
 }
 #casino-spin-btn{background:linear-gradient(135deg,#ff2266,#aa0044);color:#fff;box-shadow:0 0 20px #ff2266}
 #dice-roll-btn{background:linear-gradient(135deg,#00ddff,#0066aa);color:#000;box-shadow:0 0 20px #00ddff}
-#range-shoot-btn{background:linear-gradient(135deg,#88ff00,#44aa00);color:#000;box-shadow:0 0 20px #88ff00}
+#blood-donate-btn{background:linear-gradient(135deg,#f22,#800);color:#fff;box-shadow:0 0 20px #f22}
 .mini-btn:hover:not(:disabled){transform:scale(1.05)}
 .mini-btn:disabled{background:#333;color:#666;cursor:not-allowed;box-shadow:none}
 
@@ -430,8 +477,11 @@ body.hub-mode #hub-wave{display:block}
 
 <!-- ═══ HUB UI ═══ -->
 <div id="hub-credits">💰 0</div>
+<div id="hub-hp">❤ HP: 100</div>
 <div id="hub-wave">ВОЛНА 1</div>
 <div id="hub-interact-hint"></div>
+<div id="dps-display">DPS<span class="dps-val">0</span></div>
+<div id="bar-robot-chat"></div>
 
 <!-- ═══ NEST (DRAFT) ═══ -->
 <div id="nest-screen">
@@ -441,7 +491,6 @@ body.hub-mode #hub-wave{display:block}
   <div id="nest-buttons">
     <button id="reroll-btn" class="nest-btn">🔄 РЕРОЛЛ <span class="key-hint">[A]</span></button>
     <button id="info-btn" class="nest-btn">📊 СИНЕРГИИ <span class="key-hint">[D]</span></button>
-    <button id="shop-btn" class="nest-btn">🏪 МАГАЗИН <span class="key-hint">[F]</span></button>
     <button id="exit-btn" class="nest-btn">🚪 ВЫЙТИ <span class="key-hint">[ESC]</span></button>
   </div>
   <div id="nest-synergy-status"></div>
@@ -477,13 +526,17 @@ body.hub-mode #hub-wave{display:block}
   <button class="mini-close" onclick="hub.closeDice()">[ESC] ЗАКРЫТЬ</button>
 </div>
 
-<!-- ═══ RANGE OVERLAY ═══ -->
-<div id="range-overlay">
-  <h2>🎯 ТИР</h2>
-  <div id="range-info">Выстрелов: <b style="color:#f80">10</b> · Попаданий: <b style="color:#8f8">0</b> · +0💰</div>
-  <div id="range-msg" style="min-height:50px"></div>
-  <button id="range-shoot-btn" class="mini-btn">[E] СТРЕЛЯТЬ</button>
-  <button class="mini-close" onclick="hub.closeRange()">[ESC] ЗАКРЫТЬ</button>
+<!-- ═══ BLOOD STATION OVERLAY ═══ -->
+<div id="blood-overlay">
+  <h2>🩸 СТАНЦИЯ КРОВИ</h2>
+  <div id="blood-info">HP: <b style="color:#f00">100/100</b> · Кредиты: <b style="color:#ff0">0💰</b></div>
+  <p style="color:#aaa;font-size:13px;margin:12px 0;line-height:1.5">
+    Курс: <b style="color:#f66">20 HP</b> → <b style="color:#ff0">10 кредитов</b><br>
+    Нельзя опустить HP ниже <b style="color:#f00">30</b>
+  </p>
+  <div id="blood-msg"></div>
+  <button id="blood-donate-btn" class="mini-btn">[E] СДАТЬ 20 HP (+10💰)</button>
+  <button class="mini-close" onclick="hub.closeBloodStation()">[ESC] ЗАКРЫТЬ</button>
 </div>
 
 <div id="game-over">
