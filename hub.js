@@ -1,5 +1,5 @@
 'use strict';
-// INDUSTRIAL ROGUE SHOOTER v6.4 — HUB (motorik prog rock, barmaid, cowboy, mini ice dog)
+// INDUSTRIAL ROGUE SHOOTER v6.5 — HUB (motorik prog rock, barmaid, cowboy, mini dog, potted verkhushka, hanging drone)
 
 let hubMode = false;
 let hubScene = null;
@@ -48,6 +48,9 @@ const BAR_ROBOT_LINES = [
   "Ковбой справа — Джек. Он не помнит своего имени. Ирония.",
   "Пёсик бегает — не бойся, он не кусает.",
   "Моторный бит — это тебе не попса.",
+  "Вон тот вершок в горшке — тоже из наших. Тихий. Не стреляй.",
+  "Дрон под потолком? Это старый разведчик. Он уже 40 лет болтается.",
+  "Не наступи на вершка. Он хоть и в горшке, но обидчивый.",
 ];
 
 // ═══════════════ МОТОРИК-ПРОГ (128 BPM, 16-е) ═══════════════
@@ -57,36 +60,29 @@ class HubMusic {
     this.step = 0;
     this.nextNoteTime = 0;
     this.tempo = 128;
-    this.stepDur = 60 / this.tempo / 4; // 16-е ноты
+    this.stepDur = 60 / this.tempo / 4;
     this.lookahead = 0.15;
     this.gain = null;
     this.interval = null;
     this._volume = 0.4;
-    // Моторный бас — 8-я нота пульс
     this.bassNotes = [
-      // Am
       [110.00, 110.00, 164.81, 110.00, 130.81, 110.00, 164.81, 110.00],
-      // Fmaj7
       [ 87.31,  87.31, 130.81,  87.31, 110.00,  87.31, 130.81,  87.31],
-      // G
       [ 98.00,  98.00, 146.83,  98.00, 123.47,  98.00, 146.83,  98.00],
-      // Em
       [ 82.41,  82.41, 123.47,  82.41,  98.00,  82.41, 123.47,  82.41],
     ];
     this.padChords = [
-      [220.00, 261.63, 329.63, 440.00],        // Am
-      [174.61, 220.00, 261.63, 349.23],        // Fmaj7
-      [196.00, 246.94, 293.66, 392.00],        // G
-      [164.81, 196.00, 246.94, 329.63],        // Em7
+      [220.00, 261.63, 329.63, 440.00],
+      [174.61, 220.00, 261.63, 349.23],
+      [196.00, 246.94, 293.66, 392.00],
+      [164.81, 196.00, 246.94, 329.63],
     ];
   }
   start(){
     if(this.started) return;
     const ctx = audio.ctx;
     if(!ctx) return;
-    if(ctx.state === 'suspended'){
-      try { ctx.resume(); } catch(e){}
-    }
+    if(ctx.state === 'suspended'){ try { ctx.resume(); } catch(e){} }
     this.started = true;
     this.gain = ctx.createGain();
     this.gain.gain.value = 0;
@@ -124,34 +120,22 @@ class HubMusic {
     }
   }
   _scheduleStep(step, time){
-    const s = step % 16;                     // 16-я позиция в такте
-    const bar = Math.floor(step / 16) % 4;   // 4-тактовый луп
-
-    // KICK — на каждой доле. Это моторный пульс.
+    const s = step % 16;
+    const bar = Math.floor(step / 16) % 4;
     if(s % 4 === 0) this._kick(time, 0.72);
-
-    // SNARE — бэкбит на 2 и 4
     if(s === 4 || s === 12) this._snare(time);
-
-    // HI-HAT — каждые 8-е, с акцентами на 6 и 14
     if(s % 2 === 0){
       const isOpen = (s === 6 || s === 14);
       this._hat(time, isOpen);
     }
-
-    // BASS — 8-я нота пульс (motorik!)
     if(s % 2 === 0){
       const idx = Math.floor(s / 2);
       const note = this.bassNotes[bar][idx];
       this._bass(note, time, this.stepDur * 1.7);
     }
-
-    // PAD — аккорд раз в такт
     if(s === 0){
       this._pad(this.padChords[bar], time, this.stepDur * 16 * 0.98);
     }
-
-    // LEAD — редкие acid-нотки на нечётных тактах
     if(bar % 2 === 1 && (s === 3 || s === 7 || s === 11 || s === 15)){
       if(Math.random() < 0.35){
         const scale = [440.00, 523.25, 659.25, 783.99, 880.00, 1046.50];
@@ -274,7 +258,7 @@ class HubMusic {
   }
 }
 
-// ═══════════════ МИНИ-ЛЕДЯНОЙ ПЁС (гуляет по хабу) ═══════════════
+// ═══════════════ МИНИ-ЛЕДЯНОЙ ПЁС ═══════════════
 class MiniIceDog {
   constructor(parent){
     this.group = new THREE.Group();
@@ -296,55 +280,44 @@ class MiniIceDog {
     const iceM = new THREE.MeshStandardMaterial({color:0xaaddff, emissive:0x4488ff, emissiveIntensity:.8, transparent:true, opacity:.85});
     const eyeM = new THREE.MeshBasicMaterial({color:0x00ffff});
 
-    // Тело
     const body = new THREE.Mesh(new THREE.SphereGeometry(.42, 12, 10), furM);
     body.position.set(0, .62, 0);
     body.scale.set(1.3, .95, 1.6);
     this.group.add(body);
 
-    // Брюхо
     const belly = new THREE.Mesh(new THREE.SphereGeometry(.38, 10, 8), furM);
     belly.position.set(0, .58, .32);
     this.group.add(belly);
 
-    // Шея
     const neck = new THREE.Mesh(new THREE.CylinderGeometry(.18, .22, .35, 8), furM);
     neck.position.set(0, .78, .48);
     neck.rotation.x = -.6;
     this.group.add(neck);
 
-    // Голова
     const head = new THREE.Mesh(new THREE.SphereGeometry(.28, 12, 10), furM);
     head.position.set(0, .82, .82);
     head.scale.set(1.15, 1, 1.2);
     this.group.add(head);
 
-    // Морда
     const snout = new THREE.Mesh(new THREE.BoxGeometry(.22, .18, .3), furM);
     snout.position.set(0, .74, 1.08);
     this.group.add(snout);
 
-    // Нос
     const nose = new THREE.Mesh(new THREE.SphereGeometry(.09, 8, 8), darkFurM);
     nose.position.set(0, .68, 1.2);
     this.group.add(nose);
 
-    // Глаза
     for(let s of [-1, 1]){
       const eye = new THREE.Mesh(new THREE.SphereGeometry(.055, 8, 8), eyeM);
       eye.position.set(s * .13, .95, .95);
       this.group.add(eye);
     }
-
-    // Уши
     for(let s of [-1, 1]){
       const ear = new THREE.Mesh(new THREE.ConeGeometry(.09, .22, 5), darkFurM);
       ear.position.set(s * .16, 1.06, .74);
       ear.rotation.x = -.2;
       this.group.add(ear);
     }
-
-    // Кристаллы на спине
     for(let i=0; i<5; i++){
       const angle = (i/5) * Math.PI - Math.PI/2;
       const crystal = new THREE.Mesh(
@@ -361,14 +334,12 @@ class MiniIceDog {
     bigCrystal.rotation.x = -.1;
     this.group.add(bigCrystal);
 
-    // Хвост
     const tail = new THREE.Mesh(new THREE.CylinderGeometry(.06, .02, .55, 6), iceM);
     tail.position.set(0, .85, -.65);
     tail.rotation.x = -1.2;
     this.group.add(tail);
     this.tail = tail;
 
-    // Лапы
     const legPos = [[-.28, .22, .35], [.28, .22, .35], [-.28, .22, -.25], [.28, .22, -.25]];
     legPos.forEach((p, i) => {
       const upper = new THREE.Mesh(new THREE.CylinderGeometry(.09, .075, .4, 6), darkFurM);
@@ -385,7 +356,6 @@ class MiniIceDog {
       this.legs.push({upper, lower, paw, phase: i * .5});
     });
 
-    // Аура инея
     const frost = new THREE.Mesh(
       new THREE.SphereGeometry(.5, 10, 10),
       new THREE.MeshBasicMaterial({color:0x88ccff, transparent:true, opacity:.15, side:THREE.BackSide, depthWrite:false})
@@ -478,6 +448,8 @@ class Hub {
     this.barmaid = null;
     this.cowboy = null;
     this.miniDog = null;
+    this.pottedVerkhushka = null;
+    this.hangingDrone = null;
     this.build();
   }
 
@@ -510,7 +482,6 @@ class Hub {
       this.tor(r, .015, 4, 48, new THREE.MeshBasicMaterial({color:0x00aa66, transparent:true, opacity:.22}), 0, .06, 0, null, Math.PI/2,0,0);
     }
 
-    // ЛАВАЛАМП-СТЕНА
     const wall = this.cyl(R, R, H, 48, this.matWallBase(), 0, H/2, 0);
     wall.material.side = THREE.BackSide;
     for(let h=1; h<H; h+=.6){
@@ -525,9 +496,7 @@ class Hub {
       const z = Math.sin(angle) * dist;
       const size = 0.15 + Math.random() * 0.5;
       const color = lavaColors[Math.floor(Math.random() * lavaColors.length)];
-      const blobMat = new THREE.MeshBasicMaterial({
-        color, transparent: true, opacity: .55 + Math.random() * .3, depthWrite: false
-      });
+      const blobMat = new THREE.MeshBasicMaterial({color, transparent: true, opacity: .55 + Math.random() * .3, depthWrite: false});
       const blob = new THREE.Mesh(new THREE.SphereGeometry(size, 10, 8), blobMat);
       blob.position.set(x, Math.random() * H, z);
       blob.scale.set(1, 1 + Math.random() * 1.2, .4);
@@ -572,6 +541,8 @@ class Hub {
     this.buildBarmaid(-3.8, 7.0);
     this.buildCowboy(-0.2, 7.0);
     this.buildStage(0, 10);
+    this.buildPottedVerkhushka(7, -8);
+    this.buildHangingDrone(3, 3.5, 0);
     this.miniDog = new MiniIceDog(this.group);
 
     const discoBall = this.sph(.45, 20, 16,
@@ -600,6 +571,7 @@ class Hub {
       {pos:[-3.8,2.5,7.0], color:0xff4466},
       {pos:[-0.2,2.5,7.0], color:0xffaa44},
       {pos:[0,3.5,10], color:0xff22aa},
+      {pos:[7,1.5,-8], color:0x88ff88},
     ].forEach(zl=>{
       const l = new THREE.PointLight(zl.color, 1.8, 8);
       l.position.set(...zl.pos);
@@ -764,6 +736,174 @@ class Hub {
     };
   }
 
+  // ═══════════════ ГОРШОК С ВЕРШКОМ ═══════════════
+  buildPottedVerkhushka(x, z){
+    const g = new THREE.Group();
+    g.position.set(x, 0, z);
+    this.group.add(g);
+
+    const potM = new THREE.MeshStandardMaterial({color:0x8a3a1a, roughness:.85, metalness:.05});
+    const potRimM = new THREE.MeshStandardMaterial({color:0x6a2a10, roughness:.8, metalness:.1});
+    const soilM = new THREE.MeshStandardMaterial({color:0x2a1a0a, roughness:.95});
+    const bodyM = new THREE.MeshStandardMaterial({color:0xd4a574, roughness:.7, metalness:.05});
+    const bodyShadowM = new THREE.MeshStandardMaterial({color:0xb88858, roughness:.75});
+    const leafM = new THREE.MeshStandardMaterial({color:0x2a8a2a, emissive:0x115511, emissiveIntensity:.35, roughness:.6});
+    const eyeM = new THREE.MeshBasicMaterial({color:0xffdd00});
+    const eyePupilM = new THREE.MeshBasicMaterial({color:0x1a0a00});
+    const blushM = new THREE.MeshBasicMaterial({color:0xff8888, transparent:true, opacity:.5});
+
+    // Горшок
+    this.cyl(.32, .22, .38, 16, potM, 0, .19, 0, g);
+    this.tor(.32, .035, 6, 24, potRimM, 0, .38, 0, g, Math.PI/2, 0, 0);
+    // Земля
+    this.cyl(.28, .28, .02, 16, soilM, 0, .375, 0, g);
+
+    // Вершок — группа для покачивания
+    const verkhG = new THREE.Group();
+    verkhG.position.set(0, .5, 0);
+    g.add(verkhG);
+
+    // Тело — картошка
+    const body = this.sph(.28, 14, 12, bodyM, 0, .08, 0, verkhG);
+    body.scale.set(1, 1.2, 1);
+    // Затемнение снизу
+    this.sph(.22, 12, 8, bodyShadowM, 0, -.08, 0, verkhG).scale.set(1, .6, 1);
+
+    // Глаза — большие жёлтые, добрые
+    const eyeL = this.sph(.055, 10, 10, eyeM, -.1, .15, .22, verkhG);
+    const eyeR = this.sph(.055, 10, 10, eyeM, .1, .15, .22, verkhG);
+    // Зрачки
+    this.sph(.028, 8, 8, eyePupilM, -.09, .15, .27, verkhG);
+    this.sph(.028, 8, 8, eyePupilM, .11, .15, .27, verkhG);
+    // Блики
+    this.sph(.01, 6, 6, new THREE.MeshBasicMaterial({color:0xffffff}), -.085, .17, .28, verkhG);
+    this.sph(.01, 6, 6, new THREE.MeshBasicMaterial({color:0xffffff}), .115, .17, .28, verkhG);
+
+    // Улыбка — торус
+    const smile = this.tor(.07, .012, 4, 12, new THREE.MeshBasicMaterial({color:0x4a1a10}), 0, .02, .26, verkhG, Math.PI/2, 0, 0);
+    smile.scale.set(1.2, .6, 1);
+
+    // Румянец
+    this.sph(.05, 8, 8, blushM, -.15, .04, .22, verkhG);
+    this.sph(.05, 8, 8, blushM, .15, .04, .22, verkhG);
+
+    // Листья — 4 штуки торчат
+    const leaves = [];
+    for(let i=0; i<5; i++){
+      const a = i/5 * Math.PI * 2 + Math.PI/4;
+      const leafG = new THREE.Group();
+      leafG.position.set(Math.cos(a)*.12, .35, Math.sin(a)*.12);
+      leafG.rotation.z = Math.cos(a) * .5;
+      leafG.rotation.x = Math.sin(a) * .5;
+      verkhG.add(leafG);
+      const blade = new THREE.Mesh(new THREE.ConeGeometry(.08, .65, 4), leafM);
+      blade.position.y = .3;
+      leafG.add(blade);
+      leaves.push(leafG);
+    }
+    // Центральный росток — маленький кустик
+    const centerLeaf = new THREE.Mesh(new THREE.ConeGeometry(.1, .4, 5), leafM);
+    centerLeaf.position.set(0, .55, 0);
+    verkhG.add(centerLeaf);
+
+    this.parts.pottedVerkhushka = {
+      group: g,
+      verkhGroup: verkhG,
+      body,
+      eyeL, eyeR, leaves,
+      phase: Math.random() * Math.PI * 2,
+      blinkTimer: 2 + Math.random() * 3,
+    };
+
+    // Мягкий зелёный свет
+    const light = new THREE.PointLight(0x88ff88, .35, 1.2);
+    light.position.set(0, .7, 0);
+    g.add(light);
+  }
+
+  // ═══════════════ ПОДВЕСНОЙ ДРОН ═══════════════
+  buildHangingDrone(x, y, z){
+    const g = new THREE.Group();
+    g.position.set(x, 0, z);
+    this.group.add(g);
+
+    const ropeM = new THREE.MeshStandardMaterial({color:0x3a2a1a, roughness:.95, metalness:.05});
+    const ropeLen = this.roomHeight - y;
+    // Верёвка от потолка
+    this.cyl(.012, .012, ropeLen, 6, ropeM, 0, y + ropeLen/2, 0, g);
+    // Петля на потолке
+    this.tor(.05, .008, 6, 12, ropeM, 0, this.roomHeight - .02, 0, g, Math.PI/2, 0, 0);
+
+    // Дрон
+    const droneG = new THREE.Group();
+    droneG.position.set(0, y, 0);
+    g.add(droneG);
+
+    const bodyM = new THREE.MeshStandardMaterial({color:0x8888ff, metalness:.9, roughness:.2, emissive:0x222244, emissiveIntensity:.4});
+    const eyeM = new THREE.MeshBasicMaterial({color:0x00ffff});
+    const propM = new THREE.MeshStandardMaterial({color:0x333333, metalness:.7, roughness:.4});
+    const accentM = new THREE.MeshStandardMaterial({color:0xccccff, metalness:.9, roughness:.15});
+
+    // Тело
+    const body = this.sph(.4, 14, 12, bodyM, 0, 0, 0, droneG);
+
+    // Крепление верёвки к дрону
+    this.cyl(.06, .06, .18, 6, ropeM, 0, .38, 0, droneG);
+    this.cyl(.09, .09, .04, 8, accentM, 0, .29, 0, droneG);
+
+    // Передний глаз — большой
+    this.sph(.14, 12, 10, eyeM, 0, 0, .34, droneG);
+    // Кольцо вокруг глаза
+    this.tor(.17, .022, 6, 16, accentM, 0, 0, .32, droneG, 0, 0, 0);
+
+    // Пропеллеры — 4 группы
+    const propG = new THREE.Group();
+    propG.position.y = .38;
+    droneG.add(propG);
+    const propellers = [];
+    for(let i=0; i<4; i++){
+      const a = i/4 * Math.PI * 2 + Math.PI/4;
+      const armG = new THREE.Group();
+      armG.rotation.y = a;
+      propG.add(armG);
+      // Стойка-луч
+      this.cyl(.018, .018, .3, 6, propM, .15, 0, 0, armG, Math.PI/2);
+      // Мотор
+      this.cyl(.055, .055, .1, 8, accentM, .3, 0, 0, armG, 0);
+      // Лопасти
+      const blade1 = this.box(.28, .012, .06, propM, .3, .06, 0, armG);
+      const blade2 = this.box(.06, .012, .28, propM, .3, .06, 0, armG);
+      propellers.push({group: armG, blades: [blade1, blade2]});
+    }
+
+    // Габаритные огни — маленькие сферы по низу
+    const blinkLights = [];
+    for(let i=0; i<4; i++){
+      const a = i/4 * Math.PI * 2;
+      const lightMesh = this.sph(.045, 6, 6, new THREE.MeshBasicMaterial({color: i % 2 === 0 ? 0xff2222 : 0x22ff22}), Math.cos(a)*.35, -.15, Math.sin(a)*.35, droneG);
+      blinkLights.push(lightMesh);
+    }
+
+    // Нижняя панель
+    this.sph(.2, 10, 8, accentM, 0, -.22, 0, droneG).scale.set(1, .5, 1);
+
+    // Небольшой источник света
+    const droneLight = new THREE.PointLight(0x8888ff, .8, 2.5);
+    droneLight.position.set(0, y - .1, 0);
+    g.add(droneLight);
+
+    this.parts.hangingDrone = {
+      group: g,
+      droneGroup: droneG,
+      propellers,
+      blinkLights,
+      baseY: y,
+      phase: Math.random() * Math.PI * 2,
+      swingPhase: Math.random() * Math.PI * 2,
+      light: droneLight,
+    };
+  }
+
   buildBar(x, z){
     const g = new THREE.Group();
     g.position.set(x, 0, z);
@@ -898,16 +1038,13 @@ class Hub {
     g.add(rl);
   }
 
-  // ═══════════════ БАРМЕНША ═══════════════
   buildBarmaid(x, z){
     const g = new THREE.Group();
     g.position.set(x, 0, z);
-    g.rotation.y = Math.PI * 0.8; // почти к игроку, чуть боком к бару
+    g.rotation.y = Math.PI * 0.8;
     this.group.add(g);
 
-    // Материалы
     const skinM = new THREE.MeshStandardMaterial({color:0xddb894, roughness:.55, metalness:.05});
-    const skinShadowM = new THREE.MeshStandardMaterial({color:0xba9876, roughness:.6, metalness:.05});
     const hairM = new THREE.MeshStandardMaterial({color:0x2a1008, roughness:.65, metalness:.15});
     const hairHiM = new THREE.MeshStandardMaterial({color:0x4a2510, roughness:.6, metalness:.2});
     const dressM = new THREE.MeshStandardMaterial({color:0xcc1133, roughness:.45, metalness:.25, emissive:0x440010, emissiveIntensity:.35});
@@ -920,82 +1057,58 @@ class Hub {
     const goldM = new THREE.MeshStandardMaterial({color:0xffd700, metalness:.95, roughness:.15});
     const drinkM = new THREE.MeshStandardMaterial({color:0xffaa22, transparent:true, opacity:.85, metalness:.1, roughness:.05, emissive:0xff6600, emissiveIntensity:.2});
     const glassM = new THREE.MeshStandardMaterial({color:0x88ccff, transparent:true, opacity:.4, metalness:.3, roughness:.05});
+    const shoesM = new THREE.MeshStandardMaterial({color:0x1a0000, roughness:.4, metalness:.6});
 
-    // ═══ БАРНЫЙ СТУЛ ═══
     this.cyl(.32, .38, .05, 16, chromeM, 0, .025, 0, g);
     this.cyl(.055, .055, .8, 8, chromeM, 0, .45, 0, g);
     this.tor(.2, .022, 6, 20, chromeM, 0, .28, 0, g, Math.PI/2, 0, 0);
-    // Кожаное сиденье
     this.cyl(.28, .26, .12, 20, seatM, 0, .89, 0, g);
     this.tor(.27, .02, 6, 24, goldM, 0, .94, 0, g, Math.PI/2, 0, 0);
-    // Спинка стула
     this.cyl(.03, .03, .3, 6, chromeM, -.2, 1.05, -.22, g);
     this.cyl(.03, .03, .3, 6, chromeM, .2, 1.05, -.22, g);
     this.cyl(.22, .22, .1, 16, seatM, 0, 1.25, -.22, g);
 
-    // ═══ БЁДРА / ПОПА на сиденье ═══
     this.sph(.24, 14, 12, dressM, 0, 1.0, 0, g).scale.set(1.25, .75, 1.15);
 
-    // ═══ НОГИ (свисают с табуретки) ═══
-    // Правая нога — вниз
     this.cyl(.1, .08, .55, 10, skinM, .13, .68, .05, g);
-    this.cyl(.08, .07, .5, 10, skinM, .13, .22, .15, g); // голень
-    // Ступня / туфля
-    this.box(.1, .08, .22, new THREE.MeshStandardMaterial({color:0x1a0000, roughness:.4, metalness:.6}), .13, .02, .28, g);
-    this.cone(.05, .08, 6, new THREE.MeshStandardMaterial({color:0x1a0000, roughness:.3, metalness:.7}), .13, -.01, .42, g);
+    this.cyl(.08, .07, .5, 10, skinM, .13, .22, .15, g);
+    this.box(.1, .08, .22, shoesM, .13, .02, .28, g);
+    this.cone(.05, .08, 6, shoesM, .13, -.01, .42, g);
 
-    // Левая нога — закинута, чуть в сторону
     this.cyl(.1, .08, .5, 10, skinM, -.15, .7, .1, g);
     this.cyl(.08, .07, .48, 10, skinM, -.2, .25, .2, g);
-    this.box(.1, .08, .22, new THREE.MeshStandardMaterial({color:0x1a0000, roughness:.4, metalness:.6}), -.2, .04, .32, g);
-    this.cone(.05, .08, 6, new THREE.MeshStandardMaterial({color:0x1a0000, roughness:.3, metalness:.7}), -.2, .01, .46, g);
-    // Скрещенные лодыжки — левая поверх правой
-    // (визуально ноги идут параллельно, ступни близко — ок)
+    this.box(.1, .08, .22, shoesM, -.2, .04, .32, g);
+    this.cone(.05, .08, 6, shoesM, -.2, .01, .46, g);
 
-    // ═══ ТОРС ═══
-    // Тазовая часть — начало платья
     this.cyl(.24, .26, .18, 14, dressM, 0, 1.18, 0, g);
-    // Талия — узкая
     this.cyl(.19, .22, .18, 14, dressM, 0, 1.32, 0, g);
-    // Грудь — верх торса, шире
     this.cyl(.24, .2, .25, 14, dressM, 0, 1.5, 0, g);
-    // Грудные формы — стилизованно
     this.sph(.115, 12, 10, dressM, -.1, 1.55, .14, g).scale.set(1, 1, 1.1);
     this.sph(.115, 12, 10, dressM, .1, 1.55, .14, g).scale.set(1, 1, 1.1);
-    // Декольте — тонкая полоска кожи
     this.box(.3, .04, .05, skinM, 0, 1.62, .12, g);
-    // Пояс — тонкая тёмная полоска
     this.cyl(.21, .21, .035, 14, dressDarkM, 0, 1.22, 0, g);
 
-    // ═══ ПЛЕЧИ ═══
     this.sph(.09, 10, 8, skinM, -.24, 1.68, 0, g);
     this.sph(.09, 10, 8, skinM, .24, 1.68, 0, g);
 
-    // ═══ РУКИ ═══
-    // Правая рука — опущена, ладонь на бедре
     const upperArmR = this.cyl(.055, .048, .32, 8, skinM, .28, 1.55, .02, g);
     upperArmR.rotation.z = -.35;
     const foreArmR = this.cyl(.048, .04, .3, 8, skinM, .38, 1.27, .08, g);
     foreArmR.rotation.x = -.25;
     foreArmR.rotation.z = -.1;
-    // Кисть на бедре
     this.sph(.055, 10, 8, skinM, .4, 1.12, .13, g);
-    // Пальцы
     for(let i=0; i<4; i++){
       this.cyl(.012, .01, .07, 6, skinM, .36 + i*.025, 1.07, .14, g, 0);
     }
 
-    // Левая рука — согнута, держит бокал
     const upperArmL = this.cyl(.055, .048, .32, 8, skinM, -.28, 1.55, .05, g);
     upperArmL.rotation.z = .3;
     upperArmL.rotation.x = -.15;
     const foreArmL = this.cyl(.048, .04, .3, 8, skinM, -.4, 1.42, .2, g);
     foreArmL.rotation.x = -.9;
     foreArmL.rotation.z = .1;
-    // Кисть
     this.sph(.055, 10, 8, skinM, -.42, 1.28, .35, g);
 
-    // ═══ БОКАЛ (мартини) ═══
     const drinkG = new THREE.Group();
     drinkG.position.set(-.42, 1.32, .38);
     g.add(drinkG);
@@ -1003,98 +1116,74 @@ class Hub {
     this.cyl(.012, .012, .1, 8, glassM, 0, .055, 0, drinkG);
     this.cyl(.1, .012, .14, 14, glassM, 0, .17, 0, drinkG);
     this.sph(.075, 12, 10, drinkM, 0, .17, 0, drinkG);
-    // Оливка
     this.sph(.025, 8, 8, new THREE.MeshStandardMaterial({color:0x6a8a0a, roughness:.6}), .02, .22, .03, drinkG);
     this.cyl(.004, .004, .12, 4, goldM, -.02, .21, -.02, drinkG, .3);
     this.parts.barmaidDrink = drinkG;
 
-    // ═══ ШЕЯ ═══
     this.cyl(.06, .07, .12, 10, skinM, 0, 1.78, 0, g);
-    // Ожерелье
     this.tor(.08, .008, 4, 16, goldM, 0, 1.74, .02, g, Math.PI/2, 0, 0);
-    // Кулон
     this.sph(.022, 8, 8, goldM, 0, 1.68, .1, g);
 
-    // ═══ ГОЛОВА ═══
     const headG = new THREE.Group();
     headG.position.set(0, 1.94, 0);
     g.add(headG);
     this.parts.barmaidHead = headG;
 
-    // Череп
     const head = this.sph(.16, 16, 14, skinM, 0, 0, 0, headG);
     head.scale.set(.92, 1.08, .98);
-    // Челюсть
     this.sph(.09, 10, 8, skinM, 0, -.08, .06, headG);
 
-    // Глаза — белки + зрачки
     for(let s of [-1, 1]){
       const eyeW = this.sph(.038, 10, 8, eyeWhiteM, s*.065, .02, .13, headG);
       eyeW.scale.set(1, .85, .7);
       const eye = this.sph(.024, 8, 8, eyeM, s*.065, .02, .145, headG);
-      // Блик
       this.sph(.008, 6, 6, new THREE.MeshBasicMaterial({color:0xffffff}), s*.06, .03, .165, headG);
-      // Ресницы — 3 тонкие палочки
       for(let j=0; j<3; j++){
         const lash = this.cyl(.004, .001, .04, 4, eyeM, s*.055 + j*s*.018, .055, .15, headG, -.3);
         lash.rotation.z = s * (.15 + j*.15);
       }
-      // Брови — тонкие
       const brow = this.box(.06, .008, .015, hairM, s*.065, .08, .14, headG);
       brow.rotation.z = s * .12;
     }
 
-    // Нос — маленький
     this.sph(.022, 8, 8, skinM, 0, -.02, .16, headG).scale.set(.8, 1, 1.1);
 
-    // Губы — пухлые, красные
     const upperLip = this.sph(.045, 10, 8, lipM, 0, -.07, .145, headG);
     upperLip.scale.set(1.1, .35, .55);
     const lowerLip = this.sph(.05, 10, 8, lipM, 0, -.085, .145, headG);
     lowerLip.scale.set(1.15, .4, .6);
 
-    // Румянец на щеках
     this.sph(.035, 8, 8, new THREE.MeshBasicMaterial({color:0xdd6688, transparent:true, opacity:.35}), -.1, -.01, .12, headG);
     this.sph(.035, 8, 8, new THREE.MeshBasicMaterial({color:0xdd6688, transparent:true, opacity:.35}), .1, -.01, .12, headG);
 
-    // ═══ ВОЛОСЫ ═══
-    // Верх — объёмный
     const hairTop = this.sph(.18, 14, 12, hairM, 0, .04, -.02, headG);
     hairTop.scale.set(1.05, 1, 1.05);
-    // Задняя масса — длинная
     const hairBack = this.box(.3, .55, .14, hairM, 0, -.35, -.15, headG);
     hairBack.rotation.x = -.08;
-    // Стрижка каскадом — пряди
     for(let i=0; i<5; i++){
       const lock = this.cyl(.03 - i*.003, .015, .35 - i*.03, 6, i%2===0 ? hairM : hairHiM,
         -.15 + i*.075, -.25, -.18 + i*.01, headG);
       lock.rotation.x = -.05 + i*.02;
       lock.rotation.z = (i - 2) * .08;
     }
-    // Боковые пряди
     for(let s of [-1, 1]){
       const sideLock = this.cyl(.035, .02, .3, 6, hairM, s*.16, -.2, -.02, headG);
       sideLock.rotation.z = s * .1;
     }
-    // Чёлка — по лбу
     this.sph(.16, 12, 8, hairM, 0, .09, .09, headG).scale.set(1, .4, .8);
-    // Передние пряди — свисают по сторонам лица
     for(let s of [-1, 1]){
       const strand = this.cyl(.025, .018, .22, 6, hairM, s*.13, -.06, .1, headG);
       strand.rotation.z = s * .15;
       strand.rotation.x = -.1;
     }
-    // Пробор сбоку
     this.box(.02, .02, .3, hairM, .05, .13, .02, headG);
 
-    // ═══ СЕРЬГИ ═══
     for(let s of [-1, 1]){
       this.sph(.012, 6, 6, goldM, s*.16, -.05, 0, headG);
       this.cyl(.004, .004, .04, 4, goldM, s*.16, -.08, 0, headG, 0);
       this.sph(.018, 8, 6, goldM, s*.16, -.12, 0, headG).scale.set(1, 1.4, .8);
     }
 
-    // Сохраняем ссылки для анимации
     this.barmaid = {
       group: g,
       headGroup: headG,
@@ -1106,14 +1195,12 @@ class Hub {
     };
   }
 
-  // ═══════════════ КОВБОЙ ═══════════════
   buildCowboy(x, z){
     const g = new THREE.Group();
     g.position.set(x, 0, z);
-    g.rotation.y = Math.PI * 0.75; // повёрнут к игроку, чуть боком
+    g.rotation.y = Math.PI * 0.75;
     this.group.add(g);
 
-    // Материалы
     const skinM = new THREE.MeshStandardMaterial({color:0xc89860, roughness:.7, metalness:.05});
     const hatM = new THREE.MeshStandardMaterial({color:0x3a2010, roughness:.85, metalness:.1});
     const hatBandM = new THREE.MeshStandardMaterial({color:0x0a0a0a, roughness:.6, metalness:.3});
@@ -1127,8 +1214,10 @@ class Hub {
     const seatM = new THREE.MeshStandardMaterial({color:0x3a2a18, roughness:.8, metalness:.1});
     const whiskeyM = new THREE.MeshStandardMaterial({color:0xcc8822, transparent:true, opacity:.85, metalness:.1, roughness:.1, emissive:0x442200, emissiveIntensity:.2});
     const glassM = new THREE.MeshStandardMaterial({color:0x88ccff, transparent:true, opacity:.4, metalness:.3, roughness:.05});
+    const hairM = new THREE.MeshStandardMaterial({color:0x2a1a0a, roughness:.9, metalness:.05});
+    const iceM = new THREE.MeshStandardMaterial({color:0xcceeff, transparent:true, opacity:.7});
+    const mouthM = new THREE.MeshBasicMaterial({color:0x4a1a10});
 
-    // ═══ БАРНЫЙ СТУЛ ═══
     this.cyl(.32, .38, .05, 16, chromeM, 0, .025, 0, g);
     this.cyl(.055, .055, .8, 8, chromeM, 0, .45, 0, g);
     this.tor(.2, .022, 6, 20, chromeM, 0, .28, 0, g, Math.PI/2, 0, 0);
@@ -1137,49 +1226,33 @@ class Hub {
     this.cyl(.03, .03, .3, 6, chromeM, .2, 1.05, -.22, g);
     this.cyl(.22, .22, .1, 16, seatM, 0, 1.25, -.22, g);
 
-    // ═══ БЁДРА ═══
     this.sph(.26, 14, 12, jeansM, 0, 1.02, 0, g).scale.set(1.3, .75, 1.2);
 
-    // ═══ НОГИ ═══
-    // Правая нога вниз
     this.cyl(.11, .09, .6, 10, jeansM, .14, .7, .05, g);
     this.cyl(.09, .08, .55, 10, jeansM, .14, .2, .18, g);
-    // Сапог правый
     this.box(.11, .12, .28, bootsM, .14, .04, .3, g);
     this.cone(.055, .1, 6, bootsM, .14, -.02, .46, g);
 
-    // Левая нога — согнута, ступня на подножке
     this.cyl(.11, .09, .5, 10, jeansM, -.18, .72, .12, g);
     this.cyl(.09, .08, .45, 10, jeansM, -.22, .3, .32, g);
     this.box(.11, .12, .28, bootsM, -.22, .1, .44, g);
     this.cone(.055, .1, 6, bootsM, -.22, .04, .6, g);
 
-    // ═══ ТОРС ═══
-    // Пояс
     this.cyl(.26, .27, .08, 14, hatM, 0, 1.24, 0, g);
-    // Пряжка
     this.box(.12, .08, .03, buckleM, 0, 1.24, .15, g);
-    // Рубашка
     this.cyl(.24, .26, .55, 12, shirtM, 0, 1.55, 0, g);
-    // Полоски на рубашке (клетка)
     for(let i=0; i<3; i++){
       this.cyl(.245 - i*.005, .245 - i*.005, .02, 12, shirtLineM, 0, 1.35 + i*.15, 0, g);
     }
-    // Вертикальная линия — молния/застёжка
     this.box(.02, .5, .02, shirtLineM, 0, 1.55, .16, g);
 
-    // Плечи
     this.sph(.11, 10, 8, shirtM, -.26, 1.76, 0, g);
     this.sph(.11, 10, 8, shirtM, .26, 1.76, 0, g);
 
-    // ═══ БАНДАНА ═══
     this.cyl(.11, .11, .08, 12, bandanaM, 0, 1.82, .02, g);
-    // Кончик банданы сзади
     this.cone(.06, .15, 4, bandanaM, 0, 1.72, -.14, g);
     this.cone(.04, .1, 4, bandanaM, .03, 1.72, -.15, g);
 
-    // ═══ РУКИ ═══
-    // Правая рука — опущена, кисть на бедре
     const upperArmR = this.cyl(.065, .06, .35, 8, shirtM, .32, 1.6, .02, g);
     upperArmR.rotation.z = -.32;
     const foreArmR = this.cyl(.06, .055, .32, 8, skinM, .42, 1.32, .1, g);
@@ -1187,7 +1260,6 @@ class Hub {
     foreArmR.rotation.z = -.1;
     this.sph(.06, 8, 8, skinM, .44, 1.15, .16, g);
 
-    // Левая рука — согнута, держит виски
     const upperArmL = this.cyl(.065, .06, .35, 8, shirtM, -.32, 1.6, .05, g);
     upperArmL.rotation.z = .3;
     upperArmL.rotation.x = -.1;
@@ -1196,23 +1268,17 @@ class Hub {
     foreArmL.rotation.z = .1;
     this.sph(.06, 8, 8, skinM, -.46, 1.32, .35, g);
 
-    // ═══ ВИСКИ ═══
     const drinkG = new THREE.Group();
     drinkG.position.set(-.46, 1.36, .38);
     g.add(drinkG);
-    // Стакан
     this.cyl(.07, .065, .12, 12, glassM, 0, 0, 0, drinkG);
-    // Жидкость
     this.cyl(.065, .06, .08, 12, whiskeyM, 0, -.015, 0, drinkG);
-    // Лёд
-    this.box(.04, .04, .04, new THREE.MeshStandardMaterial({color:0xcceeff, transparent:true, opacity:.7}), .02, .01, 0, drinkG);
-    this.box(.035, .035, .035, new THREE.MeshStandardMaterial({color:0xcceeff, transparent:true, opacity:.7}), -.025, .015, .01, drinkG);
+    this.box(.04, .04, .04, iceM, .02, .01, 0, drinkG);
+    this.box(.035, .035, .035, iceM, -.025, .015, .01, drinkG);
     this.parts.cowboyDrink = drinkG;
 
-    // ═══ ШЕЯ ═══
     this.cyl(.07, .08, .12, 10, skinM, 0, 1.92, 0, g);
 
-    // ═══ ГОЛОВА ═══
     const headG = new THREE.Group();
     headG.position.set(0, 2.08, 0);
     g.add(headG);
@@ -1222,63 +1288,45 @@ class Hub {
     head.scale.set(.95, 1.05, .98);
     this.sph(.09, 10, 8, skinM, 0, -.08, .06, headG);
 
-    // Глаза
     for(let s of [-1, 1]){
       this.sph(.035, 10, 8, new THREE.MeshBasicMaterial({color:0xf8f8f0}), s*.06, .02, .13, headG).scale.set(1, .85, .7);
       this.sph(.022, 8, 8, new THREE.MeshBasicMaterial({color:0x2a1a0a}), s*.06, .02, .145, headG);
       this.sph(.007, 6, 6, new THREE.MeshBasicMaterial({color:0xffffff}), s*.055, .03, .165, headG);
-      // Брови густые
       const brow = this.box(.07, .014, .02, hairM, s*.06, .08, .14, headG);
       brow.rotation.z = s * .2;
     }
 
-    // Нос
     this.sph(.024, 8, 8, skinM, 0, -.02, .16, headG).scale.set(.9, 1, 1.1);
-    // Ноздри
     for(let s of [-1, 1]){
       this.sph(.008, 6, 6, new THREE.MeshBasicMaterial({color:0x4a2a10}), s*.02, -.03, .17, headG);
     }
 
-    // ═══ УСЫ ═══
-    const mustache = this.box(.13, .03, .03, hairM, 0, -.06, .155, headG);
-    // Загнутые кончики
+    this.box(.13, .03, .03, hairM, 0, -.06, .155, headG);
     for(let s of [-1, 1]){
       const curl = this.cyl(.012, .008, .05, 6, hairM, s*.07, -.045, .155, headG);
       curl.rotation.z = s * .8;
     }
 
-    // Рот — суровая линия
-    this.box(.05, .008, .01, new THREE.MeshBasicMaterial({color:0x4a1a10}), 0, -.09, .155, headG);
+    this.box(.05, .008, .01, mouthM, 0, -.09, .155, headG);
 
-    // Щетина
     for(let i=0; i<8; i++){
       const angle = -Math.PI/4 + i * Math.PI/16;
       this.sph(.008, 4, 4, new THREE.MeshBasicMaterial({color:0x1a0a05}), Math.cos(angle)*.11, -.13, .13, headG);
     }
 
-    // ═══ ШЛЯПА ═══
-    // Верх — купол
-    const hatTop = this.cyl(.14, .16, .18, 14, hatM, 0, .17, 0, headG);
-    // Вмятины на тулье
+    this.cyl(.14, .16, .18, 14, hatM, 0, .17, 0, headG);
     this.box(.14, .06, .02, hatM, 0, .2, 0, headG);
-    // Поля — широкие
-    const brim = this.cyl(.32, .32, .025, 24, hatM, 0, .08, 0, headG);
-    // Загнутые края полей
+    this.cyl(.32, .32, .025, 24, hatM, 0, .08, 0, headG);
     for(let i=0; i<8; i++){
       const a = i/8 * Math.PI * 2;
       this.cyl(.06, .07, .015, 6, hatM, Math.cos(a)*.3, .085, Math.sin(a)*.3, headG);
     }
-    // Лента на шляпе
     this.cyl(.17, .17, .04, 14, hatBandM, 0, .1, 0, headG);
-    // Пряжка на ленте
     this.box(.05, .04, .015, buckleM, .12, .1, .1, headG);
-    // Тень от полей — затемнение лба
     this.cyl(.16, .16, .02, 12, new THREE.MeshBasicMaterial({color:0x1a1208, transparent:true, opacity:.35}), 0, .08, .06, headG).rotation.x = -.05;
 
-    // ═══ ВОЛОСЫ под шляпой ═══
-    this.box(.3, .08, .14, hairM, 0, .05, -.1, headG); // сзади под шляпой
+    this.box(.3, .08, .14, hairM, 0, .05, -.1, headG);
 
-    // Сохраняем для анимации
     this.cowboy = {
       group: g,
       headGroup: headG,
@@ -1519,13 +1567,15 @@ class Hub {
   isPlayerPosFree(x, z){
     if(x*x + z*z > (this.roomRadius - .6) * (this.roomRadius - .6)) return false;
     if(z > 6.8) return false;
+    // Горшок с вершком
+    const dxPot = x - 7, dzPot = z + 8;
+    if(dxPot*dxPot + dzPot*dzPot < 0.55*0.55) return false;
     return true;
   }
 
   update(dt){
     if(!hubPlayer) return;
 
-    // Декорации
     if(this.parts.centerRing) this.parts.centerRing.rotation.z += dt*1.2;
     if(this.parts.centerRing2) this.parts.centerRing2.rotation.z -= dt*.8;
     if(this.parts.portal){
@@ -1568,7 +1618,6 @@ class Hub {
       this.parts.discoLight.intensity = 1.5 + Math.sin(Date.now()*.008)*.8;
     }
 
-    // Лавалампа
     if(this.parts.lavaBlobs){
       const t = Date.now() * .001;
       this.parts.lavaBlobs.forEach((blob, i) => {
@@ -1588,9 +1637,10 @@ class Hub {
     this.updateBarRobot(dt);
     this.updateBarmaid(dt);
     this.updateCowboy(dt);
+    this.updatePottedVerkhushka(dt);
+    this.updateHangingDrone(dt);
     if(this.miniDog) this.miniDog.update(dt);
 
-    // Манекен
     if(this.dummy){
       if(this.dummy.flashTimer > 0){
         this.dummy.flashTimer -= dt;
@@ -1652,25 +1702,91 @@ class Hub {
     updateHubHUD();
   }
 
+  updatePottedVerkhushka(dt){
+    if(!this.parts.pottedVerkhushka) return;
+    const pv = this.parts.pottedVerkhushka;
+    const t = Date.now() * 0.001 + pv.phase;
+    // Покачивание тела
+    if(pv.verkhGroup){
+      pv.verkhGroup.rotation.z = Math.sin(t * 0.8) * 0.06;
+      pv.verkhGroup.rotation.x = Math.sin(t * 1.1) * 0.04;
+    }
+    // Листья шевелятся
+    if(pv.leaves){
+      pv.leaves.forEach((leaf, i) => {
+        const ph = t * 1.4 + i * 0.7;
+        leaf.rotation.z = Math.cos(i * Math.PI * 2 / 5 + Math.PI/4) * .5 + Math.sin(ph) * 0.08;
+        leaf.rotation.x = Math.sin(i * Math.PI * 2 / 5 + Math.PI/4) * .5 + Math.cos(ph * 1.3) * 0.08;
+      });
+    }
+    // Моргание
+    pv.blinkTimer -= dt;
+    if(pv.blinkTimer <= 0){
+      pv.blinkTimer = 2.5 + Math.random() * 4;
+      if(pv.eyeL && pv.eyeR){
+        pv.eyeL.scale.y = 0.1;
+        pv.eyeR.scale.y = 0.1;
+        setTimeout(() => {
+          if(pv.eyeL) pv.eyeL.scale.y = 1;
+          if(pv.eyeR) pv.eyeR.scale.y = 1;
+        }, 130);
+      }
+    }
+  }
+
+  updateHangingDrone(dt){
+    if(!this.parts.hangingDrone) return;
+    const hd = this.parts.hangingDrone;
+    const t = Date.now() * 0.001;
+    // Маятниковое качание на верёвке
+    if(hd.droneGroup){
+      const swing = Math.sin(t * 0.7 + hd.swingPhase) * 0.12;
+      hd.droneGroup.position.x = Math.sin(t * 0.7 + hd.swingPhase) * 0.35;
+      hd.droneGroup.position.z = Math.cos(t * 0.55 + hd.swingPhase * 1.2) * 0.3;
+      hd.droneGroup.rotation.z = -swing;
+      hd.droneGroup.rotation.x = Math.cos(t * 0.55 + hd.swingPhase * 1.2) * 0.08;
+      // Лёгкий подъём-опускание
+      hd.droneGroup.position.y = hd.baseY + Math.sin(t * 1.3 + hd.phase) * 0.06;
+    }
+    // Пропеллеры вращаются
+    if(hd.propellers){
+      hd.propellers.forEach(p => {
+        p.group.rotation.y += dt * 32;
+      });
+    }
+    // Габариты мигают
+    if(hd.blinkLights){
+      hd.blinkLights.forEach((l, i) => {
+        const isRed = i % 2 === 0;
+        const on = Math.sin(Date.now() * 0.006 + i * 1.5) > 0;
+        l.material.color.setRGB(
+          isRed ? (on ? 1 : 0.1) : 0.05,
+          isRed ? 0.05 : (on ? 1 : 0.1),
+          0.05
+        );
+      });
+    }
+    // Мягкое пульсирование света
+    if(hd.light){
+      hd.light.intensity = 0.6 + Math.sin(t * 2 + hd.phase) * 0.3;
+    }
+  }
+
   updateBarmaid(dt){
     if(!this.barmaid) return;
     const t = Date.now() * 0.001 + this.barmaid.phase;
-    // Голова покачивается
     if(this.barmaid.headGroup){
       this.barmaid.headGroup.rotation.y = Math.sin(t * 0.7) * 0.15;
       this.barmaid.headGroup.rotation.z = Math.sin(t * 0.9) * 0.04;
       this.barmaid.headGroup.rotation.x = Math.sin(t * 1.1) * 0.03;
     }
-    // Дыхание — лёгкое покачивание торса (через group)
     if(this.barmaid.group){
       this.barmaid.group.position.y = Math.sin(t * 1.8) * 0.005;
     }
-    // Волосы — колышутся
     if(this.barmaid.hairBack){
       this.barmaid.hairBack.rotation.z = Math.sin(t * 1.2) * 0.03;
       this.barmaid.hairBack.rotation.x = -.08 + Math.sin(t * 1.5) * 0.02;
     }
-    // Рука с бокалом — плавно поднимает/опускает
     if(this.barmaid.foreArmL){
       this.barmaid.foreArmL.rotation.x = -.9 + Math.sin(t * 0.8) * 0.08;
     }
@@ -1682,20 +1798,17 @@ class Hub {
   updateCowboy(dt){
     if(!this.cowboy) return;
     const t = Date.now() * 0.001 + this.cowboy.phase;
-    // Голова — ленивое покачивание
     if(this.cowboy.headGroup){
       this.cowboy.headGroup.rotation.y = Math.sin(t * 0.5) * 0.2;
       this.cowboy.headGroup.rotation.z = Math.sin(t * 0.7) * 0.05;
       this.cowboy.headGroup.rotation.x = Math.sin(t * 0.9) * 0.02;
     }
-    // Лёгкое дыхание
     if(this.cowboy.group){
       this.cowboy.group.position.y = Math.sin(t * 1.5) * 0.004;
     }
-    // Рука с виски — иногда поднимает к лицу
     if(this.cowboy.foreArmL){
       const sip = Math.sin(t * 0.4);
-      const sipAmount = sip > 0.85 ? (sip - 0.85) * 6.6 : 0; // короткие глотки
+      const sipAmount = sip > 0.85 ? (sip - 0.85) * 6.6 : 0;
       this.cowboy.foreArmL.rotation.x = -.8 - sipAmount * 0.5;
     }
     if(this.cowboy.drink){
@@ -1853,7 +1966,6 @@ class Hub {
       hitPoint = dummyHit[0].point.clone();
     }
 
-    // Стены/пол/потолок
     const R = this.roomRadius - 0.05;
     const a2 = dir.x*dir.x + dir.z*dir.z;
     const b2 = 2*(from.x*dir.x + from.z*dir.z);
@@ -2334,4 +2446,4 @@ document.addEventListener('mouseup', e=>{
   if(e.button === 0){ if(hub) hub.mouseDown = false; }
 });
 
-console.log('🏨 hub.js загружен (v6.4 — motorik rock, barmaid, cowboy, mini ice dog)');
+console.log('🏨 hub.js загружен (v6.5 — potted verkhushka + hanging drone)');
