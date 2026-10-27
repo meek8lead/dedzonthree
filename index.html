@@ -20,6 +20,13 @@ canvas{display:block}
 
 #ui{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;color:#0f0;text-shadow:0 0 5px #0f0}
 
+body.hub-mode #ui,
+body.hub-mode #hg-hud,
+body.hub-mode #slow-indicator,
+body.hub-mode #time-freeze-overlay,
+body.hub-mode #trickster-overlay,
+body.hub-mode #glitch-overlay{display:none!important}
+
 .ui-panel{position:absolute;background:rgba(0,20,0,.72);border:2px solid #0f0;padding:10px;font-size:14px;box-shadow:0 0 10px #0f0,inset 0 0 20px rgba(0,255,0,.08)}
 .ui-panel::before,.ui-panel::after{content:'';position:absolute;width:10px;height:10px;border:2px solid #0f0;box-shadow:0 0 4px #0f0}
 .ui-panel::before{top:-4px;left:-4px;border-right:none;border-bottom:none}
@@ -95,44 +102,6 @@ canvas{display:block}
 #duo-banner{background:linear-gradient(180deg,rgba(180,50,220,.95),rgba(80,20,120,.95));border:3px solid #e0f;color:#fff;font-size:24px;box-shadow:0 0 40px rgba(220,80,255,.9),inset 0 0 20px rgba(255,150,255,.3);text-shadow:0 0 8px #f0f}
 #synergy-banner.show,#duo-banner.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
-#pause-overlay{position:fixed;inset:0;z-index:999;display:none;
-  background:
-    repeating-linear-gradient(45deg, transparent 0, transparent 24px, rgba(30,30,30,.55) 24px, rgba(30,30,30,.55) 48px),
-    repeating-linear-gradient(-45deg, transparent 0, transparent 24px, rgba(30,30,30,.55) 24px, rgba(30,30,30,.55) 48px),
-    linear-gradient(180deg,rgba(10,10,15,.96),rgba(5,5,8,.99));
-  animation:pauseFadeIn .25s ease-out}
-@keyframes pauseFadeIn{from{opacity:0}to{opacity:1}}
-#pause-overlay.show{display:block}
-#pause-overlay::before{content:'';position:absolute;top:0;left:0;right:0;height:8px;
-  background:repeating-linear-gradient(90deg,#f90 0,#f90 20px,#000 20px,#000 40px);
-  animation:industrialStripes 2s linear infinite}
-#pause-overlay::after{content:'';position:absolute;bottom:0;left:0;right:0;height:8px;
-  background:repeating-linear-gradient(90deg,#000 0,#000 20px,#f90 20px,#f90 40px);
-  animation:industrialStripes 2s linear infinite reverse}
-@keyframes industrialStripes{from{background-position:0 0}to{background-position:80px 0}}
-#pause-overlay .pause-mark{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
-  font-size:120px;font-weight:bold;color:rgba(255,200,0,.08);letter-spacing:30px;
-  text-shadow:0 0 60px rgba(255,200,0,.15);animation:pauseBlink 1.2s infinite alternate;
-  font-family:'Courier New',monospace;user-select:none}
-@keyframes pauseBlink{from{opacity:.3}to{opacity:.8}}
-
-#press-y-overlay{position:fixed;inset:0;z-index:1010;display:none;
-  align-items:center;justify-content:center;flex-direction:column;
-  pointer-events:none;background:rgba(0,0,0,.35)}
-#press-y-overlay.show{display:flex}
-.press-y-key{font-size:120px;font-weight:bold;color:#ff0;
-  text-shadow:0 0 30px #ff0,0 0 60px #fa0,0 0 90px #f80;
-  font-family:'Courier New',monospace;
-  animation:yPulse .8s infinite alternate;
-  border:4px solid #ff0;border-radius:12px;padding:10px 50px;
-  background:rgba(0,0,0,.85);
-  box-shadow:0 0 50px #ff0,inset 0 0 30px rgba(255,255,0,.3);
-  line-height:1}
-.press-y-text{font-size:22px;color:#ff0;margin-top:24px;letter-spacing:5px;
-  font-family:'Courier New',monospace;animation:yPulse .8s infinite alternate;
-  text-shadow:0 0 15px #ff0,0 0 30px #fa0;font-weight:bold}
-@keyframes yPulse{0%{transform:scale(1);opacity:.7}100%{transform:scale(1.06);opacity:1}}
-
 #nest-screen{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:linear-gradient(180deg,rgba(10,0,0,.98),rgba(0,0,0,.99));border:4px solid #ff0;padding:28px 36px;display:none;pointer-events:all;text-align:center;box-shadow:0 0 60px #ff0,inset 0 0 30px rgba(255,255,0,.15);z-index:1000;min-width:780px;max-width:96vw;border-radius:10px}
 #nest-screen::before,#nest-screen::after{content:'';position:absolute;width:24px;height:24px;border:3px solid #ff0;box-shadow:0 0 12px #ff0}
 #nest-screen::before{top:-6px;left:-6px;border-right:none;border-bottom:none}
@@ -157,13 +126,6 @@ canvas{display:block}
 .nest-card.curse:hover{border-color:#f88;box-shadow:0 0 30px rgba(255,0,0,.9),0 0 50px rgba(255,50,50,.5)}
 .nest-card.synergy-ready{border-color:#ffd700;box-shadow:0 0 30px rgba(255,215,0,.9),0 0 60px rgba(255,200,0,.4)}
 
-#nest-cards.waiting-y .nest-card{
-  opacity:.35;
-  pointer-events:none;
-  filter:grayscale(.6) blur(1px);
-  animation-play-state:paused;
-}
-
 .nest-card-icon{font-size:40px;text-align:center;margin-bottom:8px}
 .nest-card-type{font-size:10px;letter-spacing:1px;color:#888;text-transform:uppercase;margin-bottom:4px}
 .nest-card-name{font-size:15px;font-weight:bold;color:#fff;line-height:1.2;margin-bottom:6px;min-height:36px}
@@ -186,13 +148,13 @@ canvas{display:block}
 #reroll-btn{background:linear-gradient(135deg,#88f,#44f);color:#fff;box-shadow:0 0 15px rgba(100,140,255,.7)}
 #reroll-btn:hover:not(:disabled){transform:scale(1.06);box-shadow:0 0 25px rgba(100,140,255,1)}
 #reroll-btn:disabled{background:#333;color:#666;cursor:not-allowed;box-shadow:none}
-#skip-btn{background:linear-gradient(135deg,#0f0,#0a0);color:#000;box-shadow:0 0 15px rgba(0,255,0,.7)}
-#skip-btn:hover:not(:disabled){transform:scale(1.06);box-shadow:0 0 25px rgba(0,255,0,1)}
-#skip-btn:disabled{background:#333;color:#666;cursor:not-allowed;box-shadow:none}
 #info-btn{background:linear-gradient(135deg,#ff0,#a80);color:#000;box-shadow:0 0 15px rgba(255,200,0,.7)}
 #info-btn:hover{transform:scale(1.06);box-shadow:0 0 25px rgba(255,200,0,1)}
 #shop-btn{background:linear-gradient(135deg,#fa0,#a60);color:#000;box-shadow:0 0 15px rgba(255,150,0,.7)}
 #shop-btn:hover{transform:scale(1.06);box-shadow:0 0 25px rgba(255,150,0,1)}
+#exit-btn{background:linear-gradient(135deg,#999,#444);color:#fff;box-shadow:0 0 15px rgba(160,160,160,.7)}
+#exit-btn:hover:not(:disabled){transform:scale(1.06);box-shadow:0 0 25px rgba(200,200,200,1)}
+#exit-btn:disabled{background:#333;color:#666;cursor:not-allowed;box-shadow:none}
 
 #nest-synergy-status{margin-top:14px;font-size:12px;color:#8f8;letter-spacing:1px}
 
@@ -232,17 +194,6 @@ canvas{display:block}
 .syn-panel-buff-label{color:#888}
 .syn-panel-buff-val{color:#0f0;font-weight:bold}
 .syn-panel-close{text-align:center;margin-top:16px;padding-top:12px;border-top:1px dashed #0f0;color:#8f8;font-size:12px;letter-spacing:1px;position:sticky;bottom:0;background:linear-gradient(180deg,rgba(0,10,0,.85),rgba(0,10,0,.98));padding-bottom:6px}
-
-#doom-dialog{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:linear-gradient(180deg,rgba(30,0,0,.98),rgba(10,0,0,.98));border:4px solid #f00;padding:30px 40px;display:none;pointer-events:all;text-align:center;box-shadow:0 0 60px #f00,inset 0 0 30px rgba(255,0,0,.2);z-index:1500;min-width:460px;border-radius:10px}
-#doom-dialog h2{color:#f00;text-shadow:0 0 20px #f00;font-size:32px;margin:0 0 16px;letter-spacing:4px;animation:doomPulse 1s infinite alternate}
-@keyframes doomPulse{from{transform:scale(1)}to{transform:scale(1.05)}}
-#doom-dialog p{color:#fc8;font-size:14px;line-height:1.6;margin:6px 0}
-#doom-dialog .doom-buttons{display:flex;gap:16px;justify-content:center;margin-top:22px}
-#doom-yes,#doom-no{padding:14px 26px;color:#fff;border:2px solid #f88;border-radius:6px;cursor:pointer;font-family:'Courier New',monospace;font-weight:bold;font-size:16px;letter-spacing:2px}
-#doom-yes{background:linear-gradient(135deg,#f00,#800);box-shadow:0 0 20px rgba(255,0,0,.8)}
-#doom-yes:hover{transform:scale(1.06);box-shadow:0 0 35px #f00}
-#doom-no{background:linear-gradient(135deg,#0f0,#080);color:#000;border-color:#8f8;box-shadow:0 0 20px rgba(0,255,0,.6)}
-#doom-no:hover{transform:scale(1.06)}
 
 #curse-indicator{position:absolute;bottom:270px;left:20px;padding:6px 12px;background:rgba(60,0,0,.85);border:2px solid #f00;border-radius:5px;font-size:12px;color:#f88;font-weight:bold;display:none;letter-spacing:1px;box-shadow:0 0 10px rgba(255,0,0,.5)}
 #curse-indicator.show{display:block}
@@ -297,16 +248,6 @@ canvas{display:block}
   transition:all .2s;border-radius:8px;
   display:none;
 }
-#hub-zones{
-  position:absolute;top:80px;right:20px;background:rgba(0,10,0,.85);
-  border:2px solid #0f0;padding:12px;z-index:1500;pointer-events:none;
-  font-family:'Courier New',monospace;font-size:13px;color:#0f0;
-  box-shadow:0 0 20px rgba(0,255,0,.4);border-radius:6px;min-width:200px;
-  display:none;
-}
-#hub-zones-title{font-size:16px;font-weight:bold;margin-bottom:8px;letter-spacing:2px;text-align:center;color:#ff0}
-.hub-zone-item{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px dashed #0a4}
-.hub-zone-item:last-child{border-bottom:none}
 #hub-credits{
   position:absolute;top:20px;right:20px;background:rgba(0,20,0,.95);
   border:2px solid #ff0;padding:8px 16px;font-family:'Courier New',monospace;
@@ -320,8 +261,7 @@ canvas{display:block}
   border-radius:6px;box-shadow:0 0 15px #0f0;display:none;
 }
 body.hub-mode #hub-credits,
-body.hub-mode #hub-wave,
-body.hub-mode #hub-zones{display:block}
+body.hub-mode #hub-wave{display:block}
 
 #credits-display{color:#ff0}
 
@@ -418,13 +358,6 @@ body.hub-mode #hub-zones{display:block}
   <span class="sys-item"><span class="sys-label">REC</span><span class="sys-val" style="color:#f00;animation:blinkSlow 1s infinite">●</span></span>
 </div>
 
-<div id="pause-overlay"><div class="pause-mark">PAUSE</div></div>
-
-<div id="press-y-overlay">
-  <div class="press-y-key">Y</div>
-  <div class="press-y-text">НАЖМИ Y ЧТОБЫ ПРОДОЛЖИТЬ</div>
-</div>
-
 <div id="slow-indicator"></div>
 <div id="glitch-overlay"><div class="glitch-scanlines"></div></div>
 <div id="time-freeze-overlay"></div>
@@ -493,30 +426,23 @@ body.hub-mode #hub-zones{display:block}
 <div id="aim-hint">[RMB] — прицеливание (точность ↑)</div>
 
 <div id="curse-indicator">💀 КУРС: 0/3</div>
+</div>
 
 <!-- ═══ HUB UI ═══ -->
 <div id="hub-credits">💰 0</div>
 <div id="hub-wave">ВОЛНА 1</div>
-<div id="hub-zones">
-  <div id="hub-zones-title">🏨 SHELTER</div>
-  <div class="hub-zone-item"><span>🌀 Телепортер</span><span style="color:#84f">[E]</span></div>
-  <div class="hub-zone-item"><span>🏪 Стол карт</span><span style="color:#fa0">[E]</span></div>
-  <div class="hub-zone-item"><span>🎰 Казино</span><span style="color:#f26">[E]</span></div>
-  <div class="hub-zone-item"><span>🎲 Кости</span><span style="color:#0df">[E]</span></div>
-  <div class="hub-zone-item"><span>🎯 Тир</span><span style="color:#8f0">[E]</span></div>
-</div>
 <div id="hub-interact-hint"></div>
 
-<!-- ═══ NEST ═══ -->
+<!-- ═══ NEST (DRAFT) ═══ -->
 <div id="nest-screen">
   <h2>🎰 ГНЕЗДО 🎰</h2>
   <p id="nest-hint">Выбери карту</p>
-  <div id="nest-cards" class="waiting-y"></div>
+  <div id="nest-cards"></div>
   <div id="nest-buttons">
     <button id="reroll-btn" class="nest-btn">🔄 РЕРОЛЛ <span class="key-hint">[A]</span></button>
-    <button id="skip-btn" class="nest-btn">⏭ ПРОПУСК <span class="key-hint">[S]</span></button>
     <button id="info-btn" class="nest-btn">📊 СИНЕРГИИ <span class="key-hint">[D]</span></button>
     <button id="shop-btn" class="nest-btn">🏪 МАГАЗИН <span class="key-hint">[F]</span></button>
+    <button id="exit-btn" class="nest-btn">🚪 ВЫЙТИ <span class="key-hint">[ESC]</span></button>
   </div>
   <div id="nest-synergy-status"></div>
 </div>
@@ -525,17 +451,6 @@ body.hub-mode #hub-zones{display:block}
   <div class="syn-panel-header">📊 СИНЕРГИИ И БАФФЫ</div>
   <div id="nest-synergy-panel-body"></div>
   <div class="syn-panel-close">[D] / [ESC] — закрыть · [↑][↓] — скролл</div>
-</div>
-
-<div id="doom-dialog">
-  <h2>⚠ DOOM-ВОЛНА ⚠</h2>
-  <p>Враги: <span style="color:#f88">+50% HP, +30% DMG</span></p>
-  <p>Награда: <span style="color:#8f8">4 карты в драфте + гарантированный эпик</span></p>
-  <p>Риск: <span style="color:#f00">смерть = конец рана</span></p>
-  <div class="doom-buttons">
-    <button id="doom-yes">💀 ВЗЯТЬ РИСК <span class="key-hint">[Q]</span></button>
-    <button id="doom-no">⏭ ПРОПУСТИТЬ <span class="key-hint">[W]</span></button>
-  </div>
 </div>
 
 <!-- ═══ CASINO OVERLAY ═══ -->
@@ -577,7 +492,6 @@ body.hub-mode #hub-zones{display:block}
   <p>Убито врагов: <span id="final-kills">0</span></p>
   <div id="final-damage-report"></div>
   <button onclick="location.reload()" style="margin-top:20px;padding:15px 30px;font-size:20px;background:#f00;border:none;cursor:pointer;color:#fff;font-family:'Courier New',monospace;letter-spacing:2px">ЗАНОВО</button>
-</div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
