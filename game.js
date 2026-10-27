@@ -8,16 +8,17 @@ let waveCleared = false;
 let isWaveTransitioning = false;
 let isSynergyPanelOpen = false;
 let pickLocked = false;
-let draftClaimedThisHub = false;
 let waveSpawnTimers = [];
 
-// Кредиты + PITY + Магазин
+// Кредиты + PITY
 let credits = 0;
 let _lastEnemiesKilled = 0;
 let pityCounters = {};
 SYNERGY_TAGS.forEach(t => pityCounters[t] = 0);
-let shopOpen = false;
-let shopItems = [];
+
+// Цены карт
+const CARD_PRICES = { common: 20, rare: 40, epic: 70, legendary: 120, curse: 10 };
+const REROLL_PRICE = 20;
 
 // PITY SYSTEM
 function updatePityAfterPick(pickedCard){
@@ -171,6 +172,12 @@ function rollCard(isElite = false){
   return rollCardOfType('weapon');
 }
 
+function cardPrice(card){
+  if(!card) return 0;
+  if(card.cardType === 'curse') return CARD_PRICES.curse;
+  return CARD_PRICES[card.rarity] || CARD_PRICES.common;
+}
+
 function createHitSpark(pos, damageType){
   const colors = {
     acid:0x00ff00, fire:0xff4400, ice:0x88ccff, piercing:0x00ffff,
@@ -290,27 +297,17 @@ function onWaveCleared(){
   waveSpawnTimers.forEach(t => clearTimeout(t));
   waveSpawnTimers = [];
 
-  credits += 10;
+  credits += 15;
 
   keys = {};
   mouseDown = false;
   wasMouseDown = false;
   resetChargingState();
 
-  // Готовим драфт для хаба
-  draftClaimedThisHub = false;
   currentDraft = [];
   generateDraft();
-  generateShop();
 
-  // Мгновенно в хаб — без пауз, оверлеев и попапа карт
   enterHub();
-}
-
-function activateCards(){
-  const nc = document.getElementById('nest-cards');
-  if(nc) nc.classList.remove('waiting-y');
-  audio.cardPick();
 }
 
 let _lastAmmoForUI = -1;
@@ -373,6 +370,7 @@ function updateUI(){
   updateWeaponSlotsUI();
   renderSynergyHUD();
   updateCurseIndicator();
+  if(typeof hubMode !== 'undefined' && hubMode && typeof updateHubHUD === 'function') updateHubHUD();
 }
 
 function updateRadar(){
@@ -478,6 +476,10 @@ function createCardElement(card, idx){
   el.className = 'nest-card ' + (card.rarity || 'common');
   if(card.cardType === 'curse') el.classList.add('curse');
   if(cardWillTriggerSynergy(card)) el.classList.add('synergy-ready');
+  if(card.bought) el.classList.add('bought');
+  const price = cardPrice(card);
+  const canAfford = credits >= price;
+  if(!card.bought && !canAfford) el.classList.add('no-money');
   el.style.animationDelay = (Math.random() * 1.5).toFixed(2) + 's';
   el.style.animationDuration = (2.6 + Math.random() * 1.2).toFixed(2) + 's';
   el.dataset.idx = idx;
@@ -508,6 +510,8 @@ function createCardElement(card, idx){
   let pityHint = '';
   if(card.pityForced) pityHint = `<div class="nest-card-hint" style="color:#0ff">🎁 ГАРАНТИЯ: ${SYNERGY_META[card.pityForced].icon}</div>`;
   else if(card.pityBoosted) pityHint = `<div class="nest-card-hint" style="color:#8f8">✨ БУСТ: ${SYNERGY_META[card.pityBoosted].icon}</div>`;
+  const priceClass = canAfford ? '' : 'poor';
+  const priceLabel = card.bought ? '✓ КУПЛЕНО' : `💰 ${price}  [${keyLabels[idx] || '?'}]`;
   el.innerHTML = `
     <div class="nest-card-key">${keyLabels[idx] || '?'}</div>
     <div class="nest-card-icon">${icon}</div>
@@ -516,6 +520,7 @@ function createCardElement(card, idx){
     <div class="nest-card-desc">${cardDesc}</div>
     <div class="nest-card-tags">${renderCardTags(card.tags)}</div>
     ${pityHint || (cardWillTriggerSynergy(card) ? '<div class="nest-card-hint">✨ АКТИВИРУЕТ СИНЕРГИЮ!</div>' : '')}
+    <div class="nest-card-price ${priceClass}">${priceLabel}</div>
   `;
   return el;
 }
@@ -528,31 +533,17 @@ function renderNestSynergyStatus(){
     .join('  ');
   el.textContent = 'СИНЕРГИИ: ' + (active || 'нет') + `  |  💰 ${credits}`;
 }
-function maxRerolls(){
-  const isGolden = (wave % BALANCE.goldenEvery === 0);
-  const freeLimit = isGolden ? 2 : 1;
-  return freeLimit + 2;
-}
-function rerollCost(){
-  const isGolden = (wave % BALANCE.goldenEvery === 0);
-  const freeLimit = isGolden ? 2 : 1;
-  if(rerollsUsedThisWave < freeLimit) return 0;
-  return (rerollsUsedThisWave - freeLimit + 1) * 20;
-}
 function updateRerollButton(){
   const btn = DOM.rerollBtn;
   if(!btn) return;
-  const cost = rerollCost();
-  const max = maxRerolls();
-  btn.disabled = rerollsUsedThisWave >= max;
-  if(btn.disabled) btn.innerHTML = '🔄 РЕРОЛЛ (исчерпан) <span class="key-hint">[A]</span>';
-  else if(cost === 0) btn.innerHTML = '🔄 РЕРОЛЛ (бесплатно) <span class="key-hint">[A]</span>';
-  else btn.innerHTML = `🔄 РЕРОЛЛ (-${cost} HP) <span class="key-hint">[A]</span>`;
+  const canAfford = credits >= REROLL_PRICE;
+  btn.disabled = !canAfford;
+  btn.innerHTML = `🔄 РЕРОЛЛ (-${REROLL_PRICE}💰) <span class="key-hint">[A]</span>`;
 }
 function renderNestScreen(){
   if(!DOM.nestScreen) return;
   DOM.nestScreen.style.display = 'block';
-  DOM.nestHint.innerHTML = `Выбери карту: <span class="key-hint">Q</span> <span class="key-hint">W</span> <span class="key-hint">E</span> <span class="key-hint">R</span> <span class="key-hint">T</span>  |  💰 <span style="color:#ff0">${credits}</span>`;
+  DOM.nestHint.innerHTML = `Выбери карту для покупки: <span class="key-hint">Q</span> <span class="key-hint">W</span> <span class="key-hint">E</span> <span class="key-hint">R</span> <span class="key-hint">T</span>  |  💰 <span style="color:#ff0">${credits}</span>`;
   const cardsEl = DOM.nestCards;
   cardsEl.innerHTML = '';
   cardsEl.classList.remove('waiting-y');
@@ -569,6 +560,7 @@ function renderNestScreen(){
   updateRerollButton();
   renderNestSynergyStatus();
 }
+
 function generateDraft(){
   const isGolden = (wave % BALANCE.goldenEvery === 0);
   const cardCount = 3;
@@ -590,148 +582,49 @@ function generateDraft(){
       showDebugToast('💀 МЕМ-ОРУЖИЕ ДОСТУПНО!');
     }
   }
-  rerollsUsedThisWave = 0;
-}
-
-function generateShop(){
-  shopItems = [];
-  for(let i=0;i<3;i++){
-    shopItems.push(rollCardSmart(wave >= BALANCE.goldenEvery));
-  }
-  shopOpen = false;
-}
-function shopPriceFor(card){
-  const prices = {common:20, rare:40, epic:80, legendary:120};
-  return prices[card.rarity] || 40;
-}
-function renderShop(){
-  let panel = document.getElementById('shop-panel');
-  if(!panel){
-    panel = document.createElement('div');
-    panel.id = 'shop-panel';
-    panel.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:1600;display:none;pointer-events:all;padding:24px 32px;background:linear-gradient(180deg,rgba(20,10,0,.98),rgba(10,5,0,.99));border:3px solid #fa0;border-radius:10px;box-shadow:0 0 60px #fa0,inset 0 0 30px rgba(255,150,0,.2);min-width:680px;max-width:92vw;text-align:center;font-family:"Courier New",monospace';
-    document.body.appendChild(panel);
-  }
-  const cards = shopItems.map((card, i) => {
-    const price = shopPriceFor(card);
-    const canBuy = credits >= price;
-    const cardEl = createCardElement(card, i);
-    cardEl.style.width = '180px';
-    cardEl.style.minHeight = '240px';
-    cardEl.style.animation = 'none';
-    cardEl.style.cursor = canBuy ? 'pointer' : 'not-allowed';
-    cardEl.style.opacity = canBuy ? '1' : '0.5';
-    cardEl.style.margin = '0';
-    const priceTag = document.createElement('div');
-    priceTag.style.cssText = 'position:absolute;bottom:6px;left:6px;right:6px;padding:5px;background:'+(canBuy?'rgba(255,180,0,.9)':'rgba(80,80,80,.9)')+';color:#000;font-weight:bold;font-size:14px;border-radius:4px;text-align:center;letter-spacing:1px;z-index:6';
-    priceTag.textContent = '💰 ' + price + '  [' + ['Z','X','C'][i] + ']';
-    cardEl.appendChild(priceTag);
-    return cardEl.outerHTML;
-  }).join('');
-
-  panel.innerHTML = `
-    <h2 style="color:#fa0;font-size:26px;margin:0 0 8px;letter-spacing:3px;text-shadow:0 0 20px #fa0">🏪 МАГАЗИН</h2>
-    <div style="color:#fff;font-size:14px;margin-bottom:16px">💰 Кредиты: <b style="color:#ff0">${credits}</b></div>
-    <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin-bottom:16px">${cards}</div>
-    <div style="color:#888;font-size:12px">[F] или [ESC] — закрыть</div>
-  `;
-  const newCards = panel.querySelectorAll('.nest-card');
-  newCards.forEach((el, i) => {
-    const canBuy = credits >= shopPriceFor(shopItems[i]);
-    el.onclick = (e) => { e.stopPropagation(); if(canBuy) buyShopItem(i); };
-  });
-}
-function openShop(){
-  if(!isNestActive) return;
-  shopOpen = true;
-  renderShop();
-  document.getElementById('shop-panel').style.display = 'block';
-  audio.cardPick();
-}
-function closeShop(){
-  shopOpen = false;
-  const panel = document.getElementById('shop-panel');
-  if(panel) panel.style.display = 'none';
-}
-function buyShopItem(idx){
-  const card = shopItems[idx];
-  if(!card) return;
-  const price = shopPriceFor(card);
-  if(credits < price){ showDebugToast('Недостаточно кредитов'); return; }
-  credits -= price;
-  applyCardEffect(card);
-  updatePityAfterPick(card);
-  audio.cardPick();
-  shopItems[idx] = rollCardSmart(wave >= BALANCE.goldenEvery);
-  renderShop();
-  updateUI();
-  renderNestSynergyStatus();
 }
 
 function pickCard(idx){
   if(!isNestActive || pickLocked) return;
   const card = currentDraft[idx];
-  if(!card) return;
-  pickLocked = true;
-  audio.cardPick();
+  if(!card || card.bought) return;
+  const price = cardPrice(card);
+  if(credits < price){
+    showDebugToast(`Не хватает 💰 (нужно ${price})`);
+    audio.wallHit();
+    return;
+  }
+  credits -= price;
   applyCardEffect(card);
   updatePityAfterPick(card);
-  draftClaimedThisHub = true;
-  const cards = DOM.nestCards.querySelectorAll('.nest-card');
-  cards.forEach((el, i) => {
-    el.style.pointerEvents = 'none';
-    el.style.transition = 'all .5s';
-    if(i === idx){
-      el.style.boxShadow = '0 0 80px #fff, 0 0 120px #ff0';
-      el.style.transform = 'scale(1.15)';
-      el.style.opacity = '0';
-    } else {
-      el.style.transform = 'scale(0.7) translateY(50px)';
-      el.style.opacity = '0';
-    }
-  });
-  setTimeout(() => { closeDraft(); }, 700);
-}
-function rerollNest(){
-  if(!isNestActive || pickLocked) return;
-  if(rerollsUsedThisWave >= maxRerolls()) return;
-  const cost = rerollCost();
-  if(cost > 0 && player.health <= cost){ showDebugToast('Недостаточно HP'); return }
-  if(cost > 0){ player.health -= cost; updateUI() }
-  rerollsUsedThisWave++;
-  audio.reroll();
-  const cardCount = currentDraft.length;
-  const isGolden = (wave % BALANCE.goldenEvery === 0);
-  currentDraft = [];
-  for(let i = 0; i < cardCount; i++){
-    let card;
-    if(isGolden && i === cardCount - 1) card = rollCardSmart(true);
-    else card = rollCardSmart(false);
-    currentDraft.push(card);
-  }
-  if(DOM.nestCards){
-    DOM.nestCards.innerHTML = '';
-    currentDraft.forEach((card, i) => {
-      const cardEl = createCardElement(card, i);
-      cardEl.style.opacity = '0';
-      DOM.nestCards.appendChild(cardEl);
-      setTimeout(() => {
-        cardEl.style.transition = 'opacity .4s';
-        cardEl.style.opacity = '1';
-        audio.slotDing();
-      }, i * 200);
-    });
-  }
-  updateRerollButton();
+  card.bought = true;
+  audio.cardPick();
+  updateUI();
+  // Перерисовываем — купленная карта становится серой
+  renderNestScreen();
   renderNestSynergyStatus();
 }
+
+function rerollNest(){
+  if(!isNestActive || pickLocked) return;
+  if(credits < REROLL_PRICE){
+    showDebugToast(`Нужно ${REROLL_PRICE}💰 для реролла`);
+    audio.wallHit();
+    return;
+  }
+  credits -= REROLL_PRICE;
+  audio.reroll();
+  generateDraft();
+  renderNestScreen();
+  updateUI();
+}
+
 function exitNest(){
   if(!isNestActive || pickLocked) return;
   closeDraft();
 }
 
 function closeDraft(){
-  closeShop();
   const ns = document.getElementById('nest-screen');
   if(ns) ns.style.display = 'none';
   const synEl = document.getElementById('nest-synergy-panel');
@@ -746,7 +639,6 @@ function closeDraft(){
 
 // continueToWave вызывается ИЗ hub.exit() при телепорте — стартует следующую волну
 function continueToWave(){
-  closeShop();
   const ns = document.getElementById('nest-screen');
   if(ns) ns.style.display = 'none';
   const synEl = document.getElementById('nest-synergy-panel');
@@ -755,7 +647,6 @@ function continueToWave(){
   isSynergyPanelOpen = false;
   isWaveTransitioning = false;
   pickLocked = false;
-  draftClaimedThisHub = false;
   turretCooldown = 0;
 
   keys = {};
@@ -1691,13 +1582,6 @@ function buildOpts(p){
 
 document.addEventListener('keydown', e=>{
   if(hubMode) return;
-  if(shopOpen){
-    if(e.code === 'KeyF' || e.code === 'Escape'){ closeShop(); e.preventDefault(); return; }
-    if(e.code === 'KeyZ' && shopItems[0]){ buyShopItem(0); e.preventDefault(); return; }
-    if(e.code === 'KeyX' && shopItems[1]){ buyShopItem(1); e.preventDefault(); return; }
-    if(e.code === 'KeyC' && shopItems[2]){ buyShopItem(2); e.preventDefault(); return; }
-    return;
-  }
   if(isSynergyPanelOpen){
     if(e.code === 'KeyD' || e.code === 'Escape'){ toggleSynergyPanel(); e.preventDefault(); return; }
     const panel = document.getElementById('nest-synergy-panel');
@@ -1721,7 +1605,6 @@ document.addEventListener('keydown', e=>{
     if(e.code === 'KeyA'){ rerollNest(); e.preventDefault(); return; }
     if(e.code === 'KeyS' || e.code === 'Escape'){ exitNest(); e.preventDefault(); return; }
     if(e.code === 'KeyD'){ toggleSynergyPanel(); e.preventDefault(); return; }
-    if(e.code === 'KeyF'){ openShop(); e.preventDefault(); return; }
     return;
   }
   keys[e.code] = true;
@@ -1739,7 +1622,7 @@ document.addEventListener('keydown', e=>{
 document.addEventListener('keyup', e=>{ if(!hubMode) keys[e.code] = false; });
 document.addEventListener('mousedown', e=>{
   if(hubMode) return;
-  if(isNestActive || isSynergyPanelOpen || isGameOver || shopOpen) return;
+  if(isNestActive || isSynergyPanelOpen || isGameOver) return;
   if(e.target.tagName !== 'BUTTON'){
     if(e.button === 0) mouseDown = true;
     if(e.button === 2){
@@ -1785,14 +1668,8 @@ const exitBtn = document.getElementById('exit-btn');
 if(exitBtn) exitBtn.addEventListener('click', e=>{ e.stopPropagation(); if(isNestActive) exitNest() });
 const infoBtn = document.getElementById('info-btn');
 if(infoBtn) infoBtn.addEventListener('click', e=>{ e.stopPropagation(); if(isNestActive) toggleSynergyPanel() });
-const shopBtn = document.getElementById('shop-btn');
-if(shopBtn) shopBtn.addEventListener('click', e=>{ e.stopPropagation(); if(isNestActive) openShop() });
-const doomYesBtn = document.getElementById('doom-yes');
-const doomNoBtn = document.getElementById('doom-no');
-if(doomYesBtn) doomYesBtn.addEventListener('click', e=>{ e.stopPropagation(); doomAccept() });
-if(doomNoBtn) doomNoBtn.addEventListener('click', e=>{ e.stopPropagation(); doomSkip() });
 
-// Устаревшие doom-функции: оставлены для совместимости, диалог убран из HTML
+// Устаревшие doom-функции (диалог убран)
 function doomAccept(){ pendingDoomChoice = false; nextWaveDoom = true; }
 function doomSkip(){ pendingDoomChoice = false; nextWaveDoom = false; }
 
@@ -1856,5 +1733,5 @@ window.onerror = function(message, source, lineno, colno, error){
   }
 };
 window.addEventListener('unhandledrejection', event=>{ GameLogger.error(`UNHANDLED PROMISE: ${event.reason}`) });
-GameLogger.info('=== v6.0 STARTED (Hub + Pity + Credits) ===');
+GameLogger.info('=== v6.1 STARTED (Hub economy + combat sandbox) ===');
 window.GameLogger = GameLogger;
