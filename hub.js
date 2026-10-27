@@ -1,5 +1,5 @@
 'use strict';
-// INDUSTRIAL ROGUE SHOOTER v6.1 — HUB (bigger, livelier, prog-rock stage)
+// INDUSTRIAL ROGUE SHOOTER v6.3 — HUB (lava lamp, prog rock, detailed bartender, shooting fixed)
 
 let hubMode = false;
 let hubScene = null;
@@ -40,10 +40,218 @@ const BAR_ROBOT_LINES = [
   "Совет: перед телепортом проверь синергии.",
   "Крит + Огонь = Deadshot. Криты поджигают.",
   "Ice + Explosive = Cryo Blast. Взрывы морозят.",
-  "Ребята на сцене жарят прог-рок. Не мешай им.",
+  "Ребята на сцене жарят прог-рок. Слышишь бас? Это Фил.",
   "Стекло мутное, но басы слышно за версту.",
   "За этой стойкой я уже 300 лет. Не жалуюсь.",
+  "А вот этот рифф — моя любимая часть сета.",
+  "Гитарист слева — у него волосы длиннее чем мои провода.",
+  "Не стой на пути у барабанщика. У него палочки острые.",
 ];
+
+// ═══════════════ ПРОЦЕДУРНЫЙ ПРОГ-РОК ═══════════════
+class HubMusic {
+  constructor(){
+    this.started = false;
+    this.step = 0;
+    this.nextNoteTime = 0;
+    this.tempo = 84;
+    this.stepDur = 60 / this.tempo / 2; // 8-е ноты
+    this.lookahead = 0.25;
+    this.gain = null;
+    this.interval = null;
+    this._volume = 0.10;
+  }
+  start(){
+    if(this.started) return;
+    const ctx = audio.ctx;
+    if(!ctx) return;
+    if(ctx.state === 'suspended'){ try { ctx.resume(); } catch(e){} }
+    this.started = true;
+    this.gain = ctx.createGain();
+    this.gain.gain.value = 0;
+    this.gain.connect(audio.master);
+    this.gain.gain.linearRampToValueAtTime(this._volume, ctx.currentTime + 1.8);
+    this.nextNoteTime = ctx.currentTime + 0.15;
+    this.step = 0;
+    this.interval = setInterval(() => this._scheduler(), 100);
+  }
+  stop(){
+    if(!this.started) return;
+    this.started = false;
+    clearInterval(this.interval);
+    this.interval = null;
+    if(this.gain){
+      const ctx = audio.ctx;
+      try {
+        this.gain.gain.cancelScheduledValues(ctx.currentTime);
+        this.gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 1.0);
+      } catch(e){}
+      const g = this.gain;
+      this.gain = null;
+      setTimeout(() => { try { g.disconnect(); } catch(e){} }, 1200);
+    }
+  }
+  _scheduler(){
+    if(!this.started || !this.gain) return;
+    const ctx = audio.ctx;
+    const maxSteps = 32;
+    let count = 0;
+    while(this.nextNoteTime < ctx.currentTime + this.lookahead && count < maxSteps){
+      this._scheduleStep(this.step, this.nextNoteTime);
+      this.nextNoteTime += this.stepDur;
+      this.step++;
+      count++;
+    }
+  }
+  _scheduleStep(step, time){
+    // 5/4 такт = 10 восьмых
+    const s = step % 10;
+    const bar = Math.floor(step / 10) % 4;
+
+    // KICK: доли 1 и 4 (восьмые 0 и 6)
+    if(s === 0 || s === 6) this._kick(time, 0.55);
+
+    // SNARE: доля 3 (восьмая 4)
+    if(s === 4) this._snare(time);
+
+    // HAT: на каждой восьмой
+    this._hat(time, s);
+
+    // BASS
+    const bassRoots = [55, 43.65, 49, 41.20]; // A1, F1, G1, E1
+    const root = bassRoots[bar];
+    if(s === 0) this._bass(root, time, this.stepDur * 1.6);
+    if(s === 4) this._bass(root * 1.5, time, this.stepDur * 1.2);
+    if(s === 6) this._bass(root * 1.335, time, this.stepDur * 1.3);
+
+    // CHORD PAD: старт такта
+    if(s === 0){
+      const chords = [
+        [220, 261.63, 329.63],   // Am
+        [174.61, 220, 261.63],   // F
+        [196, 246.94, 293.66],   // G
+        [164.81, 196, 246.94],   // Em
+      ];
+      this._pad(chords[bar], time, this.stepDur * 10);
+    }
+
+    // LEAD: редкие ноты
+    if(Math.random() < 0.07 && (s === 1 || s === 3 || s === 7 || s === 9)){
+      const leadScale = [440, 493.88, 523.25, 587.33, 659.25, 783.99];
+      this._lead(leadScale[Math.floor(Math.random() * leadScale.length)], time);
+    }
+  }
+  _kick(t, vol){
+    const ctx = audio.ctx;
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(120, t);
+    o.frequency.exponentialRampToValueAtTime(42, t + 0.14);
+    g.gain.setValueAtTime(0.001, t);
+    g.gain.linearRampToValueAtTime(vol, t + 0.006);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.32);
+    o.connect(g); g.connect(this.gain);
+    o.start(t); o.stop(t + 0.35);
+  }
+  _snare(t){
+    const ctx = audio.ctx;
+    const n = Math.floor(ctx.sampleRate * 0.14);
+    const buf = ctx.createBuffer(1, n, ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for(let i=0; i<n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i/n, 1.5);
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    const filt = ctx.createBiquadFilter();
+    filt.type = 'highpass';
+    filt.frequency.value = 1400;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.30, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
+    src.connect(filt); filt.connect(g); g.connect(this.gain);
+    src.start(t); src.stop(t + 0.15);
+    const o = ctx.createOscillator();
+    const g2 = ctx.createGain();
+    o.type = 'triangle';
+    o.frequency.value = 190;
+    g2.gain.setValueAtTime(0.20, t);
+    g2.gain.exponentialRampToValueAtTime(0.001, t + 0.09);
+    o.connect(g2); g2.connect(this.gain);
+    o.start(t); o.stop(t + 0.1);
+  }
+  _hat(t, s){
+    const ctx = audio.ctx;
+    const n = Math.floor(ctx.sampleRate * 0.035);
+    const buf = ctx.createBuffer(1, n, ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for(let i=0; i<n; i++) d[i] = (Math.random() * 2 - 1);
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    const filt = ctx.createBiquadFilter();
+    filt.type = 'highpass';
+    filt.frequency.value = 8000;
+    const g = ctx.createGain();
+    const vol = (s % 2 === 0) ? 0.09 : 0.04;
+    g.gain.setValueAtTime(vol, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.03);
+    src.connect(filt); filt.connect(g); g.connect(this.gain);
+    src.start(t); src.stop(t + 0.04);
+  }
+  _bass(freq, t, dur){
+    const ctx = audio.ctx;
+    const o = ctx.createOscillator();
+    const filt = ctx.createBiquadFilter();
+    const g = ctx.createGain();
+    o.type = 'sawtooth';
+    o.frequency.value = freq;
+    filt.type = 'lowpass';
+    filt.frequency.setValueAtTime(900, t);
+    filt.frequency.exponentialRampToValueAtTime(280, t + dur);
+    filt.Q.value = 4;
+    g.gain.setValueAtTime(0.001, t);
+    g.gain.linearRampToValueAtTime(0.20, t + 0.01);
+    g.gain.setValueAtTime(0.20, t + dur * 0.7);
+    g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    o.connect(filt); filt.connect(g); g.connect(this.gain);
+    o.start(t); o.stop(t + dur + 0.05);
+  }
+  _pad(freqs, t, dur){
+    const ctx = audio.ctx;
+    freqs.forEach(freq => {
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = 'sawtooth';
+      o.frequency.value = freq;
+      o.detune.value = (Math.random() - .5) * 12;
+      const filt = ctx.createBiquadFilter();
+      filt.type = 'lowpass';
+      filt.frequency.value = 1100;
+      filt.Q.value = 2;
+      g.gain.setValueAtTime(0.001, t);
+      g.gain.linearRampToValueAtTime(0.035, t + dur * 0.35);
+      g.gain.setValueAtTime(0.035, t + dur * 0.7);
+      g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+      o.connect(filt); filt.connect(g); g.connect(this.gain);
+      o.start(t); o.stop(t + dur + 0.05);
+    });
+  }
+  _lead(freq, t){
+    const ctx = audio.ctx;
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = 'square';
+    o.frequency.value = freq;
+    const filt = ctx.createBiquadFilter();
+    filt.type = 'lowpass';
+    filt.frequency.setValueAtTime(1800, t);
+    filt.frequency.exponentialRampToValueAtTime(700, t + 0.4);
+    g.gain.setValueAtTime(0.001, t);
+    g.gain.linearRampToValueAtTime(0.045, t + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+    o.connect(filt); filt.connect(g); g.connect(this.gain);
+    o.start(t); o.stop(t + 0.42);
+  }
+}
 
 class Hub {
   constructor(){
@@ -59,15 +267,14 @@ class Hub {
     this.roomHeight = 5;
     this.hubReloading = false;
     this.hubReloadTimer = 0;
+    this.hubReloadBase = 1;
     this.hubRecoilPitch = 0;
-    this._dpsEl = null;
-    this._hubAmmoEl = null;
-    this._hubReloadEl = null;
+    this.music = new HubMusic();
     this.build();
   }
 
   matFloor(){ return new THREE.MeshStandardMaterial({color:0x1a1a22, roughness:.7, metalness:.6}) }
-  matWall(){ return new THREE.MeshStandardMaterial({color:0x2a2028, roughness:.9, metalness:.1}) }
+  matWallBase(){ return new THREE.MeshStandardMaterial({color:0x3a0a14, roughness:.9, metalness:.1, emissive:0x2a0008, emissiveIntensity:.35}) }
   matMetal(){ return new THREE.MeshStandardMaterial({color:0x4a4a52, roughness:.4, metalness:.9}) }
   matDarkMetal(){ return new THREE.MeshStandardMaterial({color:0x1a1a1e, roughness:.6, metalness:.7}) }
   matNeon(color, emissive){ return new THREE.MeshStandardMaterial({color, emissive:emissive||color, emissiveIntensity:1.2, transparent:true, opacity:.9}) }
@@ -91,25 +298,55 @@ class Hub {
     const R = this.roomRadius, H = this.roomHeight;
 
     this.cyl(R, R, .1, 48, this.matFloor(), 0, 0, 0);
-    // Концентрические неоновые кольца на полу
     for(let r=1; r<R; r+=1){
-      this.tor(r, .015, 4, 48, new THREE.MeshBasicMaterial({color:0x00aa66, transparent:true, opacity:.25}), 0, .06, 0, null, Math.PI/2,0,0);
+      this.tor(r, .015, 4, 48, new THREE.MeshBasicMaterial({color:0x00aa66, transparent:true, opacity:.22}), 0, .06, 0, null, Math.PI/2,0,0);
     }
 
-    const wall = this.cyl(R, R, H, 48, this.matWall(), 0, H/2, 0);
+    // ═══ ЛАВАЛАМПА-СТЕНА ═══
+    const wall = this.cyl(R, R, H, 48, this.matWallBase(), 0, H/2, 0);
     wall.material.side = THREE.BackSide;
-    for(let h=1; h<H; h+=.5){
-      this.tor(R-.05, .03, 4, 56, new THREE.MeshBasicMaterial({color:0x0a0505}), 0, h, 0, null, Math.PI/2,0,0);
+    // Горизонтальные светящиеся полосы
+    for(let h=1; h<H; h+=.6){
+      this.tor(R-.08, .04, 4, 56, new THREE.MeshBasicMaterial({color:0xff3300, transparent:true, opacity:.15}), 0, h, 0, null, Math.PI/2,0,0);
+    }
+    // Лава-капли: 90 сфер вдоль стены
+    this.parts.lavaBlobs = [];
+    const lavaColors = [0xff2200, 0xff5500, 0xff8800, 0xaa0044, 0xaa00aa, 0xff2266];
+    for(let i=0; i<90; i++){
+      const angle = (i / 90) * Math.PI * 2 + (Math.random() - .5) * .3;
+      const dist = R - 0.25 - Math.random() * 0.4;
+      const x = Math.cos(angle) * dist;
+      const z = Math.sin(angle) * dist;
+      const size = 0.15 + Math.random() * 0.5;
+      const color = lavaColors[Math.floor(Math.random() * lavaColors.length)];
+      const blobMat = new THREE.MeshBasicMaterial({
+        color,
+        transparent: true,
+        opacity: .55 + Math.random() * .3,
+        depthWrite: false
+      });
+      const blob = new THREE.Mesh(new THREE.SphereGeometry(size, 10, 8), blobMat);
+      blob.position.set(x, Math.random() * H, z);
+      blob.scale.set(1, 1 + Math.random() * 1.2, .4);
+      blob.userData = {
+        baseY: Math.random() * H,
+        speed: .1 + Math.random() * .25,
+        phase: Math.random() * Math.PI * 2,
+        baseSize: size,
+        colorHSL: Math.random() * 0.08, // красный-оранжевый
+      };
+      this.group.add(blob);
+      this.parts.lavaBlobs.push(blob);
     }
 
+    // Потолок с балками
     this.cyl(R, R, .05, 48, new THREE.MeshBasicMaterial({color:0x0a0510, transparent:true, opacity:.85}), 0, H, 0);
-    // Потолочные балки
     for(let i=0; i<4; i++){
       const a = i/4*Math.PI*2 + Math.PI/4;
       this.cyl(.08,.08, R*1.6, 8, this.matMetal(), 0, H-.2, 0, null, 0).rotation.set(0, a, 0);
     }
 
-    // Центральный столб-хаб
+    // Центр
     const centerGroup = new THREE.Group();
     centerGroup.position.set(0, 2.0, 0);
     this.group.add(centerGroup);
@@ -130,28 +367,27 @@ class Hub {
     this.buildDice(9, 5, -Math.PI*3/4);
     this.buildBloodStation(-9, 5, Math.PI*3/4);
     this.buildDummy(-10.5, 0);
-    this.buildBar(-2, 8);
-    this.buildBarRobot(0, 8.7);
-    this.buildStage(0, 11.5);
+    this.buildBar(-2, 7.5);
+    this.buildBarRobot(-2, 8.3);
+    this.buildStage(0, 10);
 
-    // Диско-шар под потолком
+    // Диско-шар
     const discoBall = this.sph(.45, 20, 16,
       new THREE.MeshStandardMaterial({color:0x888899, metalness:1, roughness:.1, emissive:0x222244, emissiveIntensity:.4}),
       0, H - 1.2, 0);
     this.parts.discoBall = discoBall;
-    const discoLight = new THREE.PointLight(0xff44aa, 2, 10);
+    const discoLight = new THREE.PointLight(0xff44aa, 2, 12);
     discoLight.position.set(0, H - 1.2, 0);
     this.group.add(discoLight);
     this.parts.discoLight = discoLight;
 
-    // Ambient + центральный свет
-    this.group.add(new THREE.AmbientLight(0x221122, .7));
-    const centerLight = new THREE.PointLight(0xff8800, 2.5, 15);
+    // Освещение
+    this.group.add(new THREE.AmbientLight(0x2a1020, .8));
+    const centerLight = new THREE.PointLight(0xff6600, 2.5, 15);
     centerLight.position.set(0, 3, 0);
     this.group.add(centerLight);
     this.parts.centerLight = centerLight;
 
-    // Зональные огни
     [
       {pos:[0,3,-9], color:0x8844ff},
       {pos:[-9,3,-4], color:0xffaa00},
@@ -159,15 +395,15 @@ class Hub {
       {pos:[9,3,5], color:0x00ddff},
       {pos:[-9,3,5], color:0xff2222},
       {pos:[-10.5,3,0], color:0x66ccff},
-      {pos:[0,3,8], color:0xff8800},
+      {pos:[-2,3,7.5], color:0xff8800},
+      {pos:[0,3.5,10], color:0xff22aa},
     ].forEach(zl=>{
-      const l = new THREE.PointLight(zl.color, 1.6, 7);
+      const l = new THREE.PointLight(zl.color, 1.8, 8);
       l.position.set(...zl.pos);
       this.group.add(l);
     });
 
-    // Звёзды на потолке
-    for(let i=0; i<100; i++){
+    for(let i=0; i<80; i++){
       const theta = Math.random()*Math.PI*2;
       const r = Math.random()*R*.9;
       this.sph(.02,4,4, new THREE.MeshBasicMaterial({color:0xffffff}), Math.cos(theta)*r, H-.1, Math.sin(theta)*r);
@@ -312,7 +548,6 @@ class Hub {
     this.cyl(.022, .022, 1.6, 4, this.matMetal(), -.6, 1.95, -.22, g);
     this.box(.38, .24, .01, new THREE.MeshBasicMaterial({color:0xff8800, side:THREE.DoubleSide}), -.38, 2.6, -.22, g);
 
-    // Hitbox
     const hitGeo = new THREE.CylinderGeometry(.6, .6, 2.7, 12);
     const hitMat = new THREE.MeshBasicMaterial({transparent:true, opacity:0, depthWrite:false});
     const hitMesh = new THREE.Mesh(hitGeo, hitMat);
@@ -343,16 +578,13 @@ class Hub {
         new THREE.MeshStandardMaterial({color:bottleColors[i%6], emissive:bottleColors[i%6], emissiveIntensity:.35}),
         -2.1 + i*.4, 1.5, 0, g);
     }
-    // Стойки
     for(let i=0; i<4; i++){
       const sx = -1.8 + i*1.2, sz = -.9;
       this.cyl(.27,.27,.11,12, this.matMetal(), sx, .6, sz, g);
       this.cyl(.055,.055,.6,8, this.matMetal(), sx, .28, sz, g);
       this.cyl(.22,.17,.06,12, this.matDarkMetal(), sx, .06, sz, g);
     }
-    // Полка над стойкой
     this.box(5.0, .08, .4, this.matMetal(), 0, 2.2, -.15, g);
-    // Неон "BAR"
     const neonM = new THREE.MeshBasicMaterial({color:0xff44aa, transparent:true, opacity:.9});
     this.box(2.4, .04, .04, neonM, 0, 2.6, -.15, g);
     this.box(.04, .5, .04, neonM, -1.2, 2.35, -.15, g);
@@ -367,37 +599,115 @@ class Hub {
     g.position.set(x, 0, z);
     g.rotation.y = Math.PI;
     this.group.add(g);
-    const chassisM = new THREE.MeshStandardMaterial({color:0x3a3a44, metalness:.85, roughness:.3});
-    const headM = new THREE.MeshStandardMaterial({color:0x5a5a66, metalness:.9, roughness:.2});
-    const darkM = new THREE.MeshStandardMaterial({color:0x1a1a1e, metalness:.7, roughness:.4});
+
+    const metalD = new THREE.MeshStandardMaterial({color:0x2a2a34, metalness:.9, roughness:.3});
+    const metalL = new THREE.MeshStandardMaterial({color:0x5a5a66, metalness:.85, roughness:.25});
+    const chrome = new THREE.MeshStandardMaterial({color:0x9a9aa6, metalness:1, roughness:.1});
+    const dark = new THREE.MeshStandardMaterial({color:0x0a0a0e, metalness:.7, roughness:.5});
+    const accentO = new THREE.MeshStandardMaterial({color:0xff8800, emissive:0xff4400, emissiveIntensity:.8, metalness:.6, roughness:.3});
     const eyeM = new THREE.MeshBasicMaterial({color:0x00ff88});
-    const accentM = new THREE.MeshStandardMaterial({color:0xff8800, emissive:0xff4400, emissiveIntensity:.7, metalness:.5, roughness:.3});
-    this.cyl(.38, .44, .28, 10, darkM, 0, .14, 0, g);
-    this.box(.65, .85, .45, chassisM, 0, .7, 0, g);
-    this.box(.44, .32, .05, accentM, 0, .82, .23, g);
-    for(let i=0; i<3; i++){
-      this.sph(.035, 6, 6, new THREE.MeshBasicMaterial({color:[0xff2222, 0xffaa00, 0x00ff88][i]}), -.13 + i*.13, .82, .26, g);
+    const eyeM2 = new THREE.MeshBasicMaterial({color:0xff3300});
+
+    // Основание
+    this.cyl(.5, .55, .3, 14, dark, 0, .15, 0, g);
+    this.tor(.52, .04, 6, 16, accentO, 0, .15, 0, g, Math.PI/2, 0, 0);
+
+    // Колонна
+    this.cyl(.18, .22, .8, 10, metalD, 0, .7, 0, g);
+
+    // Торс — 2 сегмента
+    this.box(.7, .4, .5, metalD, 0, 1.2, 0, g);
+    this.box(.9, .55, .55, metalL, 0, 1.65, 0, g);
+    this.box(.6, .3, .06, accentO, 0, 1.65, .29, g);
+
+    // LED-индикаторы
+    this.parts.barRobotLeds = [];
+    for(let i=0; i<5; i++){
+      const led = this.sph(.03, 6, 6,
+        new THREE.MeshBasicMaterial({color:[0xff0000, 0xff8800, 0xffdd00, 0x00ff00, 0x0088ff][i]}),
+        -.24 + i*.12, 1.65, .32, g);
+      this.parts.barRobotLeds.push(led);
     }
-    this.cyl(.09, .09, .16, 8, darkM, 0, 1.2, 0, g);
-    const head = this.sph(.3, 16, 14, headM, 0, 1.55, 0, g);
-    this.sph(.075, 8, 8, eyeM, -.13, 1.58, .24, g);
-    this.sph(.075, 8, 8, eyeM, .13, 1.58, .24, g);
+
+    // Шея — сегменты
+    this.cyl(.09, .09, .15, 8, chrome, 0, 2.0, 0, g);
+    this.tor(.1, .02, 4, 12, dark, 0, 2.08, 0, g, Math.PI/2, 0, 0);
+    this.cyl(.09, .09, .15, 8, chrome, 0, 2.15, 0, g);
+    this.tor(.1, .02, 4, 12, dark, 0, 2.23, 0, g, Math.PI/2, 0, 0);
+
+    // Голова
+    const headG = new THREE.Group();
+    headG.position.set(0, 2.48, 0);
+    g.add(headG);
+    this.parts.barRobotHead = headG;
+
+    const skull = this.sph(.32, 16, 14, metalL, 0, 0, 0, headG);
+    skull.scale.set(1, .9, 1.05);
+    this.box(.5, .16, .05, dark, 0, 0, .28, headG);
+    const eyeL = this.sph(.07, 8, 8, eyeM, -.12, 0, .31, headG);
+    const eyeR = this.sph(.07, 8, 8, eyeM, .12, 0, .31, headG);
+    this.parts.barRobotEyes = [eyeL.material, eyeR.material];
+
+    for(let s of [-1, 1]){
+      const ear = this.cyl(.11, .11, .08, 12, dark, s*.32, 0, 0, headG, 0);
+      ear.rotation.z = Math.PI/2;
+      const earTrim = this.cyl(.07, .07, .01, 8, chrome, s*.37, 0, 0, headG, 0);
+      earTrim.rotation.z = Math.PI/2;
+    }
     for(let i=0; i<4; i++){
-      this.box(.055, .017, .02, darkM, -.1 + i*.066, 1.42, .26, g);
+      this.box(.05, .012, .02, dark, -.1 + i*.065, -.13, .3, headG);
     }
-    this.cyl(.017, .017, .28, 4, darkM, 0, 1.97, 0, g);
-    this.sph(.055, 8, 8, new THREE.MeshBasicMaterial({color:0xff0000}), 0, 2.15, 0, g);
-    for(let s of [-1,1]){
-      this.cyl(.065, .065, .55, 6, chassisM, s*.46, .85, 0, g, Math.PI/2, 0, Math.PI/2);
-      this.cyl(.055, .075, .38, 6, darkM, s*.6, .52, 0, g);
-      this.sph(.09, 8, 8, darkM, s*.6, .32, 0, g);
-    }
-    this.cyl(.065, .065, .13, 8, new THREE.MeshStandardMaterial({color:0x88ccff, transparent:true, opacity:.5, metalness:.2, roughness:.1}), .9, 1.65, -.32, g);
+    this.cyl(.015, .015, .35, 4, chrome, 0, .5, 0, headG);
+    const antBall = this.sph(.06, 8, 8, eyeM2, 0, .7, 0, headG);
+    this.parts.barRobotAntenna = antBall;
+
+    // Плечи
+    this.sph(.14, 10, 8, chrome, -.48, 1.85, 0, g);
+    this.sph(.14, 10, 8, chrome, .48, 1.85, 0, g);
+
+    // Левая рука (держит кружку)
+    const armL = new THREE.Group();
+    armL.position.set(-.48, 1.85, 0);
+    g.add(armL);
+    this.parts.barRobotArmL = armL;
+    this.cyl(.06, .06, .35, 6, metalL, 0, -.2, 0, armL);
+    this.sph(.08, 8, 8, chrome, 0, -.4, 0, armL);
+    const forearmL = new THREE.Group();
+    forearmL.position.set(0, -.4, 0);
+    armL.add(forearmL);
+    this.parts.barRobotForearmL = forearmL;
+    const foreL = this.cyl(.05, .05, .3, 6, metalL, 0, -.15, .05, forearmL);
+    foreL.rotation.x = .3;
+    this.sph(.09, 8, 8, dark, 0, -.3, .1, forearmL);
+    const mug = new THREE.Group();
+    mug.position.set(0, -.3, .25);
+    forearmL.add(mug);
+    this.cyl(.08, .07, .15, 12, chrome, 0, 0, 0, mug);
+    this.tor(.05, .015, 6, 12, chrome, .09, 0, 0, mug, Math.PI/2, 0, 0);
+    this.cyl(.075, .075, .01, 12, new THREE.MeshBasicMaterial({color:0x553300}), 0, .076, 0, mug);
+    this.parts.barRobotMug = mug;
+
+    // Правая рука (протирает стойку)
+    const armR = new THREE.Group();
+    armR.position.set(.48, 1.85, 0);
+    g.add(armR);
+    this.parts.barRobotArmR = armR;
+    this.cyl(.06, .06, .35, 6, metalL, 0, -.2, 0, armR);
+    this.sph(.08, 8, 8, chrome, 0, -.4, 0, armR);
+    const forearmR = new THREE.Group();
+    forearmR.position.set(0, -.4, 0);
+    armR.add(forearmR);
+    this.parts.barRobotForearmR = forearmR;
+    const foreR = this.cyl(.05, .05, .35, 6, metalL, 0, -.17, .08, forearmR);
+    foreR.rotation.x = .4;
+    this.sph(.09, 8, 8, dark, 0, -.35, .15, forearmR);
+    const ragM = new THREE.MeshStandardMaterial({color:0xcc3333, roughness:.9});
+    this.box(.16, .02, .16, ragM, 0, -.42, .2, forearmR);
+
     this.parts.barRobot = g;
-    this.parts.barRobotHead = head;
-    this.parts.barRobotEyes = [eyeM];
-    const rl = new THREE.PointLight(0x00ff88, .9, 2.5);
-    rl.position.set(0, 1.6, 0);
+
+    const rl = new THREE.PointLight(0x00ff88, .6, 2.5);
+    rl.position.set(0, 2.5, 0);
     g.add(rl);
   }
 
@@ -406,30 +716,30 @@ class Hub {
     g.position.set(x, 0, z);
     this.group.add(g);
 
-    // Подиум
-    this.box(9.5, .4, 2.5, this.matDarkMetal(), 0, .2, 0, g);
-    this.box(9.6, .06, 2.6, new THREE.MeshStandardMaterial({color:0x111118, roughness:.7, metalness:.3}), 0, .42, 0, g);
+    // Подиум 8×2
+    this.box(8.0, .4, 2.0, this.matDarkMetal(), 0, .2, 0, g);
+    this.box(8.1, .06, 2.1, new THREE.MeshStandardMaterial({color:0x111118, roughness:.7, metalness:.3}), 0, .42, 0, g);
 
     // Задняя стена сцены
-    this.box(9.5, 4.5, .2, new THREE.MeshStandardMaterial({color:0x0a0a15, roughness:.9}), 0, 2.5, 1.2, g);
+    this.box(8.0, 4.5, .2, new THREE.MeshStandardMaterial({color:0x0a0a15, roughness:.9}), 0, 2.5, 1.15, g);
 
-    // Мутное стекло между игроком и музыкантами
+    // Мутное стекло
     const glassMat = new THREE.MeshStandardMaterial({
-      color: 0x88aacc, transparent: true, opacity: 0.32,
+      color: 0x88aacc, transparent: true, opacity: 0.30,
       roughness: 0.9, metalness: 0.05,
-      emissive: 0x223344, emissiveIntensity: 0.2,
+      emissive: 0x223344, emissiveIntensity: 0.22,
       depthWrite: false, side: THREE.DoubleSide
     });
-    const glass = this.a(new THREE.PlaneGeometry(10, 4.5), glassMat, 0, 2.4, -1.2, 0, 0, 0, g);
+    const glass = this.a(new THREE.PlaneGeometry(9, 4.5), glassMat, 0, 2.4, -1.2, 0, 0, 0, g);
     this.parts.stageGlass = glass;
 
     // Рама стекла
-    this.box(10.4, .18, .22, this.matMetal(), 0, 4.75, -1.2, g);
-    this.box(10.4, .18, .22, this.matMetal(), 0, .05, -1.2, g);
-    this.box(.18, 4.8, .22, this.matMetal(), -5.15, 2.4, -1.2, g);
-    this.box(.18, 4.8, .22, this.matMetal(), 5.15, 2.4, -1.2, g);
+    this.box(9.4, .18, .22, this.matMetal(), 0, 4.75, -1.2, g);
+    this.box(9.4, .18, .22, this.matMetal(), 0, .05, -1.2, g);
+    this.box(.18, 4.8, .22, this.matMetal(), -4.65, 2.4, -1.2, g);
+    this.box(.18, 4.8, .22, this.matMetal(), 4.65, 2.4, -1.2, g);
     for (let i = -1; i <= 1; i++) {
-      this.box(.06, 4.5, .16, this.matMetal(), i * 2.55, 2.4, -1.2, g);
+      this.box(.06, 4.5, .16, this.matMetal(), i * 2.3, 2.4, -1.2, g);
     }
 
     // Усилители
@@ -437,7 +747,7 @@ class Hub {
     const ampFrontM = new THREE.MeshStandardMaterial({color:0x0a0a0a, metalness:.6, roughness:.5, emissive:0x442200, emissiveIntensity:.4});
     for (let side of [-1, 1]) {
       const ampG = new THREE.Group();
-      ampG.position.set(side * 4.0, 0, 0.7);
+      ampG.position.set(side * 3.5, 0, .7);
       g.add(ampG);
       this.box(1.0, 1.6, 0.55, ampM, 0, 1.2, 0, ampG);
       this.box(0.9, 1.4, 0.06, ampFrontM, 0, 1.2, 0.28, ampG);
@@ -446,11 +756,8 @@ class Hub {
       }
     }
 
-    // Барабаны — будут у барабанщика
-    // Музыканты
     this.buildMusicians(g);
 
-    // Сценический свет
     const stageLights = [
       {x: -2.5, color: 0xff22aa, intensity: 3.2},
       {x: 0, color: 0x22ddff, intensity: 2.8},
@@ -460,7 +767,6 @@ class Hub {
       const pl = new THREE.PointLight(sl.color, sl.intensity, 6);
       pl.position.set(sl.x, 3.8, 0);
       g.add(pl);
-      // Визуальный источник (маленькая сфера)
       this.sph(.12, 8, 8, new THREE.MeshBasicMaterial({color: sl.color}), sl.x, 4.2, -0.5, g);
     });
 
@@ -468,19 +774,16 @@ class Hub {
   }
 
   buildMusicians(parent){
-    // Гитарist — левый
-    const guitarist = this.buildMusician(-2.6, 0xaa44ff, 'guitar');
-    guitarist.group.position.z = 0.4;
+    const guitarist = this.buildMusician(-2.4, 0xaa44ff, 'guitar');
+    guitarist.group.position.z = 0.35;
     parent.add(guitarist.group);
 
-    // Бассист — правый
-    const bassist = this.buildMusician(2.6, 0x22ddff, 'bass');
-    bassist.group.position.z = 0.4;
+    const bassist = this.buildMusician(2.4, 0x22ddff, 'bass');
+    bassist.group.position.z = 0.35;
     parent.add(bassist.group);
 
-    // Барабанщик — центр, глубже
     const drummer = this.buildMusician(0, 0xff6622, 'drums');
-    drummer.group.position.z = 1.0;
+    drummer.group.position.z = 0.85;
     parent.add(drummer.group);
 
     this.parts.musicians = { guitarist, bassist, drummer };
@@ -497,47 +800,33 @@ class Hub {
     const guitarM = new THREE.MeshStandardMaterial({color: 0x2a1a0a, metalness: .5, roughness: .4, emissive: accentColor, emissiveIntensity: .15});
     const skinM = new THREE.MeshStandardMaterial({color: 0x1a1210, roughness: .95});
 
-    // Ноги
     this.a(new THREE.CylinderGeometry(.11, .1, .95, 6), bodyM, -.17, .48, 0, 0, 0, .05, g);
     this.a(new THREE.CylinderGeometry(.11, .1, .95, 6), bodyM, .17, .48, 0, 0, 0, -.05, g);
 
-    // Торс (короткая куртка)
     this.a(new THREE.CylinderGeometry(.36, .42, 1.05, 8), bodyM, 0, 1.4, 0, 0, 0, 0, g);
-    // Пояс
     this.a(new THREE.CylinderGeometry(.44, .44, .08, 10), accentM, 0, .92, 0, 0, 0, 0, g);
 
-    // Голова
     const head = this.sph(.24, 12, 10, skinM, 0, 2.15, 0, g);
-    // Длинные волосы (прог-рок!)
     this.a(new THREE.BoxGeometry(.6, 1.1, .28), hairM, 0, 1.75, -.14, 0, 0, 0, g);
     this.a(new THREE.BoxGeometry(.22, .9, .22), hairM, -.31, 1.6, 0, 0, 0, .12, g);
     this.a(new THREE.BoxGeometry(.22, .9, .22), hairM, .31, 1.6, 0, 0, 0, -.12, g);
-    // Неоновые глаза
     this.sph(.045, 6, 6, accentM, -.08, 2.2, .21, g);
     this.sph(.045, 6, 6, accentM, .08, 2.2, .21, g);
-    // Борода/бакенбарды
     this.a(new THREE.BoxGeometry(.3, .2, .1), hairM, 0, 2.02, .18, 0, 0, 0, g);
 
-    // Руки
     const leftArm = this.a(new THREE.CylinderGeometry(.085, .075, .95, 6), bodyM, -.45, 1.6, 0, 0, 0, .25, g);
     const rightArm = this.a(new THREE.CylinderGeometry(.085, .075, .95, 6), bodyM, .45, 1.6, 0, 0, 0, -.25, g);
 
-    // Инструмент
     let instrument = null;
     if (role === 'guitar' || role === 'bass') {
       const guitarGroup = new THREE.Group();
-      // Тело
       this.a(new THREE.BoxGeometry(.55, .38, .12), guitarM, 0, 0, 0, 0, 0, 0, guitarGroup);
-      // Гриф
       this.a(new THREE.BoxGeometry(.08, 1.0, .08), guitarM, 0, .68, 0, 0, 0, 0, guitarGroup);
-      // Голова грифа
       this.a(new THREE.BoxGeometry(.16, .22, .06), guitarM, 0, 1.28, 0, 0, 0, 0, guitarGroup);
-      // Струны (светящиеся)
       const stringMat = new THREE.MeshBasicMaterial({color: accentColor, transparent: true, opacity: .8});
       for (let i = 0; i < 3; i++) {
         this.a(new THREE.BoxGeometry(.01, 1.3, .01), stringMat, -.12 + i*.12, .55, .06, 0, 0, 0, guitarGroup);
       }
-      // Точки на ладах
       for (let i = 0; i < 4; i++) {
         this.sph(.022, 4, 4, accentM, 0, .4 + i*.22, .045, guitarGroup);
       }
@@ -549,24 +838,19 @@ class Hub {
     } else if (role === 'drums') {
       const kit = new THREE.Group();
       kit.position.set(0, 0, .55);
-      // Бочка
       this.a(new THREE.CylinderGeometry(.48, .48, .55, 16),
         new THREE.MeshStandardMaterial({color:0x1a0a0a, roughness:.8}), 0, .55, 0, Math.PI/2, 0, 0, kit);
       this.a(new THREE.CylinderGeometry(.4, .4, .58, 16),
         new THREE.MeshBasicMaterial({color: accentColor, transparent:true, opacity:.3}), 0, .55, 0, Math.PI/2, 0, 0, kit);
-      // Малый барабан
       this.a(new THREE.CylinderGeometry(.22, .22, .16, 12),
         new THREE.MeshStandardMaterial({color:0xdddddd, roughness:.5, metalness:.6}), -.45, .65, 0, 0, 0, 0, kit);
-      // Том-том
       this.a(new THREE.CylinderGeometry(.22, .22, .16, 12),
         new THREE.MeshStandardMaterial({color:0xdddddd, roughness:.5, metalness:.6}), .45, .65, 0, 0, 0, 0, kit);
-      // Хай-хэт / тарелки
       const cymM = new THREE.MeshStandardMaterial({color:0xddaa22, metalness:.9, roughness:.3, emissive:accentColor, emissiveIntensity:.2});
       this.a(new THREE.CylinderGeometry(.3, .3, .04, 20), cymM, -.7, 1.25, 0, 0, 0, 0, kit);
       this.a(new THREE.CylinderGeometry(.28, .28, .04, 20), cymM, .7, 1.25, 0, 0, 0, 0, kit);
       this.a(new THREE.CylinderGeometry(.02, .02, 1.0, 6), this.matMetal(), -.7, .75, 0, 0, 0, 0, kit);
       this.a(new THREE.CylinderGeometry(.02, .02, 1.0, 6), this.matMetal(), .7, .75, 0, 0, 0, 0, kit);
-      // Палочки у рук
       this.a(new THREE.CylinderGeometry(.015, .015, .6, 6), this.matWood(), -.45, .55, .3, .3, 0, .3, kit);
       this.a(new THREE.CylinderGeometry(.015, .015, .6, 6), this.matWood(), .45, .55, .3, .3, 0, -.3, kit);
       g.add(kit);
@@ -591,13 +875,12 @@ class Hub {
 
   enter(){
     hubMode = true;
-    // Сброс возможных остатков FPS-отдачи
     recoilPitchAccum = 0;
     recoilRollAccum = 0;
     if(!hubScene){
       hubScene = new THREE.Scene();
-      hubScene.background = new THREE.Color(0x050308);
-      hubScene.fog = new THREE.Fog(0x050308, 8, 30);
+      hubScene.background = new THREE.Color(0x0a0510);
+      hubScene.fog = new THREE.Fog(0x0a0510, 10, 32);
       hubScene.add(this.group);
     }
     if(scene.children.includes(camera)) scene.remove(camera);
@@ -626,6 +909,10 @@ class Hub {
     this.hubReloading = false;
     this.hubReloadTimer = 0;
     this.hubRecoilPitch = 0;
+    isReloading = false;
+    reloadPhase = 0;
+    // Музыка
+    try { this.music.start(); } catch(e){ console.warn('Music start failed:', e); }
     document.body.requestPointerLock();
     const hintEl = document.getElementById('hub-interact-hint');
     if(hintEl) hintEl.style.display = 'none';
@@ -639,6 +926,9 @@ class Hub {
     hubMode = false;
     this.mouseDown = false;
     this.hubReloading = false;
+    isReloading = false;
+    reloadPhase = 0;
+    try { this.music.stop(); } catch(e){}
     if(document.pointerLockElement) document.exitPointerLock();
     if(hubScene && hubScene.children.includes(camera)) hubScene.remove(camera);
     if(!scene.children.includes(camera)) scene.add(camera);
@@ -659,17 +949,15 @@ class Hub {
 
   isPlayerPosFree(x, z){
     if(x*x + z*z > (this.roomRadius - .6) * (this.roomRadius - .6)) return false;
-    // Бар (объём z 7.7-8.3, x -4.5..0.5, потому что бар смещён на -2)
-    if(x > -4.6 && x < 0.6 && z > 7.6 && z < 8.4) return false;
-    // Стекло сцены
-    if(z > 10.1) return false;
+    // Блок: бар + сцена (не пропускаем за стойку бара)
+    if(z > 6.8) return false;
     return true;
   }
 
   update(dt){
     if(!hubPlayer) return;
 
-    // Анимации декора
+    // Анимации
     if(this.parts.centerRing) this.parts.centerRing.rotation.z += dt*1.2;
     if(this.parts.centerRing2) this.parts.centerRing2.rotation.z -= dt*.8;
     if(this.parts.portal){
@@ -702,14 +990,6 @@ class Hub {
         d.mesh.position.y = Math.max(.6, 2.1 - d.phase*1.5);
       });
     }
-    if(this.parts.barRobotHead){
-      this.parts.barRobotHead.rotation.y = Math.sin(Date.now()*.0008)*.35;
-      this.parts.barRobotHead.rotation.x = Math.sin(Date.now()*.0011)*.1;
-    }
-    if(this.parts.barRobotEyes){
-      const flicker = Math.random() < .015 ? .3 : 1;
-      this.parts.barRobotEyes.forEach(e=>{ e.color.setRGB(0, flicker, flicker*.6) });
-    }
     if(this.parts.discoBall){
       this.parts.discoBall.rotation.y += dt*1.5;
       this.parts.discoBall.rotation.x += dt*.7;
@@ -719,6 +999,29 @@ class Hub {
       this.parts.discoLight.color.setHSL(h, 1, .5);
       this.parts.discoLight.intensity = 1.5 + Math.sin(Date.now()*.008)*.8;
     }
+
+    // ═══ ЛАВАЛАМПА ═══
+    if(this.parts.lavaBlobs){
+      const t = Date.now() * .001;
+      this.parts.lavaBlobs.forEach((blob, i) => {
+        const ud = blob.userData;
+        // Медленный подъём-спуск по синусоиде
+        const y = ud.baseY + Math.sin(t * ud.speed + ud.phase) * 1.8;
+        blob.position.y = ((y % this.roomHeight) + this.roomHeight) % this.roomHeight;
+        // Пульс размера
+        const pulse = 1 + Math.sin(t * (ud.speed * 2) + ud.phase * 1.3) * .35;
+        blob.scale.x = pulse;
+        blob.scale.y = (1 + Math.sin(t * ud.speed * 1.4 + ud.phase) * .5);
+        blob.scale.z = .4;
+        // Меняем цвет по HSL — красный → оранжевый → фиолетовый
+        const hueShift = (Math.sin(t * .3 + ud.phase) + 1) * .5;
+        const hue = ud.colorHSL + hueShift * .05;
+        blob.material.color.setHSL(hue, 1, .5 + Math.sin(t * 2 + ud.phase) * .15);
+      });
+    }
+
+    // Бармен
+    this.updateBarRobot(dt);
 
     // Манекен
     if(this.dummy){
@@ -732,29 +1035,25 @@ class Hub {
       }
     }
 
-    // Анимации музыкантов
     this.updateMusicians(dt);
 
-    // weaponView — но БЕЗ playRecoil, чтобы не сбивать camera.rotation.x
-    if(weaponView) weaponView.update(dt);
+    // Обновляем оружие ДО камеры
+    // Синхронизируем bob с хабом
+    player.isMoving = hubPlayer.isMoving;
+    player.bobPhase = hubBobPhase;
 
-    // Логика: движение и стрельба
-    if(!hubCasinoActive && !hubDiceActive && !hubBloodActive && !isNestActive && !isSynergyPanelOpen){
-      this.updatePlayerMovement(dt);
-      this.updateShooting(dt);
-    } else {
-      this.mouseDown = false;
-    }
-
-    // Перезарядка
+    // ТИК ПЕРЕЗАРЯДКИ
     if(this.hubReloading){
       this.hubReloadTimer -= dt;
       const rlEl = document.getElementById('hub-reloading');
       if(rlEl) rlEl.style.display = 'block';
+      reloadPhase = Math.max(0, Math.min(1, 1 - this.hubReloadTimer / this.hubReloadBase));
       if(this.hubReloadTimer <= 0){
         const w = currentWeapon;
         if(w) setAmmo(w.magSize);
         this.hubReloading = false;
+        isReloading = false;
+        reloadPhase = 0;
         if(weaponView) weaponView.finishReload();
         audio.pickup();
         if(rlEl) rlEl.style.display = 'none';
@@ -765,11 +1064,21 @@ class Hub {
       if(rlEl) rlEl.style.display = 'none';
     }
 
+    if(weaponView) weaponView.update(dt);
+
+    // Логика
+    if(!hubCasinoActive && !hubDiceActive && !hubBloodActive && !isNestActive && !isSynergyPanelOpen){
+      this.updatePlayerMovement(dt);
+      this.updateShooting(dt);
+    } else {
+      this.mouseDown = false;
+    }
+
     // Затухание отдачи
     this.hubRecoilPitch *= Math.pow(0.001, dt);
     if(Math.abs(this.hubRecoilPitch) < 0.0005) this.hubRecoilPitch = 0;
 
-    // Переопределяем ориентацию камеры — это ЕДИНСТВЕННОЕ место где camera.rotation задаётся в хабе
+    // ЕДИНСТВЕННОЕ место, где camera.rotation задаётся в хабе
     camera.rotation.order = 'YXZ';
     camera.rotation.y = hubPlayer.yaw;
     camera.rotation.x = hubPlayer.pitch + this.hubRecoilPitch;
@@ -780,6 +1089,41 @@ class Hub {
     this.updateRobotChat(dt);
     this.checkInteract();
     updateHubHUD();
+  }
+
+  updateBarRobot(dt){
+    const t = Date.now() * 0.001;
+    if(this.parts.barRobotHead){
+      this.parts.barRobotHead.rotation.y = Math.sin(t*.9)*.4;
+      this.parts.barRobotHead.rotation.x = Math.sin(t*1.3)*.12;
+      this.parts.barRobotHead.rotation.z = Math.sin(t*.6)*.05;
+    }
+    if(this.parts.barRobotEyes){
+      const blink = (Date.now() % 4000) < 90 ? 0 : 1;
+      this.parts.barRobotEyes.forEach(m => m.color.setRGB(0, blink, blink*.6));
+    }
+    if(this.parts.barRobotLeds){
+      this.parts.barRobotLeds.forEach((led, i) => {
+        const ph = (Date.now()*.003 + i*.5) % (Math.PI*2);
+        led.material.color.setHSL(i/5, 1, .5 + Math.sin(ph)*.3);
+      });
+    }
+    if(this.parts.barRobotAntenna){
+      const pulse = .7 + Math.sin(Date.now()*.004)*.3;
+      this.parts.barRobotAntenna.material.color.setRGB(pulse, 0, 0);
+    }
+    if(this.parts.barRobotArmR){
+      // протирает стойку
+      this.parts.barRobotArmR.rotation.x = -.3 + Math.sin(t*1.5)*.15;
+      if(this.parts.barRobotForearmR) this.parts.barRobotForearmR.rotation.x = -.5 + Math.sin(t*2.4)*.2;
+    }
+    if(this.parts.barRobotArmL){
+      // кружка покачивается
+      this.parts.barRobotArmL.rotation.z = -.1 + Math.sin(t*1.1)*.06;
+    }
+    if(this.parts.barRobotMug){
+      this.parts.barRobotMug.rotation.z = Math.sin(t*1.8)*.12;
+    }
   }
 
   updateMusicians(dt){
@@ -830,7 +1174,6 @@ class Hub {
       const nz = hubPlayer.position.z + mv.z;
       if(this.isPlayerPosFree(hubPlayer.position.x, nz)) hubPlayer.position.z = nz;
 
-      // Отталкивание от интерактивных зон (не заходим в них)
       for(const zone of hubInteractables){
         const dx = hubPlayer.position.x - zone.worldPos.x;
         const dz = hubPlayer.position.z - zone.worldPos.z;
@@ -861,41 +1204,31 @@ class Hub {
     const w = currentWeapon;
     if(!w) return;
 
-    // Перезарядка в процессе — выходим
     if(this.hubReloading) return;
 
     const noAmmoClass = ['melee', 'hourglass', 'turret', 'acidotronator'].includes(w.weaponClass);
 
-    // Нет патронов — запускаем перезарядку
+    // Авто-перезарядка при пустом магазине
     if(!noAmmoClass && getAmmo() <= 0){
-      this.hubReloading = true;
-      this.hubReloadTimer = w.reloadTime || 1.5;
-      audio.reload();
+      this._startReload();
       return;
     }
 
-    // Кулдаун
     const rate = w.fireRate || 2;
     const now = performance.now();
     if(now - this.lastShotTime < 1000 / rate) return;
     this.lastShotTime = now;
 
-    // Звук
     audio.play(w.weaponClass);
-
-    // Косметическая отдача ствола (без player.pitch)
     if(weaponView) weaponView.recoilOffset = 0.09;
 
-    // Камера-отдача — накапливается и затухает
     this.hubRecoilPitch = Math.min(0.06, this.hubRecoilPitch + 0.028);
 
-    // Тратим патрон
     if(!noAmmoClass){
       setAmmo(getAmmo() - 1);
       this.updateHubAmmoHUD();
     }
 
-    // Направление
     const from = camera.position.clone();
     const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
     const spread = (w.spread || 0) * .35 + .006;
@@ -905,20 +1238,48 @@ class Hub {
     dir.normalize();
 
     const range = Math.min(w.range || 30, 30);
-    const endDefault = from.clone().add(dir.clone().multiplyScalar(range));
 
-    // Raycast — попадание в манекен
-    let hitPoint = endDefault;
-    let hitDummy = false;
+    // Raycast — манекен
     const raycaster = new THREE.Raycaster(from, dir, 0, range);
-    const intersects = raycaster.intersectObject(this.dummy.hitMesh, false);
-    if(intersects.length > 0){
-      hitPoint = intersects[0].point.clone();
+    const dummyHit = raycaster.intersectObject(this.dummy.hitMesh, false);
+    let hitDummy = false;
+    let hitPoint = null;
+    if(dummyHit.length > 0){
       hitDummy = true;
+      hitPoint = dummyHit[0].point.clone();
     }
 
-    // Трассер
-    this.createTrace(from, hitPoint, hitDummy);
+    // Трассер до стены/пола/потолка
+    const R = this.roomRadius - 0.05;
+    const a2 = dir.x*dir.x + dir.z*dir.z;
+    const b2 = 2*(from.x*dir.x + from.z*dir.z);
+    const c2 = from.x*from.x + from.z*from.z - R*R;
+    let wallT = null;
+    if(a2 > 1e-6){
+      const disc = b2*b2 - 4*a2*c2;
+      if(disc >= 0){
+        const t = (-b2 + Math.sqrt(disc)) / (2*a2);
+        if(t > 0 && t < range) wallT = t;
+      }
+    }
+    if(dir.y < -1e-6){
+      const tf = (0.06 - from.y) / dir.y;
+      if(tf > 0 && tf < range && (wallT === null || tf < wallT)) wallT = tf;
+    }
+    if(dir.y > 1e-6){
+      const tc = (this.roomHeight - .06 - from.y) / dir.y;
+      if(tc > 0 && tc < range && (wallT === null || tc < wallT)) wallT = tc;
+    }
+    let endPoint;
+    if(hitDummy && (wallT === null || hitPoint.distanceTo(from) < wallT)){
+      endPoint = hitPoint;
+    } else if(wallT !== null){
+      endPoint = from.clone().add(dir.clone().multiplyScalar(wallT));
+    } else {
+      endPoint = from.clone().add(dir.clone().multiplyScalar(range));
+    }
+
+    this.createTrace(from, endPoint, hitDummy);
 
     if(hitDummy){
       let dmg = (w.damage || 10) * playerBuffs.damageMult;
@@ -934,10 +1295,14 @@ class Hub {
       if(isCrit) audio.headshot();
       else audio.hit();
     }
+
+    // Автоматическая перезарядка если магазин опустел
+    if(!noAmmoClass && getAmmo() <= 0){
+      this._startReload();
+    }
   }
 
-  tryReload(){
-    if(!hubPlayer) return;
+  _startReload(){
     if(this.hubReloading) return;
     const w = currentWeapon;
     if(!w) return;
@@ -945,8 +1310,15 @@ class Hub {
     if(noAmmoClass) return;
     if(getAmmo() === w.magSize) return;
     this.hubReloading = true;
-    this.hubReloadTimer = w.reloadTime || 1.5;
+    this.hubReloadBase = w.reloadTime || 1.5;
+    this.hubReloadTimer = this.hubReloadBase;
+    isReloading = true;
+    reloadPhase = 0;
     audio.reload();
+  }
+
+  tryReload(){
+    this._startReload();
   }
 
   updateHubAmmoHUD(){
@@ -1331,27 +1703,15 @@ function openHubDraft(){
 
 document.addEventListener('keydown', e=>{
   if(!hubMode) return;
-  if(hubCasinoActive){
-    if(e.code === 'KeyE' || e.code === 'Space'){ hub.spinCasino(); e.preventDefault(); return; }
-    if(e.code === 'Escape'){ hub.closeCasino(); e.preventDefault(); return; }
-    return;
-  }
-  if(hubDiceActive){
-    if(e.code === 'KeyE' || e.code === 'Space'){ hub.rollDice(); e.preventDefault(); return; }
-    if(e.code === 'Escape'){ hub.closeDice(); e.preventDefault(); return; }
-    return;
-  }
-  if(hubBloodActive){
-    if(e.code === 'KeyE' || e.code === 'Space'){ hub.donateBlood(); e.preventDefault(); return; }
-    if(e.code === 'Escape'){ hub.closeBloodStation(); e.preventDefault(); return; }
-    return;
-  }
+  // В менюшках никаких клавиш — только мышь
+  if(hubCasinoActive) return;
+  if(hubDiceActive) return;
+  if(hubBloodActive) return;
   if(isNestActive) return;
   if(isSynergyPanelOpen) return;
   keys[e.code] = true;
   if(e.code === 'KeyE'){ hub.interact(); e.preventDefault(); return; }
   if(e.code === 'KeyR'){ hub.tryReload(); e.preventDefault(); return; }
-  if(e.code === 'Tab'){ e.preventDefault(); return; }
 });
 
 document.addEventListener('keyup', e=>{
@@ -1380,4 +1740,4 @@ document.addEventListener('mouseup', e=>{
   if(e.button === 0){ if(hub) hub.mouseDown = false; }
 });
 
-console.log('🏨 hub.js загружен (v6.1 — prog rock stage)');
+console.log('🏨 hub.js загружен (v6.3 — lava lamp, prog rock, detailed bartender)');
