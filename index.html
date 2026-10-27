@@ -292,6 +292,99 @@ canvas{display:block}
 @keyframes trickAnim{0%{transform:scale(1) rotate(-5deg);filter:hue-rotate(0deg)}100%{transform:scale(1.2) rotate(5deg);filter:hue-rotate(90deg)}}
 @keyframes dmgFloat{0%{transform:translate(-50%,-50%) scale(1);opacity:1}100%{transform:translate(-50%,-160%) scale(.7);opacity:0}}
 .dmg-num{position:fixed;font-weight:bold;pointer-events:none;z-index:9000;font-family:'Courier New',monospace;animation:dmgFloat .7s ease-out forwards;will-change:transform,opacity}
+/* ═══ HUB UI ═══ */
+#hub-interact-hint{
+  position:absolute;bottom:120px;left:50%;transform:translateX(-50%);
+  background:rgba(0,0,0,.9);border:2px solid #fff;padding:12px 24px;
+  font-family:'Courier New',monospace;font-size:18px;font-weight:bold;
+  letter-spacing:2px;z-index:2000;pointer-events:none;
+  transition:all .2s;border-radius:8px;
+}
+#hub-zones{
+  position:absolute;top:80px;right:20px;background:rgba(0,10,0,.85);
+  border:2px solid #0f0;padding:12px;z-index:1500;pointer-events:none;
+  font-family:'Courier New',monospace;font-size:13px;color:#0f0;
+  box-shadow:0 0 20px rgba(0,255,0,.4);border-radius:6px;min-width:200px;
+  display:none;
+}
+#hub-zones-title{font-size:16px;font-weight:bold;margin-bottom:8px;letter-spacing:2px;text-align:center;color:#ff0}
+.hub-zone-item{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px dashed #0a4}
+.hub-zone-item:last-child{border-bottom:none}
+#hub-credits{
+  position:absolute;top:20px;right:20px;background:rgba(0,20,0,.95);
+  border:2px solid #ff0;padding:8px 16px;font-family:'Courier New',monospace;
+  font-size:18px;font-weight:bold;color:#ff0;z-index:1500;pointer-events:none;
+  border-radius:6px;box-shadow:0 0 15px #ff0;display:none;
+}
+#hub-wave{
+  position:absolute;top:20px;left:20px;background:rgba(0,20,0,.95);
+  border:2px solid #0f0;padding:8px 16px;font-family:'Courier New',monospace;
+  font-size:18px;font-weight:bold;color:#0f0;z-index:1500;pointer-events:none;
+  border-radius:6px;box-shadow:0 0 15px #0f0;display:none;
+}
+body.hub-mode #hub-credits,
+body.hub-mode #hub-wave,
+body.hub-mode #hub-zones{display:block}
+
+#casino-overlay,#dice-overlay,#range-overlay{
+  position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+  z-index:2000;display:none;pointer-events:all;
+  background:linear-gradient(180deg,rgba(20,0,0,.98),rgba(10,0,0,.99));
+  border:4px solid #ff2266;border-radius:12px;padding:30px 40px;
+  font-family:'Courier New',monospace;color:#fff;text-align:center;
+  box-shadow:0 0 60px #ff2266,inset 0 0 30px rgba(255,34,102,.2);
+  min-width:520px;
+}
+#dice-overlay{border-color:#00ddff;box-shadow:0 0 60px #00ddff,inset 0 0 30px rgba(0,221,255,.2)}
+#range-overlay{border-color:#88ff00;box-shadow:0 0 60px #88ff00,inset 0 0 30px rgba(136,255,0,.2)}
+
+#casino-overlay h2,#dice-overlay h2,#range-overlay h2{
+  margin:0 0 16px;font-size:26px;letter-spacing:3px;color:#ff2266;
+  text-shadow:0 0 20px #ff2266;
+}
+#dice-overlay h2{color:#00ddff;text-shadow:0 0 20px #00ddff}
+#range-overlay h2{color:#88ff00;text-shadow:0 0 20px #88ff00}
+
+.casino-reels{
+  display:flex;justify-content:center;gap:12px;margin:20px 0;
+}
+.casino-reel{
+  width:90px;height:110px;background:#000;border:3px solid #ff2266;
+  border-radius:8px;display:flex;align-items:center;justify-content:center;
+  font-size:56px;box-shadow:inset 0 0 20px rgba(255,34,102,.5);
+}
+#dice-result{
+  font-size:120px;font-weight:bold;color:#ffdd00;
+  text-shadow:0 0 30px #ffdd00,0 0 60px #ffaa00;
+  margin:20px 0;min-height:140px;display:flex;align-items:center;justify-content:center;
+}
+@keyframes dicePop{0%{transform:scale(1.8)}100%{transform:scale(1)}}
+
+#casino-info,#dice-info,#range-info{
+  font-size:14px;color:#fff;margin:10px 0;letter-spacing:1px;
+}
+#casino-msg,#dice-msg,#range-msg{
+  font-size:18px;font-weight:bold;min-height:30px;margin:16px 0;
+  letter-spacing:2px;
+}
+
+.mini-btn{
+  padding:14px 32px;font-size:18px;font-weight:bold;border:2px solid #000;
+  border-radius:8px;cursor:pointer;font-family:'Courier New',monospace;
+  letter-spacing:2px;margin:8px;
+}
+#casino-spin-btn{background:linear-gradient(135deg,#ff2266,#aa0044);color:#fff;box-shadow:0 0 20px #ff2266}
+#dice-roll-btn{background:linear-gradient(135deg,#00ddff,#0066aa);color:#000;box-shadow:0 0 20px #00ddff}
+#range-shoot-btn{background:linear-gradient(135deg,#88ff00,#44aa00);color:#000;box-shadow:0 0 20px #88ff00}
+.mini-btn:hover:not(:disabled){transform:scale(1.05)}
+.mini-btn:disabled{background:#333;color:#666;cursor:not-allowed;box-shadow:none}
+
+.mini-close{
+  margin-top:10px;padding:8px 20px;background:rgba(80,80,80,.6);color:#ccc;
+  border:1px solid #666;border-radius:6px;cursor:pointer;
+  font-family:'Courier New',monospace;font-size:12px;
+}
+.mini-close:hover{background:rgba(120,120,120,.8)}
 </style>
 </head>
 <body>
@@ -369,6 +462,51 @@ canvas{display:block}
   <div>Скорострельность: <span id="weapon-rate">1.5</span>/с</div>
   <div>Дальность: <span id="weapon-range">50</span>м</div>
   <div id="weapon-slots"></div>
+<!-- ═══ HUB UI ═══ -->
+<div id="hub-credits">💰 0</div>
+<div id="hub-wave">ВОЛНА 1</div>
+<div id="hub-zones">
+  <div id="hub-zones-title">🏨 SHELTER</div>
+  <div class="hub-zone-item"><span>🌀 Телепортер</span><span style="color:#84f">[E]</span></div>
+  <div class="hub-zone-item"><span>🏪 Стол карт</span><span style="color:#fa0">[E]</span></div>
+  <div class="hub-zone-item"><span>🎰 Казино</span><span style="color:#f26">[E]</span></div>
+  <div class="hub-zone-item"><span>🎲 Кости</span><span style="color:#0df">[E]</span></div>
+  <div class="hub-zone-item"><span>🎯 Тир</span><span style="color:#8f0">[E]</span></div>
+</div>
+<div id="hub-interact-hint"></div>
+
+<!-- ═══ CASINO OVERLAY ═══ -->
+<div id="casino-overlay">
+  <h2>🎰 КАЗИНО</h2>
+  <div class="casino-reels">
+    <div class="casino-reel">?</div>
+    <div class="casino-reel">?</div>
+    <div class="casino-reel">?</div>
+  </div>
+  <div id="casino-info">Кредиты: <b style="color:#ff0">0💰</b> · Спин: <b>0/5</b></div>
+  <div id="casino-msg"></div>
+  <button id="casino-spin-btn" class="mini-btn">[E] КРУТИТЬ (10💰)</button>
+  <button class="mini-close" onclick="hub.closeCasino()">[ESC] ЗАКРЫТЬ</button>
+</div>
+
+<!-- ═══ DICE OVERLAY ═══ -->
+<div id="dice-overlay">
+  <h2>🎲 КОСТИ СУДЬБЫ</h2>
+  <div id="dice-result">?</div>
+  <div id="dice-info">Кредиты: <b style="color:#ff0">0💰</b> · Бросок: <b>0/5</b></div>
+  <div id="dice-msg"></div>
+  <button id="dice-roll-btn" class="mini-btn">[E] БРОСИТЬ (5💰)</button>
+  <button class="mini-close" onclick="hub.closeDice()">[ESC] ЗАКРЫТЬ</button>
+</div>
+
+<!-- ═══ RANGE OVERLAY ═══ -->
+<div id="range-overlay">
+  <h2>🎯 ТИР</h2>
+  <div id="range-info">Выстрелов: <b style="color:#f80">10</b> · Попаданий: <b style="color:#8f8">0</b> · +0💰</div>
+  <div id="range-msg" style="min-height:50px"></div>
+  <button id="range-shoot-btn" class="mini-btn">[E] СТРЕЛЯТЬ</button>
+  <button class="mini-close" onclick="hub.closeRange()">[ESC] ЗАКРЫТЬ</button>
+</div>
 </div>
 
 <div id="wave-info" class="ui-panel">
