@@ -1,9 +1,8 @@
 'use strict';
-// INDUSTRIAL ROGUE SHOOTER v5.4 — ENEMIES (ninja smoke + new mortar + LOS + hitbox fixes)
+// INDUSTRIAL ROGUE SHOOTER v6.0 — ENEMIES (balance + Phase B cleanup)
 
 let _icegunShotCounter = 0;
 
-// ═══ NINJA SMOKE ═══
 function createNinjaSmoke(pos, intensity){
   intensity = intensity || 1;
   const count = Math.floor(12 * intensity);
@@ -16,19 +15,12 @@ function createNinjaSmoke(pos, intensity){
     smoke.position.y += .6 + Math.random()*.6;
     smoke.position.x += (Math.random()-.5)*.5;
     smoke.position.z += (Math.random()-.5)*.5;
-    smoke.userData.velocity = new THREE.Vector3(
-      (Math.random()-.5)*.18,
-      Math.random()*.12 + .03,
-      (Math.random()-.5)*.18
-    );
+    smoke.userData.velocity = new THREE.Vector3((Math.random()-.5)*.18, Math.random()*.12 + .03, (Math.random()-.5)*.18);
     smoke.userData.life = 45 + Math.random()*35;
-    scene.add(smoke);
-    particles.push(smoke);
+    scene.add(smoke); particles.push(smoke);
   }
-  // Dark flash
   const flash = new THREE.PointLight(0x111118, 2, 3);
-  flash.position.copy(pos);
-  flash.position.y += 1;
+  flash.position.copy(pos); flash.position.y += 1;
   scene.add(flash);
   setTimeout(()=>scene.remove(flash), 120);
 }
@@ -50,75 +42,39 @@ class Enemy {
     this.wiggleSpeed = .5+Math.random()*1.5;
     this.strafeDirection = Math.random()>.5?1:-1;
     this.strafeTimer = 0;
-    this.burnTimer = 0;
-    this.burnDps = 0;
-    this.burnSpread = 0;
-    this._burnSpreadApplied = false;
-    this.poisonTimer = 0;
-    this.poisonDps = 0;
-    this.poisonStacks = 1;
-    this.bleedTimer = 0;
-    this.bleedDps = 0;
+    this.burnTimer = 0; this.burnDps = 0; this.burnSpread = 0; this._burnSpreadApplied = false;
+    this.poisonTimer = 0; this.poisonDps = 0; this.poisonStacks = 1;
+    this.bleedTimer = 0; this.bleedDps = 0;
     this.spawnTimer = 0;
-    this.iceHits = 0;
-    this.frozenTimer = 0;
-    this.iceResetTimer = 0;
-    this._wasFrozen = false;
+    this.iceHits = 0; this.frozenTimer = 0; this.iceResetTimer = 0; this._wasFrozen = false;
     this.sawEmbedded = null;
     this.puddleTimer = 0;
     this.puddleInterval = 1 + Math.random()*0.6;
     this.shootTimer = 0;
     this.speedBoost = 0;
-    this.chargeTime = 0;
-    this.chargeCooldown = 2;
-    this.chargeDir = {x:0,z:1};
+    this.chargeTime = 0; this.chargeCooldown = 2; this.chargeDir = {x:0,z:1};
     this.leapCooldown = 1.5;
     this.dodgeTimer = 0.5+Math.random();
-    this.dodgeCooldown = 0.8;
-    this.stuckTimer = 0;
-    this.unstuckDuration = 0;
-    this.unstuckSign = 1;
-    this.lastPosCheck = new THREE.Vector3();
-    this.lastPosCheck.copy(position);
-    this.throwAnim = 0;
-    this.baseY = 0;
+    this.stuckTimer = 0; this.unstuckDuration = 0; this.unstuckSign = 1;
+    this.lastPosCheck = new THREE.Vector3(); this.lastPosCheck.copy(position);
+    this.throwAnim = 0; this.baseY = 0;
     this.segmentCount = opts.segmentCount || 8;
-    this.segments = [];
-    this.segmentWorldPos = [];
+    this.segments = []; this.segmentWorldPos = [];
     this.lastHitSegment = -1;
-    this.copiesLeft = 0;
-    this.illusionPhase = 'hidden';
-    this.illusionTimer = 0;
-    this.mortarCharge = 0;
-    this.mortarCharging = false;
-    this.mortarRecoil = 0;
-    this.mortarSteamTimer = 0;
-    this.wallSide = null;
-    this.wallSlideDir = 1;
-    this.wallPos = 0;
-    this.vkState = 'buried';
-    this.vkTimer = 0;
+    this.copiesLeft = 0; this.illusionPhase = 'hidden'; this.illusionTimer = 0;
+    this.mortarCharge = 0; this.mortarCharging = false; this.mortarRecoil = 0; this.mortarSteamTimer = 0;
+    this.wallSide = null; this.wallSlideDir = 1; this.wallPos = 0;
+    this.vkState = 'buried'; this.vkTimer = 0;
     this.isFlying = false;
-    this.wormState = 'approach';
-    this.wormTimer = 0;
-    this.chessState = 'idle';
-    this.chessTimer = 1.5 + Math.random()*2;
-    this.chessTarget = null;
-    this.chessTelegraph = null;
+    this.wormState = 'approach'; this.wormTimer = 0;
+    this.chessState = 'idle'; this.chessTimer = 1.5 + Math.random()*2;
+    this.chessTarget = null; this.chessTelegraph = null;
     this.cheerVel = null;
-    this.alienBurstState = 'idle';
-    this.alienBurstTimer = 2 + Math.random()*2;
-    this.alienBurstCount = 0;
-    this.flipState = 'run';
-    this.flipTimer = 1 + Math.random();
-    this.flipProgress = 0;
+    this.alienBurstState = 'idle'; this.alienBurstTimer = 2 + Math.random()*2; this.alienBurstCount = 0;
+    this.flipState = 'run'; this.flipTimer = 1 + Math.random(); this.flipProgress = 0;
     this._ufoInit = false;
-    this.cowCooldown = 2 + Math.random()*2;
-    this.cowsDropped = 0;
-    this.dogState = 'charge';
-    this.freezeCooldown = 0;
-    this.discCooldown = 1.5 + Math.random();
-    this.dogLeapCooldown = 2 + Math.random();
+    this.cowCooldown = 2 + Math.random()*2; this.cowsDropped = 0;
+    this.freezeCooldown = 0; this.discCooldown = 1.5 + Math.random();
 
     this.setupStats();
     this.buildModel();
@@ -153,7 +109,6 @@ class Enemy {
       const dN = Math.abs(position.z + 25), dS = Math.abs(position.z - 25);
       const dW = Math.abs(position.x + 25), dE = Math.abs(position.x - 25);
       const mn = Math.min(dN, dS, dW, dE);
-      // FIXED: posиция ближе к игроку (не в стене) + y=0.3 для хорошего hitbox
       if(mn === dN){ this.wallSide = 'n'; this.group.position.set(position.x, 0.3, -23.5) }
       else if(mn === dS){ this.wallSide = 's'; this.group.position.set(position.x, 0.3, 23.5) }
       else if(mn === dW){ this.wallSide = 'w'; this.group.position.set(-23.5, 0.3, position.z) }
@@ -188,9 +143,11 @@ class Enemy {
     const waveHP = (1+(wave-1)*BALANCE.waveHPBase + Math.max(0,wave-10)*BALANCE.waveHPAccel) * surgeHP;
     const waveDMG = (1+(wave-1)*BALANCE.waveDMGBase + Math.max(0,wave-15)*BALANCE.waveDMGAccel) * surgeDMG;
     const S = (b,r)=>(b+Math.random()*r)*sm*sl;
+    // ФАЗА А фиксы: Tank 810→450, 25→50, Fortifier 120→250, Wallbreaker 140→280/8→12
     const stats = {
       human:[54,.03,.01,10,.7,1.75,1.55,.3],robot:[90,.02,.008,15,.9,1.7,1.45,.35],
-      runner:[36,.06,.02,8,.6,.7,0,0],tank:[810,.02,.008,25,1.4,2,1.6,.4],
+      runner:[36,.06,.02,8,.6,.7,0,0],
+      tank:[450,.02,.008,50,1.4,2,1.6,.4],                // ФАЗА А
       drone:[45,.04,.015,12,.6,.8,0,0],shooter:[63,.025,.01,15,.7,1.75,1.5,.25],
       bomber:[72,.05,.02,5,.8,1.5,0,0],spitter:[54,.02,.01,20,.7,1.7,1.45,.35],
       gunner:[81,.02,.01,7,.7,1.75,1.55,.3],sniper_enemy:[72,.015,.005,40,.7,1.75,1.55,.3],
@@ -198,10 +155,12 @@ class Enemy {
       spawner:[144,.015,.005,5,.9,2,1.6,.35],enemy_shotgunner:[60,.02,.01,7,.7,1.75,1.55,.3],
       slug:[45,.012,.005,8,.65,.55,0,0],trickster:[120,.04,.015,15,.8,1.8,1.6,.35],
       spider:[80,.03,.005,8,.85,1.3,0,0],chariot:[480,.03,.008,28,1.3,1.5,0,0],
-      ninja:[55,.055,.01,10,.6,1.7,1.55,.28],fortifier:[120,.012,.005,6,.9,1.7,1.55,.3],
+      ninja:[55,.055,.01,10,.6,1.7,1.55,.28],
+      fortifier:[250,.012,.005,6,.9,1.7,1.55,.3],          // ФАЗА А
       worm:[75,.09,.02,14,.55,.9,0,0],mortar:[110,.02,.008,22,.75,1.7,1.55,.3],
       illusionist:[130,.03,.01,12,.65,1.75,1.55,.3],illusion_copy:[20,.04,.015,5,.55,1.65,1.5,.25],
-      wallbreaker:[140,.01,.005,8,1.1,1.6,0,0],verkhushka:[85,.012,.005,18,.6,1.4,0,0],
+      wallbreaker:[280,.01,.005,12,1.1,1.6,0,0],           // ФАЗА А
+      verkhushka:[85,.012,.005,18,.6,1.4,0,0],
       chess_horse:[180,0,0,40,.8,2.0,1.85,.4],chess_elephant:[180,0,0,40,.8,2.2,2.0,.4],
       cheerful:[60,.035,.01,25,.9,1.2,0,0],ufo:[200,.03,.005,15,1.5,1.2,0,0],
       cow:[300,0,0,0,1.0,1.5,0,0],green_alien:[40,.035,.01,12,.5,1.4,1.3,.25],
@@ -212,20 +171,12 @@ class Enemy {
     this.health = s[0]*hm*waveHP;
     this.speed = S(s[1], s[2]) * (playerBuffs.enemySpeedMult || 1);
     this.damage = s[3]*dm*waveDMG;
-    this.radius = s[4];
-    this.height = s[5];
-    this.headY = s[6] || 0;
-    this.headRadius = s[7] || 0;
-    if(this.type === 'worm'){
-      this.maxHealth = this.health*this.segmentCount/8;
-      this.health = this.maxHealth;
-    }
+    this.radius = s[4]; this.height = s[5];
+    this.headY = s[6] || 0; this.headRadius = s[7] || 0;
+    if(this.type === 'worm'){ this.maxHealth = this.health*this.segmentCount/8; this.health = this.maxHealth }
     this.maxHealth = this.health;
     if(this.type === 'bomber') this.explodeRadius = 4;
-    if(this.type === 'spawner'){
-      this.spawnCooldown = 5+Math.random()*3;
-      this.spawnCount = 2+Math.floor(Math.random()*2);
-    }
+    if(this.type === 'spawner'){ this.spawnCooldown = 5+Math.random()*3; this.spawnCount = 2+Math.floor(Math.random()*2) }
     if(['shooter','spitter','gunner','sniper_enemy','shotgunner','rocketeer','enemy_shotgunner','spider','ninja','fortifier'].includes(this.type)){
       const cds = {shooter:[2,1],spitter:[3,1],gunner:[1,.4],sniper_enemy:[4+Math.random()*3,0],shotgunner:[3.2,1.2],rocketeer:[3,1.5],enemy_shotgunner:[3,1],spider:[2.5,1],ninja:[1.4,.5],fortifier:[2.5,1]};
       const cd = cds[this.type];
@@ -236,7 +187,8 @@ class Enemy {
         : this.type === 'enemy_shotgunner' ? 'enemy_shotgun' : this.type === 'spider' ? 'spider_shot'
         : this.type === 'ninja' ? 'ninja_shuriken' : this.type === 'fortifier' ? 'fortifier_bolt' : 'pistol';
     }
-    if(this.type === 'tank'){ this.shootCooldown = 10; this.weaponType = 'tank_shell' }
+    // ФАЗА А: Tank fireRate 10→7, AOE 6
+    if(this.type === 'tank'){ this.shootCooldown = 7; this.weaponType = 'tank_shell'; this.explodeRadius = 6 }
     if(this.type === 'mortar'){ this.shootCooldown = 3.5+Math.random()*1.5 }
     if(this.type === 'illusionist'){ this.shootCooldown = 1.8+Math.random()*.5 }
     if(this.type === 'verkhushka'){ this.shootCooldown = 1.8+Math.random()*.6 }
@@ -245,7 +197,6 @@ class Enemy {
     if(this.type === 'ufo'){ this.isFlying = true; this.baseY = 4 + Math.random()*0.5 }
     this.canDodge = ['runner','spider','gunner','sniper_enemy','spitter','ninja','ice_dog'].includes(this.type);
     this.dodgeChance = this.type === 'ninja' ? .92 : (this.type === 'ice_dog' ? 0.35 : 0.7);
-    if(this.type === 'ninja'){ this.dodgeCooldown = 0.5 + Math.random()*0.4; this.dodgeTimer = 0.3; }
   }
 
   buildModel(){
@@ -262,14 +213,10 @@ class Enemy {
     this.parts.head=this.eSph(.18,10,10,skin,0,1.55,0); this.parts.head.scale.set(1,1.1,1);
     const eye=new THREE.MeshBasicMaterial({color:0xff2200});
     this.eSph(.03,6,6,eye,-.07,1.58,.16); this.eSph(.03,6,6,eye,.07,1.58,.16);
-    const smile=this.eA(new THREE.TorusGeometry(.06,.012,6,12,Math.PI),new THREE.MeshBasicMaterial({color:0}),0,1.5,.17);
-    smile.rotation.z=Math.PI;
     const ag=new THREE.BoxGeometry(.14,.6,.14);
     this.parts.leftArm=this.eA(ag,cm,-.34,1,0); this.parts.rightArm=this.eA(ag,cm,.34,1,0);
     const lg=new THREE.BoxGeometry(.17,.7,.17), lm=new THREE.MeshStandardMaterial({color:0x333333});
     this.parts.leftLeg=this.eA(lg,lm,-.14,.35,0); this.parts.rightLeg=this.eA(lg,lm,.14,.35,0);
-    const bm=new THREE.MeshStandardMaterial({color:0x1a1a1a,metalness:.5});
-    this.eBox(.2,.15,.25,bm,-.14,.08,0); this.eBox(.2,.15,.25,bm,.14,.08,0);
   }
   mRobot(){
     const m=new THREE.MeshStandardMaterial({color:0x4a4a4a,metalness:.9,roughness:.3,emissive:0x222222});
@@ -382,8 +329,7 @@ class Enemy {
   }
   mSlug(){
     const m=new THREE.MeshStandardMaterial({color:0x6a2a8a,metalness:.3,roughness:.6,emissive:0x440066,emissiveIntensity:.4});
-    this.parts.body=this.eSph(.45,12,12,m,0,.25,0); this.parts.body.scale.set(1,.5,1.4);
-    this.parts.bodyMat=m;
+    this.parts.body=this.eSph(.45,12,12,m,0,.25,0); this.parts.body.scale.set(1,.5,1.4); this.parts.bodyMat=m;
     this.eCyl(.03,.03,.3,6,m,-.12,.55,.3,0).rotation.x=-.4;
     this.eCyl(.03,.03,.3,6,m,.12,.55,.3,0).rotation.x=-.4;
     const eye=new THREE.MeshBasicMaterial({color:0xff00ff});
@@ -391,8 +337,7 @@ class Enemy {
   }
   mTrickster(){
     const m=new THREE.MeshStandardMaterial({color:0xff00ff,emissive:0xff00ff,emissiveIntensity:.4,metalness:.6,roughness:.3});
-    this.parts.body=this.eA(new THREE.ConeGeometry(.5,.8,8),m,0,1,0); this.parts.body.rotation.x=Math.PI;
-    this.parts.bodyMat=m;
+    this.parts.body=this.eA(new THREE.ConeGeometry(.5,.8,8),m,0,1,0); this.parts.body.rotation.x=Math.PI; this.parts.bodyMat=m;
     this.parts.head=this.eA(new THREE.IcosahedronGeometry(.25,0),m,0,1.5,0);
     this.parts.aura=this.eA(new THREE.TorusGeometry(.8,.02,6,16),new THREE.MeshBasicMaterial({color:0xff00ff,transparent:true,opacity:.3}),0,1,0,Math.PI/2);
     const lg=new THREE.BoxGeometry(.15,.6,.15), lm=new THREE.MeshStandardMaterial({color:0x330033});
@@ -424,8 +369,7 @@ class Enemy {
     this.eBox(.53,.18,.35,red,0,1,0); this.eBox(.55,.08,.37,red,0,.7,0);
     this.parts.head=this.eSph(.18,10,10,dk,0,1.32,0);
     this.eCone(.22,.3,8,dk2,0,1.42,-.02,0);
-    this.parts.bandana=this.eBox(.06,.35,.06,red,-.15,1.36,-.05);
-    this.parts.bandana.rotation.z=.35;
+    this.parts.bandana=this.eBox(.06,.35,.06,red,-.15,1.36,-.05); this.parts.bandana.rotation.z=.35;
     const eye=new THREE.MeshBasicMaterial({color:0xff3333});
     this.parts.eyes=[this.eSph(.03,6,6,eye,-.06,1.33,.14),this.eSph(.03,6,6,eye,.06,1.33,.14)];
     const ag=new THREE.BoxGeometry(.13,.5,.13);
@@ -496,10 +440,7 @@ class Enemy {
     this.segments[0].mesh.add(new THREE.Mesh(new THREE.SphereGeometry(.07,6,6),eye).translateX(-.13).translateY(.1).translateZ(.22));
     this.segments[0].mesh.add(new THREE.Mesh(new THREE.SphereGeometry(.07,6,6),eye).translateX(.13).translateY(.1).translateZ(.22));
   }
-
-  // ═══ NEW MORTAR — БЕЗУМНЫЙ ИНЖЕНЕР-АРТИЛЛЕРИСТ ═══
   mMortar(){
-    // Materials
     const skinM = new THREE.MeshStandardMaterial({color:0xd4a574, roughness:.75});
     const coatM = new THREE.MeshStandardMaterial({color:0x6a4a2a, roughness:.8, metalness:.15});
     const darkM = new THREE.MeshStandardMaterial({color:0x1a1a1a, roughness:.6, metalness:.4});
@@ -508,144 +449,60 @@ class Enemy {
     const brassM = new THREE.MeshStandardMaterial({color:0xd4a040, roughness:.3, metalness:.9});
     const glassM = new THREE.MeshStandardMaterial({color:0x222244, roughness:.15, metalness:.7, emissive:0x6688cc, emissiveIntensity:.4});
     const glowM = new THREE.MeshBasicMaterial({color:0xffaa00, transparent:true, opacity:.6});
-
-    // ── Big round belly (main body) ──
     this.parts.body = this.eSph(.55, 14, 12, coatM, 0, .95, 0);
-    this.parts.body.scale.set(1.05, 1, .95);
-    this.parts.bodyMat = coatM;
-
-    // Belly buttons/details
+    this.parts.body.scale.set(1.05, 1, .95); this.parts.bodyMat = coatM;
     this.eSph(.08, 8, 8, brassM, 0, .9, .52);
-    this.eSph(.06, 8, 8, brassM, -.15, 1.1, .5);
-    this.eSph(.06, 8, 8, brassM, .15, 1.1, .5);
-
-    // ── Belt with buckle ──
-    const belt = this.eCyl(.56, .56, .1, 16, darkM, 0, .72, 0, 0);
+    this.eCyl(.56, .56, .1, 16, darkM, 0, .72, 0, 0);
     this.eBox(.15, .12, .04, brassM, 0, .72, .55);
-
-    // ── Short stubby legs ──
     this.parts.leftLeg = this.eBox(.22, .45, .22, darkM, -.2, .25, 0);
     this.parts.rightLeg = this.eBox(.22, .45, .22, darkM, .2, .25, 0);
-    this.eBox(.24, .1, .32, darkM, -.2, .05, .04);
-    this.eBox(.24, .1, .32, darkM, .2, .05, .04);
-
-    // ── Arms (short) ──
     this.parts.leftArm = this.eBox(.16, .38, .16, coatM, -.62, 1.05, 0);
     this.parts.rightArm = this.eBox(.16, .38, .16, coatM, .62, 1.05, 0);
     this.eSph(.1, 8, 8, skinM, -.62, .82, .08);
     this.eSph(.1, 8, 8, skinM, .62, .82, .08);
-
-    // ── Small head with goggles + helmet ──
     this.parts.head = this.eSph(.22, 12, 10, skinM, 0, 1.6, 0);
-    // Goggles (two round lenses with copper frames)
     this.eCyl(.09, .09, .04, 12, copperM, -.11, 1.63, .18, 0);
     this.eCyl(.09, .09, .04, 12, copperM, .11, 1.63, .18, 0);
     this.eCyl(.07, .07, .03, 12, glassM, -.11, 1.63, .205, 0);
     this.eCyl(.07, .07, .03, 12, glassM, .11, 1.63, .205, 0);
-    // Bridge between goggles
     this.eBox(.08, .03, .03, copperM, 0, 1.63, .19);
-    // Strap
     this.eBox(.5, .05, .02, darkM, 0, 1.63, .1);
-    // Helmet (industrial worker helmet)
     const helmet = this.eSph(.28, 14, 10, new THREE.MeshStandardMaterial({color:0xffaa00, roughness:.6, metalness:.4, emissive:0x442200, emissiveIntensity:.15}), 0, 1.72, -.02);
     helmet.scale.set(1, .65, 1.05);
-    // Helmet ridge
     this.eBox(.05, .08, .45, new THREE.MeshStandardMaterial({color:0xffcc33, roughness:.5, metalness:.5}), 0, 1.85, -.02);
-    // Little mustache
     this.eBox(.18, .04, .04, darkM, 0, 1.5, .19);
-
-    // ── STEAM TANK on back (signature!) ──
     this.parts.tank = new THREE.Group();
     const tankBody = new THREE.Mesh(new THREE.CylinderGeometry(.32, .32, .75, 14), copperM);
-    tankBody.castShadow = true;
-    this.parts.tank.add(tankBody);
-    // Rivets on tank
+    tankBody.castShadow = true; this.parts.tank.add(tankBody);
     for(let i=0;i<3;i++){
       const ring = new THREE.Mesh(new THREE.TorusGeometry(.33, .02, 4, 16), steelM);
-      ring.rotation.x = Math.PI/2;
-      ring.position.y = -.25 + i*.25;
-      this.parts.tank.add(ring);
+      ring.rotation.x = Math.PI/2; ring.position.y = -.25 + i*.25; this.parts.tank.add(ring);
     }
-    // Cap on top
     const cap = new THREE.Mesh(new THREE.SphereGeometry(.32, 12, 8), steelM);
-    cap.scale.set(1, .4, 1);
-    cap.position.y = .38;
-    this.parts.tank.add(cap);
-    // Pressure gauge (front of tank)
+    cap.scale.set(1, .4, 1); cap.position.y = .38; this.parts.tank.add(cap);
     const gauge = new THREE.Mesh(new THREE.CylinderGeometry(.09, .09, .03, 12), brassM);
-    gauge.rotation.x = Math.PI/2;
-    gauge.position.set(0, .1, .3);
-    this.parts.tank.add(gauge);
+    gauge.rotation.x = Math.PI/2; gauge.position.set(0, .1, .3); this.parts.tank.add(gauge);
     const gaugeFace = new THREE.Mesh(new THREE.CircleGeometry(.07, 12), new THREE.MeshBasicMaterial({color:0xffdd33}));
-    gaugeFace.position.set(0, .1, .32);
-    this.parts.tank.add(gaugeFace);
-    this.parts.tank.position.set(0, 1.05, -.5);
-    this.group.add(this.parts.tank);
-
-    // ── BOILER PIPE (curved, from tank to shoulder) ──
-    const pipeGroup = new THREE.Group();
-    const pipePts = [
-      new THREE.Vector3(0, .35, 0),
-      new THREE.Vector3(0, .55, .1),
-      new THREE.Vector3(0, .7, .35),
-      new THREE.Vector3(0, .8, .55),
-    ];
-    const pipeCurve = new THREE.CatmullRomCurve3(pipePts);
-    const pipe = new THREE.Mesh(new THREE.TubeGeometry(pipeCurve, 20, .06, 8, false), copperM);
-    pipeGroup.add(pipe);
-    // Pipe rings
-    for(let i=0;i<3;i++){
-      const ring = new THREE.Mesh(new THREE.TorusGeometry(.07, .015, 4, 10), steelM);
-      const pos = pipeCurve.getPoint(i/2.5);
-      ring.position.copy(pos);
-      ring.lookAt(new THREE.Vector3(pos.x, pos.y+.1, pos.z-.1));
-      pipeGroup.add(ring);
-    }
-    pipeGroup.position.copy(this.parts.tank.position);
-    this.group.add(pipeGroup);
-
-    // ── MAIN CANNON (mounted on shoulder, aiming forward-up) ──
+    gaugeFace.position.set(0, .1, .32); this.parts.tank.add(gaugeFace);
+    this.parts.tank.position.set(0, 1.05, -.5); this.group.add(this.parts.tank);
     this.parts.tube = new THREE.Group();
-    // Barrel — big fat tube
     const barrel = new THREE.Mesh(new THREE.CylinderGeometry(.14, .18, .95, 12), copperM);
-    barrel.rotation.x = Math.PI/2;
-    barrel.position.set(0, 0, -.35);
-    this.parts.tube.add(barrel);
-    // Barrel rings
+    barrel.rotation.x = Math.PI/2; barrel.position.set(0, 0, -.35); this.parts.tube.add(barrel);
     for(let i=0;i<3;i++){
       const ring = new THREE.Mesh(new THREE.TorusGeometry(.16, .022, 6, 14), steelM);
-      ring.rotation.x = Math.PI/2;
-      ring.position.set(0, 0, -.65 + i*.25);
-      this.parts.tube.add(ring);
+      ring.rotation.x = Math.PI/2; ring.position.set(0, 0, -.65 + i*.25); this.parts.tube.add(ring);
     }
-    // Muzzle — flared
     const muzzle = new THREE.Mesh(new THREE.CylinderGeometry(.2, .14, .12, 12), copperM);
-    muzzle.rotation.x = Math.PI/2;
-    muzzle.position.set(0, 0, -.85);
-    this.parts.tube.add(muzzle);
-    // Muzzle glow
+    muzzle.rotation.x = Math.PI/2; muzzle.position.set(0, 0, -.85); this.parts.tube.add(muzzle);
     this.parts.muzzle = new THREE.Mesh(new THREE.SphereGeometry(.14, 10, 10), new THREE.MeshBasicMaterial({color:0xffaa00, transparent:true, opacity:0}));
-    this.parts.muzzle.position.set(0, 0, -.92);
-    this.parts.tube.add(this.parts.muzzle);
-    // Handle under barrel (grab)
+    this.parts.muzzle.position.set(0, 0, -.92); this.parts.tube.add(this.parts.muzzle);
     this.eBox(.08, .08, .3, darkM, 0, -.1, -.4, this.parts.tube);
-    // Shoulder rest (where arm meets tube)
     this.eBox(.2, .15, .25, coatM, 0, .1, 0, this.parts.tube);
-
-    // Tube position — on right shoulder, pointing forward
-    this.parts.tube.position.set(.45, 1.5, 0);
-    this.group.add(this.parts.tube);
-
-    // ── Charging glow light ──
+    this.parts.tube.position.set(.45, 1.5, 0); this.group.add(this.parts.tube);
     this.parts.chargeGlow = new THREE.Mesh(new THREE.SphereGeometry(.2, 10, 10), glowM);
-    this.parts.chargeGlow.position.set(0, 0, -.92);
-    this.parts.chargeGlow.visible = false;
+    this.parts.chargeGlow.position.set(0, 0, -.92); this.parts.chargeGlow.visible = false;
     this.parts.tube.add(this.parts.chargeGlow);
-
-    // Steam particle source
-    this.parts.steamEmitter = this.eSph(.08, 6, 6, new THREE.MeshBasicMaterial({color:0xdddddd, transparent:true, opacity:.4}), 0, .7, -.35);
   }
-
   mIllusionist(){
     const bd=new THREE.MeshStandardMaterial({color:0x4a2a6a,metalness:.4,roughness:.6,emissive:0x2a0a4a,emissiveIntensity:.4});
     const cl=new THREE.MeshStandardMaterial({color:0x3a1a5a,roughness:.85,metalness:.2,emissive:0x1a0a2a,emissiveIntensity:.3});
@@ -797,23 +654,14 @@ class Enemy {
     const eyeM = new THREE.MeshBasicMaterial({color:0x00ffff});
     const teethM = new THREE.MeshStandardMaterial({color:0xffffff, roughness:.4});
     this.parts.body = this.eSph(.42, 12, 10, furM, 0, .62, 0);
-    this.parts.body.scale.set(1.3, .95, 1.6);
-    this.parts.bodyMat = furM;
+    this.parts.body.scale.set(1.3, .95, 1.6); this.parts.bodyMat = furM;
     this.eSph(.38, 10, 8, furM, 0, .58, .32);
-    const neck = this.eCyl(.18, .22, .35, 8, furM, 0, .78, .48, 0);
-    neck.rotation.x = -.6;
-    this.parts.head = this.eSph(.28, 12, 10, furM, 0, .82, .82);
-    this.parts.head.scale.set(1.15, 1, 1.2);
+    const neck = this.eCyl(.18, .22, .35, 8, furM, 0, .78, .48, 0); neck.rotation.x = -.6;
+    this.parts.head = this.eSph(.28, 12, 10, furM, 0, .82, .82); this.parts.head.scale.set(1.15, 1, 1.2);
     this.eBox(.22, .18, .3, furM, 0, .74, 1.08);
     this.eSph(.09, 8, 8, darkFurM, 0, .68, 1.2);
-    for(let i=0;i<4;i++){
-      const tooth = this.eCone(.025, .1, 4, teethM, -.08 + i*.055, .65, 1.14, Math.PI);
-      tooth.rotation.x = Math.PI;
-    }
-    this.parts.eyes = [
-      this.eSph(.055, 8, 8, eyeM, -.13, .95, .95),
-      this.eSph(.055, 8, 8, eyeM, .13, .95, .95)
-    ];
+    for(let i=0;i<4;i++){ const tooth = this.eCone(.025, .1, 4, teethM, -.08 + i*.055, .65, 1.14, Math.PI); tooth.rotation.x = Math.PI }
+    this.parts.eyes = [this.eSph(.055, 8, 8, eyeM, -.13, .95, .95), this.eSph(.055, 8, 8, eyeM, .13, .95, .95)];
     this.eCone(.09, .22, 5, darkFurM, -.16, 1.06, .74, -.2);
     this.eCone(.09, .22, 5, darkFurM, .16, 1.06, .74, -.2);
     for(let i=0;i<5;i++){
@@ -822,20 +670,14 @@ class Enemy {
       crystal.rotation.z = Math.cos(angle)*.3;
     }
     this.eCone(.1, .35, 5, iceM, 0, 1.05, -.05, -.1);
-    const tail = this.eCyl(.06, .02, .55, 6, iceM, 0, .85, -.65, 0);
-    tail.rotation.x = -1.2;
+    const tail = this.eCyl(.06, .02, .55, 6, iceM, 0, .85, -.65, 0); tail.rotation.x = -1.2;
     this.parts.tail = tail;
     this.parts.legs = [];
-    const legPositions = [
-      [-.28, .22, .35], [.28, .22, .35],
-      [-.28, .22, -.25], [.28, .22, -.25]
-    ];
+    const legPositions = [[-.28, .22, .35], [.28, .22, .35], [-.28, .22, -.25], [.28, .22, -.25]];
     legPositions.forEach((p, i) => {
-      const upper = this.eCyl(.09, .075, .4, 6, darkFurM, p[0], .42, p[2], 0);
-      upper.rotation.x = .05;
+      const upper = this.eCyl(.09, .075, .4, 6, darkFurM, p[0], .42, p[2], 0); upper.rotation.x = .05;
       const lower = this.eCyl(.06, .04, .35, 6, furM, p[0], .14, p[2], 0);
-      const paw = this.eSph(.1, 6, 6, darkFurM, p[0], .04, p[2] + .05);
-      paw.scale.set(1, .5, 1.4);
+      const paw = this.eSph(.1, 6, 6, darkFurM, p[0], .04, p[2] + .05); paw.scale.set(1, .5, 1.4);
       this.parts.legs.push({upper, lower, paw, side: p[0] < 0 ? -1 : 1, front: p[2] > 0 ? 1 : -1, phase: i * .5});
     });
     this.parts.frost = this.eSph(.5, 10, 10, new THREE.MeshBasicMaterial({color:0x88ccff, transparent:true, opacity:.15, side:THREE.BackSide, depthWrite:false}), 0, .5, 0);
@@ -854,7 +696,6 @@ class Enemy {
       }
       return null;
     }
-    // ICE DOG — horizontal hitbox
     if(this.type === 'ice_dog'){
       const dx = hitPoint.x-this.group.position.x, dz = hitPoint.z-this.group.position.z;
       const distXZ = Math.sqrt(dx*dx+dz*dz);
@@ -866,7 +707,6 @@ class Enemy {
       if(Math.sqrt(headDX*headDX+headDY*headDY+headDZ*headDZ) < 0.45) return 'head';
       return 'body';
     }
-    // ILLUSIONIST FLYING — big sphere around center (fix)
     if(this.type === 'illusionist' && this.isFlying){
       const centerY = this.group.position.y;
       const dx = hitPoint.x-this.group.position.x;
@@ -874,7 +714,6 @@ class Enemy {
       const dz = hitPoint.z-this.group.position.z;
       const distFromCenter = Math.sqrt(dx*dx+dy*dy+dz*dz);
       if(distFromCenter < this.height * 0.85){
-        // Head = верхняя часть
         if(dy > this.height * 0.2) return 'head';
         return 'body';
       }
@@ -1067,12 +906,7 @@ class Enemy {
     if(Math.abs(np.x)<22 && Math.abs(np.z)<22){ this.group.position.x=np.x; this.group.position.z=np.z }
     this.group.position.y=this.baseY+Math.sin(Date.now()*.002)*.3;
     this.group.rotation.y+=dt*1.5;
-    if(this.parts.lights){
-      this.parts.lights.forEach((l,i)=>{
-        const ph=(Date.now()*.008+i*.7)%(Math.PI*2);
-        l.material.color.setHSL(.1,1,.5+Math.sin(ph)*.3);
-      });
-    }
+    if(this.parts.lights){ this.parts.lights.forEach((l,i)=>{ const ph=(Date.now()*.008+i*.7)%(Math.PI*2); l.material.color.setHSL(.1,1,.5+Math.sin(ph)*.3) }) }
     this.cowCooldown -= dt;
     if(this.cowCooldown <= 0 && this.cowsDropped < 3){
       this.cowCooldown=2.5+Math.random()*2; this.cowsDropped++;
@@ -1159,9 +993,9 @@ class Enemy {
     }
     if(this.parts.tail) this.parts.tail.rotation.z = Math.sin(Date.now() * .008) * .3;
     if(this.parts.frost) this.parts.frost.material.opacity = .1 + Math.sin(Date.now() * .006) * .08;
-
+    // ФАЗА А: freeze 0.7→0.4
     if(dist < 2.2 && this.freezeCooldown <= 0){
-      player.freezeTimer = Math.max(player.freezeTimer, 0.7);
+      player.freezeTimer = Math.max(player.freezeTimer, 0.4);
       damagePlayer(this.damage * 0.8, this.type, 1.0);
       this.freezeCooldown = 3.0;
       audio.freezeBurst();
@@ -1169,7 +1003,6 @@ class Enemy {
       this.group.position.add(kb.multiplyScalar(.6));
       return;
     }
-
     if(dist > 2.5 && dist < 20 && this.discCooldown <= 0 && hasLineOfSight(this.group.position, player.position)){
       this.discCooldown = 2.2 + Math.random() * 1.0;
       audio.enemyShoot();
@@ -1178,13 +1011,10 @@ class Enemy {
       const dir = to.clone().sub(from).normalize();
       const disc = new THREE.Group();
       const discMesh = new THREE.Mesh(new THREE.CylinderGeometry(.32, .32, .06, 16), new THREE.MeshBasicMaterial({color:0x88ddff, transparent:true, opacity:.9}));
-      discMesh.rotation.x = Math.PI / 2;
-      disc.add(discMesh);
+      discMesh.rotation.x = Math.PI / 2; disc.add(discMesh);
       const innerDisc = new THREE.Mesh(new THREE.CylinderGeometry(.22, .22, .08, 16), new THREE.MeshBasicMaterial({color:0xffffff, transparent:true, opacity:.7}));
-      innerDisc.rotation.x = Math.PI / 2;
-      disc.add(innerDisc);
-      disc.position.copy(from);
-      disc.lookAt(to);
+      innerDisc.rotation.x = Math.PI / 2; disc.add(innerDisc);
+      disc.position.copy(from); disc.lookAt(to);
       disc.userData.velocity = dir.multiplyScalar(.38);
       disc.userData.damage = this.damage * 0.7;
       disc.userData.isEnemyProjectile = true;
@@ -1194,39 +1024,32 @@ class Enemy {
       disc.userData.slowsPlayer = true;
       disc.userData.armorMult = 2.5;
       disc.userData.hpMult = 1.0;
-      scene.add(disc);
-      projectiles.push(disc);
+      scene.add(disc); projectiles.push(disc);
     }
-
     if(dist > 2.0){
       const np = this.group.position.clone();
       const spd = this.speed * 55 * dt;
       np.x += (dx / Math.max(.01, dist)) * spd;
       np.z += (dz / Math.max(.01, dist)) * spd;
       if(!this.checkColliderCollision(np) && Math.abs(np.x) < 23 && Math.abs(np.z) < 23){
-        this.group.position.x = np.x;
-        this.group.position.z = np.z;
+        this.group.position.x = np.x; this.group.position.z = np.z;
       }
     }
-
     if(this.damageFlash > 0){
       this.damageFlash -= dt;
-      if(this.parts.bodyMat){
-        this.parts.bodyMat.emissive.setRGB(1,1,1);
-        this.parts.bodyMat.emissiveIntensity = this.damageFlash * 5;
-      }
+      if(this.parts.bodyMat){ this.parts.bodyMat.emissive.setRGB(1,1,1); this.parts.bodyMat.emissiveIntensity = this.damageFlash * 5 }
     }
   }
 
   update(dt){
     if(this.dead) return;
-
     if(this.frozenTimer > 0){
       this.frozenTimer -= dt;
       if(this.parts.bodyMat){ this.parts.bodyMat.emissive.setRGB(.3,.6,1); this.parts.bodyMat.emissiveIntensity=.7 }
       if(this.frozenTimer <= 0 && this.parts.bodyMat){ this.parts.bodyMat.emissive.copy(this.origEmissive); this.parts.bodyMat.emissiveIntensity=this.origEmissiveIntensity }
       if(!this._wasFrozen){
         this._wasFrozen = true;
+        // ICE R3: крио-взрыв (ФАЗА B без time)
         if(hasSynergy('ice',3)){
           createAOESphere(this.group.position, 4, 0x88ccff);
           enemies.slice().forEach(e=>{
@@ -1288,7 +1111,7 @@ class Enemy {
     let sm=1;
     if(this.slowTimer > 0){ this.slowTimer -= dt; sm=.5 }
     if(modifiers.includes('ice_aura') && dist < 5) sm *= .5;
-    if(hasSynergy('time',1) && dist < 4) sm *= .85;
+    // ФАЗА B: время-аура убрана, но ice-аура осталась
     if(playerBuffs.enemySpeedMult > 1) sm *= playerBuffs.enemySpeedMult;
     if(this.type !== 'trickster' && !hgFrozen){
       if(hgState === 'slow') sm *= SLOW_TIMESCALE;
@@ -1303,14 +1126,12 @@ class Enemy {
     if(this.type === 'hothead'){ this.updateHothead(dt,dx,dz,dist); return }
     if(this.type === 'ice_dog'){ this.updateIceDog(dt,dx,dz,dist); return }
 
-    // ═══ SLUG — puddle dropping ═══
     if(this.type === 'slug'){
       this.puddleTimer += dt;
       if(this.puddleTimer >= this.puddleInterval){
         this.puddleTimer = 0;
         this.puddleInterval = 1 + Math.random()*0.6;
-        const puddlePos = this.group.position.clone();
-        puddlePos.y = 0.05;
+        const puddlePos = this.group.position.clone(); puddlePos.y = 0.05;
         createPoisonPuddle(puddlePos);
       }
     }
@@ -1370,7 +1191,6 @@ class Enemy {
       return;
     }
 
-    // ═══ MORTAR (new — with new model behavior) ═══
     if(this.type === 'mortar'){
       let nearby=false;
       for(const e of enemies){ if(e === this || e.dead) continue; if(e.group.position.distanceTo(this.group.position) < 4){ nearby=true; break } }
@@ -1388,51 +1208,33 @@ class Enemy {
         for(let c of colliders){ if(Math.abs(np.x-c.position.x)<c.size.x/2+this.radius && Math.abs(np.z-c.position.z)<c.size.z/2+this.radius){ bl=true; break } }
         if(!bl && Math.abs(np.x)<24 && Math.abs(np.z)<24){ this.group.position.x=np.x; this.group.position.z=np.z }
       }
-      // Aim tube
       this.parts.tube.rotation.order='YXZ';
       const aimY = Math.atan2(player.position.x-this.group.position.x, player.position.z-this.group.position.z);
       this.parts.tube.rotation.y = aimY;
-      // Recoil decay
       if(this.mortarRecoil > 0){
         this.mortarRecoil = Math.max(0, this.mortarRecoil - dt*4);
         this.parts.tube.position.z = this.mortarRecoil * 0.2;
         this.parts.tube.rotation.x = -this.mortarRecoil * 0.4;
       }
-
       this.shootTimer += dt;
       if(!this.mortarCharging && this.shootTimer >= this.shootCooldown && dist < 35 && dist > 8 && hasLineOfSight(this.group.position, player.position)){
         this.mortarCharging=true; this.mortarCharge=0;
       }
       if(this.mortarCharging){
         this.mortarCharge += dt;
-        // Tank pulse
-        if(this.parts.chargeGlow){
-          this.parts.chargeGlow.visible = true;
-          this.parts.chargeGlow.material.opacity = Math.min(0.9, this.mortarCharge/1.3);
-        }
-        if(this.parts.muzzle){
-          this.parts.muzzle.material.opacity = Math.min(1, this.mortarCharge/1.5);
-          this.parts.muzzle.scale.setScalar(1 + this.mortarCharge * 0.5);
-        }
-        if(this.parts.tank){
-          const pulse = 1 + Math.sin(this.mortarCharge * 20) * 0.04 * this.mortarCharge;
-          this.parts.tank.scale.setScalar(pulse);
-        }
-        // Steam puffs
+        if(this.parts.chargeGlow){ this.parts.chargeGlow.visible = true; this.parts.chargeGlow.material.opacity = Math.min(0.9, this.mortarCharge/1.3) }
+        if(this.parts.muzzle){ this.parts.muzzle.material.opacity = Math.min(1, this.mortarCharge/1.5); this.parts.muzzle.scale.setScalar(1 + this.mortarCharge * 0.5) }
+        if(this.parts.tank){ const pulse = 1 + Math.sin(this.mortarCharge * 20) * 0.04 * this.mortarCharge; this.parts.tank.scale.setScalar(pulse) }
         this.mortarSteamTimer += dt;
         if(this.mortarSteamTimer > 0.15){
           this.mortarSteamTimer = 0;
           const steamPos = this.parts.tank ? this.parts.tank.position.clone().add(new THREE.Vector3(0, .4, 0)) : this.group.position.clone().add(new THREE.Vector3(0, 1.5, -.5));
           steamPos.add(this.group.position);
-          const steam = new THREE.Mesh(
-            new THREE.SphereGeometry(.15 + Math.random()*.1, 6, 6),
-            new THREE.MeshBasicMaterial({color:0xdddddd, transparent:true, opacity:.5})
-          );
+          const steam = new THREE.Mesh(new THREE.SphereGeometry(.15 + Math.random()*.1, 6, 6), new THREE.MeshBasicMaterial({color:0xdddddd, transparent:true, opacity:.5}));
           steam.position.copy(steamPos);
           steam.userData.velocity = new THREE.Vector3((Math.random()-.5)*.1, .15 + Math.random()*.1, (Math.random()-.5)*.1);
           steam.userData.life = 30 + Math.random()*20;
-          scene.add(steam);
-          particles.push(steam);
+          scene.add(steam); particles.push(steam);
         }
         if(this.mortarCharge >= 1.5){
           audio.mortarLaunch();
@@ -1457,12 +1259,8 @@ class Enemy {
           if(this.parts.chargeGlow) this.parts.chargeGlow.visible = false;
           if(this.parts.muzzle){ this.parts.muzzle.material.opacity = 0; this.parts.muzzle.scale.setScalar(1) }
           if(this.parts.tank) this.parts.tank.scale.setScalar(1);
-          // Muzzle smoke
           for(let k=0;k<6;k++){
-            const smoke = new THREE.Mesh(
-              new THREE.SphereGeometry(.25 + Math.random()*.2, 6, 6),
-              new THREE.MeshBasicMaterial({color:0x888888, transparent:true, opacity:.6})
-            );
+            const smoke = new THREE.Mesh(new THREE.SphereGeometry(.25 + Math.random()*.2, 6, 6), new THREE.MeshBasicMaterial({color:0x888888, transparent:true, opacity:.6}));
             smoke.position.copy(from);
             smoke.userData.velocity = new THREE.Vector3(
               Math.sin(aimY)*(0.2 + Math.random()*.2) + (Math.random()-.5)*.15,
@@ -1470,8 +1268,7 @@ class Enemy {
               Math.cos(aimY)*(0.2 + Math.random()*.2) + (Math.random()-.5)*.15
             );
             smoke.userData.life = 40 + Math.random()*20;
-            scene.add(smoke);
-            particles.push(smoke);
+            scene.add(smoke); particles.push(smoke);
           }
         }
       }
@@ -1573,11 +1370,11 @@ class Enemy {
       return;
     }
 
-    // ═══ VERKHUSHKA with LOS ═══
     if(this.type === 'verkhushka'){
       if(this.vkState === 'buried'){
         const alive=enemies.filter(e=>!e.dead && e!==this).length;
-        if(waveTotalEnemies > 0 && (alive < waveTotalEnemies*.2 || alive === 0)){
+        // ФАЗА А: порог 50% (было 20%)
+        if(waveTotalEnemies > 0 && (alive < waveTotalEnemies*.5 || alive === 0)){
           this.vkState='emerging'; this.vkTimer=0; audio.play('beam');
         }
         return;
@@ -1602,18 +1399,14 @@ class Enemy {
         if(this.parts.emitter){ const s=1+Math.sin(Date.now()*.008)*.3; this.parts.emitter.scale.setScalar(s) }
         this.shootTimer += dt;
         if(this.shootTimer >= this.shootCooldown && dist < 25){
-          // LOS check — не стрелять сквозь стены
-          const fromCheck = this.group.position.clone();
-          fromCheck.y += 0.5;
+          const fromCheck = this.group.position.clone(); fromCheck.y += 0.5;
           if(!hasLineOfSight(fromCheck, player.position)){
-            // Не сбрасываем таймер полностью, но ждём
             this.shootTimer = this.shootCooldown - 0.3;
             return;
           }
           this.shootTimer=0;
           audio.play('mortarLaunch');
-          const from = this.group.position.clone();
-          from.y += .5;
+          const from = this.group.position.clone(); from.y += .5;
           const to = new THREE.Vector3(player.position.x, player.position.y - 0.3, player.position.z);
           const dir = to.clone().sub(from).normalize();
           const stone = new THREE.Group();
@@ -1624,8 +1417,7 @@ class Enemy {
             chip.position.set((Math.random()-.5)*.35, (Math.random()-.5)*.35, (Math.random()-.5)*.35);
             stone.add(chip);
           }
-          stone.position.copy(from);
-          stone.lookAt(to);
+          stone.position.copy(from); stone.lookAt(to);
           stone.userData.velocity = dir.multiplyScalar(.32);
           stone.userData.damage = this.damage * 0.9;
           stone.userData.isEnemyProjectile = true;
@@ -1634,20 +1426,17 @@ class Enemy {
           stone.userData.isStone = true;
           stone.userData.armorMult = 2.0;
           stone.userData.hpMult = 1.0;
-          scene.add(stone);
-          projectiles.push(stone);
+          scene.add(stone); projectiles.push(stone);
         }
         return;
       }
     }
 
-    // ═══ NINJA DODGE — усиленный, с дымом ═══
     if(this.canDodge && !hgFrozen){
       this.dodgeTimer -= dt;
       if(this.dodgeTimer <= 0){
         const isNinja = this.type === 'ninja';
         this.dodgeTimer = isNinja ? (0.35 + Math.random()*0.3) : (this.type === 'runner' ? .3 : .3);
-        // Проверяем угрозы в широком радиусе
         let incoming = null;
         const threatRadius = isNinja ? 8 : 6;
         for(const p of projectiles){
@@ -1661,22 +1450,17 @@ class Enemy {
           }
         }
         if(incoming && Math.random() < this.dodgeChance){
-          // NINJA: jump SIDEWAYS with a big smoke cloud
           const perp = new THREE.Vector3(-incoming.z, 0, incoming.x).normalize();
           if(Math.random() < .5) perp.negate();
           const np = this.group.position.clone();
           const dodgeAmt = isNinja ? (4.5 + Math.random()*2) : (this.type === 'runner' ? this.speed*5 : this.speed*4);
-          np.x += perp.x * dodgeAmt;
-          np.z += perp.z * dodgeAmt;
+          np.x += perp.x * dodgeAmt; np.z += perp.z * dodgeAmt;
           if(Math.abs(np.x) < 22 && Math.abs(np.z) < 22 && !this.checkColliderCollision(np)){
-            // NINJA smoke at old position
             if(isNinja){
               createNinjaSmoke(this.group.position.clone(), 1.4);
-              // Also leave smoke at new position
               setTimeout(()=>{ if(!this.dead) createNinjaSmoke(np.clone(), 0.8) }, 80);
             }
-            this.group.position.x = np.x;
-            this.group.position.z = np.z;
+            this.group.position.x = np.x; this.group.position.z = np.z;
           }
         }
       }
@@ -1710,10 +1494,7 @@ class Enemy {
         audio.jump();
       }
       if(this.parts.legs){
-        this.parts.legs.forEach((leg,i)=>{
-          const by=leg.baseY||.5;
-          leg.mesh.position.y=by+Math.sin(Date.now()*.02+leg.phase)*.12;
-        });
+        this.parts.legs.forEach((leg,i)=>{ const by=leg.baseY||.5; leg.mesh.position.y=by+Math.sin(Date.now()*.02+leg.phase)*.12 });
       }
     }
 
@@ -1723,13 +1504,13 @@ class Enemy {
         const np=this.group.position.clone();
         np.x+=this.chargeDir.x*this.speed*2.5*60*dt; np.z+=this.chargeDir.z*this.speed*2.5*60*dt;
         if(!this.checkColliderCollision(np)){ this.group.position.x=np.x; this.group.position.z=np.z }
-        if(this.group.position.distanceTo(player.position) < 1.8){ damagePlayer(this.damage,'chariot',1.5); cameraShake(.4,.5); this.chargeTime=0; this.chargeCooldown=5 }
+        if(this.group.position.distanceTo(player.position) < 1.8){ damagePlayer(this.damage,'chariot',1.5); cameraShake(.4,.5); this.chargeTime=0; this.chargeCooldown=4 }  // ФАЗА А: cd 5→4
         this.parts.wheels.forEach(w=>w.rotation.x-=.5);
         this.facePlayer(dt,4); return;
       }
       if(this.chargeCooldown > 0) this.chargeCooldown -= dt;
       if(this.chargeCooldown <= 0 && dist < 16 && dist > 3){
-        this.chargeTime=1.3; this.chargeCooldown=5;
+        this.chargeTime=1.3; this.chargeCooldown=4;
         this.chargeDir={x:tdx/dist,z:tdz/dist};
         audio.dash();
       }
@@ -1839,7 +1620,8 @@ class Enemy {
       bg.userData.life=200;
       scene.add(bg); projectiles.push(bg);
     }
-    else if(this.weaponType === 'tank_shell') mk(.35,.35,0xff6600,300,{isRocket:true,tankShell:true,explodeRadius:4.5});
+    // ФАЗА А: Tank AOE 4.5→6
+    else if(this.weaponType === 'tank_shell') mk(.35,.35,0xff6600,300,{isRocket:true,tankShell:true,explodeRadius:6});
     else if(this.weaponType === 'shotgun'){
       for(let i=0;i<4;i++){
         const sd=dir.clone();
@@ -1859,8 +1641,7 @@ class Enemy {
     createExplosion(this.group.position);
     const d=player.position.distanceTo(this.group.position);
     if(d < this.explodeRadius) damagePlayer(this.damage*(1-d/this.explodeRadius),'bomber',1);
-    this.scatter();
-    scene.remove(this.group);
+    this.scatter(); scene.remove(this.group);
     const i=enemies.indexOf(this); if(i>-1) enemies.splice(i,1);
     enemiesKilled++; updateUI();
   }
@@ -1884,21 +1665,12 @@ class Enemy {
   takeDamage(dmg, hitPoint, damageType, opts){
     if(this.dead) return false;
     opts = opts || {};
-
     if(currentWeapon && currentWeapon.weaponClass === 'whip' && hasSignature('whip','crit',2)){
-      if(this.health < 50){
-        spawnDamageNumber(hitPoint, 9999, true);
-        this.die();
-        return true;
-      }
+      if(this.health < 50){ spawnDamageNumber(hitPoint, 9999, true); this.die(); return true }
     }
-
     if(this.type === 'cheerful' && currentWeapon && currentWeapon.weaponClass === 'whip'){
-      spawnDamageNumber(hitPoint, 9999, true);
-      this.die();
-      return true;
+      spawnDamageNumber(hitPoint, 9999, true); this.die(); return true;
     }
-
     if(this.type !== 'fortifier'){
       for(const f of activeFortifiers){
         if(f.dead) continue;
@@ -1915,8 +1687,7 @@ class Enemy {
       if(this.lastHitSegment === 0){ audio.hit(); spawnDamageNumber(hitPoint,dmg,true); this.die(); return true }
       else if(this.lastHitSegment > 0){
         audio.hit(); spawnDamageNumber(hitPoint,dmg,false);
-        this.health -= dmg;
-        this.damageFlash=.15;
+        this.health -= dmg; this.damageFlash=.15;
         if(this.health <= 0){ this.splitAt(this.lastHitSegment); return true }
         return false;
       }
@@ -1925,71 +1696,31 @@ class Enemy {
 
     const _dt = damageType !== undefined ? damageType : (currentWeapon ? currentWeapon.damageType : undefined);
     let fd = dmg;
-
     if(this.burnTimer > 0 && _dt === 'ice') fd *= 1.3;
     if(this.frozenTimer > 0 && _dt === 'fire') fd *= 1.5;
     if(this.poisonTimer > 0 && _dt === 'explosive') fd *= 1.3;
     if(this.slowTimer > 0 && opts.isCrit) fd *= 1.2;
 
-    if(ht === 'head'){
-      fd *= 2.5;
-      audio.headshot();
-      createBloodEffect(hitPoint, 'headshot');
-      cameraShake(.15,.2);
-      showHitmarker(true);
-      showHeadshotText();
-    } else if(ht === 'legs'){
-      fd *= .7;
-      audio.hit();
-      createBloodEffect(hitPoint, ['robot','tank','drone','spawner','trickster','chariot','fortifier','mortar','wallbreaker','ufo','ice_dog'].includes(this.type)?'robot':'human');
-      showHitmarker(false);
-    } else {
-      audio.hit();
-      createBloodEffect(hitPoint, ['robot','tank','drone','spawner','trickster','chariot','fortifier','mortar','wallbreaker','ufo','ice_dog'].includes(this.type)?'robot':'human');
-      showHitmarker(false);
-    }
+    if(ht === 'head'){ fd *= 2.5; audio.headshot(); createBloodEffect(hitPoint, 'headshot'); cameraShake(.15,.2); showHitmarker(true); showHeadshotText() }
+    else if(ht === 'legs'){ fd *= .7; audio.hit(); createBloodEffect(hitPoint, ['robot','tank','drone','spawner','trickster','chariot','fortifier','mortar','wallbreaker','ufo','ice_dog'].includes(this.type)?'robot':'human'); showHitmarker(false) }
+    else { audio.hit(); createBloodEffect(hitPoint, ['robot','tank','drone','spawner','trickster','chariot','fortifier','mortar','wallbreaker','ufo','ice_dog'].includes(this.type)?'robot':'human'); showHitmarker(false) }
 
     if(modifiers.includes('always_crit') || (modifiers.includes('critical') && Math.random()<.2)){ fd *= 3; cameraShake(.1,.2) }
     if(modifiers.includes('lifesteal')){ player.health=Math.min(player.maxHealth,player.health+5); updateUI() }
 
     if(opts.burn){ this.burnTimer=Math.max(this.burnTimer, opts.burn.duration); this.burnDps=opts.burn.dps; this.burnSpread=opts.burn.spread||0; this._burnSpreadApplied=false }
-    if(opts.poison){
-      this.poisonTimer=Math.max(this.poisonTimer, opts.poison.duration);
-      this.poisonDps=opts.poison.dps;
-      this.poisonStacks=Math.min(5, (this.poisonStacks||1) + (opts.poison.stacks||1) - 1);
-    }
+    if(opts.poison){ this.poisonTimer=Math.max(this.poisonTimer, opts.poison.duration); this.poisonDps=opts.poison.dps; this.poisonStacks=Math.min(5, (this.poisonStacks||1) + (opts.poison.stacks||1) - 1) }
     if(opts.slow){
       this.slowTimer=Math.max(this.slowTimer, opts.slow.duration);
-      this.iceHits++;
-      this.iceResetTimer=2;
-      if(hasSynergy('ice',2) && this.iceHits >= 3){
-        this.frozenTimer=Math.max(this.frozenTimer, 2);
-        this.iceHits=0;
-        audio.freeze();
-        showFreezeText();
-      }
+      this.iceHits++; this.iceResetTimer=2;
+      if(hasSynergy('ice',2) && this.iceHits >= 3){ this.frozenTimer=Math.max(this.frozenTimer, 2); this.iceHits=0; audio.freeze(); showFreezeText() }
     }
-    if(opts.freeze){
-      this.frozenTimer=Math.max(this.frozenTimer, opts.freeze.duration);
-      audio.freeze();
-    }
-    if(opts.freezeAoe){
-      enemies.slice().forEach(e=>{
-        if(!e.dead && e.group.position.distanceTo(this.group.position) < opts.freezeAoe){
-          e.frozenTimer=Math.max(e.frozenTimer, .5);
-        }
-      });
-    }
-    if(opts.isCrit && hasSynergy('crit',3)){
-      this.bleedTimer=Math.max(this.bleedTimer, 5);
-      this.bleedDps=5;
-    }
+    if(opts.freeze){ this.frozenTimer=Math.max(this.frozenTimer, opts.freeze.duration); audio.freeze() }
+    if(opts.freezeAoe){ enemies.slice().forEach(e=>{ if(!e.dead && e.group.position.distanceTo(this.group.position) < opts.freezeAoe){ e.frozenTimer=Math.max(e.frozenTimer, .5) } }) }
+    if(opts.isCrit && hasSynergy('crit',3)){ this.bleedTimer=Math.max(this.bleedTimer, 5); this.bleedDps=5 }
     if(currentWeapon && currentWeapon.weaponClass === 'icegun'){
       _icegunShotCounter++;
-      if(hasSignature('icegun','ice',2) && _icegunShotCounter % 3 === 0){
-        this.frozenTimer=Math.max(this.frozenTimer, 1.5);
-        audio.freeze();
-      }
+      if(hasSignature('icegun','ice',2) && _icegunShotCounter % 3 === 0){ this.frozenTimer=Math.max(this.frozenTimer, 1.5); audio.freeze() }
     }
 
     if(_dt === 'fire') this.burnTimer=Math.max(this.burnTimer, 3);
@@ -2003,11 +1734,7 @@ class Enemy {
     this.health -= fd;
     this.damageFlash = .15;
     spawnDamageNumber(hitPoint, fd, ht === 'head');
-
-    if(['robot','drone'].includes(this.type)){
-      this.overload += fd;
-      if(this.overload > 50){ this.explode(); return true }
-    }
+    if(['robot','drone'].includes(this.type)){ this.overload += fd; if(this.overload > 50){ this.explode(); return true } }
     if(this.health <= 0){ this.die(); return true }
     return false;
   }
@@ -2015,12 +1742,10 @@ class Enemy {
   explode(){
     if(this.dead) return;
     this.dead=true;
-    audio.explosion();
-    cameraShake(.3,.5);
+    audio.explosion(); cameraShake(.3,.5);
     createExplosion(this.group.position);
     enemies.slice().forEach(e=>{ if(!e.dead && e !== this && e.group.position.distanceTo(this.group.position) < 3) e.takeDamage(30, e.group.position) });
-    this.scatter();
-    scene.remove(this.group);
+    this.scatter(); scene.remove(this.group);
     const i=enemies.indexOf(this); if(i>-1) enemies.splice(i,1);
     enemiesKilled++; updateUI();
   }
@@ -2040,23 +1765,14 @@ class Enemy {
         scene.add(ring); aoeSpheres.push({mesh:ring, life:.6, maxLife:.6});
         cameraShake(.15,.25);
       }
-      audio.death();
-      createBloodEffect(this.group.position,'robot');
+      audio.death(); createBloodEffect(this.group.position,'robot');
       this.scatter(); scene.remove(this.group);
       const i=enemies.indexOf(this); if(i>-1) enemies.splice(i,1);
       enemiesKilled++; updateUI();
       return;
     }
-
-    if(this.type === 'illusionist'){
-      this.killAllCopies();
-    }
-
-    // NINJA death — big smoke
-    if(this.type === 'ninja'){
-      createNinjaSmoke(this.group.position.clone(), 2.2);
-      audio.dash();
-    }
+    if(this.type === 'illusionist'){ this.killAllCopies() }
+    if(this.type === 'ninja'){ createNinjaSmoke(this.group.position.clone(), 2.2); audio.dash() }
 
     this.dead=true;
     audio.death();
@@ -2068,7 +1784,6 @@ class Enemy {
       player.health = Math.min(player.maxHealth, player.health + Math.floor(this.maxHealth * 0.1));
       updateUI();
     }
-
     if(this.type === 'slug'){
       createPoisonPuddle(this.group.position.clone());
       const ang1 = Math.random() * Math.PI * 2;
@@ -2076,40 +1791,21 @@ class Enemy {
       createPoisonPuddle(new THREE.Vector3(this.group.position.x + Math.cos(ang1) * 0.8, 0.05, this.group.position.z + Math.sin(ang1) * 0.8));
       createPoisonPuddle(new THREE.Vector3(this.group.position.x + Math.cos(ang2) * 0.8, 0.05, this.group.position.z + Math.sin(ang2) * 0.8));
     }
-
     if(hasSynergy('poison',2) && (this.poisonTimer > 0 || (currentWeapon && currentWeapon.damageType === 'acid'))){
       createPoisonPuddle(this.group.position.clone());
     }
     if(hasSynergy('fire',3) && this.burnTimer > 0){
       createExplosion(this.group.position);
       createAOESphere(this.group.position, 3, 0xff4400);
-      enemies.slice().forEach(e=>{
-        if(!e.dead && e !== this && e.group.position.distanceTo(this.group.position) < 3)
-          e.takeDamage(30, e.group.position, 'fire');
-      });
+      enemies.slice().forEach(e=>{ if(!e.dead && e !== this && e.group.position.distanceTo(this.group.position) < 3) e.takeDamage(30, e.group.position, 'fire') });
     }
     if(hasSynergy('explosive',3)){
       createExplosion(this.group.position);
       createAOESphere(this.group.position, 3, 0xff8800);
-      enemies.slice().forEach(e=>{
-        if(!e.dead && e !== this && e.group.position.distanceTo(this.group.position) < 3)
-          e.takeDamage(40, e.group.position, 'explosive');
-      });
+      enemies.slice().forEach(e=>{ if(!e.dead && e !== this && e.group.position.distanceTo(this.group.position) < 3) e.takeDamage(40, e.group.position, 'explosive') });
     }
-    if(hasSynergy('summon',3)){
-      const mn = new Enemy('runner', this.group.position.clone().add(new THREE.Vector3(1,0,0)), {friendlyMinion:true});
-      mn.isFriendlyMinion = true;
-      mn.health = 20; mn.maxHealth = 20; mn.damage = 15;
-      mn.parts.bodyMat.color.setHex(0x00ff66);
-      enemies.push(mn);
-    }
-    if(currentWeapon && currentWeapon.weaponClass === 'necro' && hasSignature('necro','poison',3)){
-      const z = new Enemy('runner', this.group.position.clone(), {friendlyMinion:true});
-      z.isFriendlyMinion = true;
-      z.health = 20; z.maxHealth = 20; z.damage = 15;
-      z.parts.bodyMat.color.setHex(0x66cc00);
-      enemies.push(z);
-    }
+    // ФАЗА B: SUMMON R3 убран — миньоны не спавнятся
+    // Necro signature — тоже убран (summon не существует)
     if(hasSynergy('aoe',3)){
       enemies.slice().forEach(e=>{
         if(!e.dead && e !== this && e.group.position.distanceTo(this.group.position) < 6){
@@ -2119,14 +1815,12 @@ class Enemy {
         }
       });
     }
-
     if(modifiers.includes('vampire')) player.health=Math.min(player.maxHealth,player.health+10);
     if(modifiers.includes('vampire_plus')) player.health=Math.min(player.maxHealth,player.health+20);
     if(modifiers.includes('armor_on_kill')) player.armor=Math.min(player.maxArmor,player.armor+10);
     if(modifiers.includes('poison')) createPoisonCloud(this.group.position);
     if(modifiers.includes('aoe_kill')){
-      audio.explosion();
-      createExplosion(this.group.position);
+      audio.explosion(); createExplosion(this.group.position);
       enemies.slice().forEach(e=>{ if(!e.dead && e !== this && e.group.position.distanceTo(this.group.position) < 4) e.takeDamage(50, e.group.position) });
     }
     if(this.type === 'trickster'){
@@ -2142,8 +1836,7 @@ class Enemy {
       if(this.parts.shield){ this.group.remove(this.parts.shield); disposeGroup(this.parts.shield); this.parts.shield=null }
     }
     if(this.type === 'ufo'){
-      audio.explosion();
-      createExplosion(this.group.position);
+      audio.explosion(); createExplosion(this.group.position);
       const count=2+Math.floor(Math.random()*2);
       for(let i=0;i<count;i++){
         const ang=(i/count)*Math.PI*2, r=1.5;
@@ -2155,11 +1848,9 @@ class Enemy {
     if(dc !== undefined && Math.random() < dc) spawnMedkit(this.group.position.clone());
     const ac = ARMOR_CHANCE[this.type];
     if(ac !== undefined && Math.random() < ac) spawnArmorPickup(this.group.position.clone());
-    this.scatter();
-    scene.remove(this.group);
+    this.scatter(); scene.remove(this.group);
     const i=enemies.indexOf(this); if(i>-1) enemies.splice(i,1);
-    enemiesKilled++;
-    updateUI();
+    enemiesKilled++; updateUI();
   }
 
   scatter(){
@@ -2167,8 +1858,7 @@ class Enemy {
       if(c.isMesh){
         const d={mesh:c.clone(),velocity:new THREE.Vector3((Math.random()-.5)*.3,Math.random()*.3+.2,(Math.random()-.5)*.3),angularVelocity:new THREE.Vector3((Math.random()-.5)*.2,(Math.random()-.5)*.2,(Math.random()-.5)*.2),life:300,grounded:false};
         d.mesh.position.copy(c.getWorldPosition(new THREE.Vector3()));
-        scene.add(d.mesh);
-        debris.push(d);
+        scene.add(d.mesh); debris.push(d);
       }
     });
   }
