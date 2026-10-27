@@ -131,6 +131,7 @@ body.hub-mode #glitch-overlay{display:none!important}
 .nest-card.bought::after{content:'✓ КУПЛЕНО';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-15deg);font-size:24px;font-weight:bold;color:#0f0;text-shadow:0 0 10px #0f0,0 0 20px #0f0;letter-spacing:2px;z-index:20;pointer-events:none}
 .nest-card.no-money{opacity:.55}
 .nest-card.no-money:hover{transform:none;border-color:#a00;box-shadow:none;animation:cardFloat 3s ease-in-out infinite alternate;cursor:not-allowed}
+.nest-card.locked{pointer-events:none;cursor:wait}
 
 .nest-card-icon{font-size:40px;text-align:center;margin-bottom:8px}
 .nest-card-type{font-size:10px;letter-spacing:1px;color:#888;text-transform:uppercase;margin-bottom:4px}
@@ -147,7 +148,6 @@ body.hub-mode #glitch-overlay{display:none!important}
 .nest-tag.speed{border-color:#0ff;color:#0ff}
 .nest-tag.aoe{border-color:#c4f;color:#c4f}
 .nest-card-hint{margin-top:6px;font-size:10px;color:#ff0;text-align:center;padding:3px;border-top:1px dashed #333}
-.nest-card-key{position:absolute;top:6px;right:6px;padding:3px 10px;background:rgba(0,0,0,.85);border:2px solid #ff0;border-radius:4px;font-size:14px;font-weight:bold;color:#ff0;box-shadow:0 0 10px rgba(255,255,0,.7);z-index:5;font-family:'Courier New',monospace;letter-spacing:1px}
 .nest-card-price{position:absolute;bottom:6px;left:6px;right:6px;padding:7px;background:rgba(255,180,0,.92);color:#000;font-weight:bold;font-size:15px;border-radius:4px;text-align:center;letter-spacing:1px;z-index:6;font-family:'Courier New',monospace}
 .nest-card-price.poor{background:rgba(120,40,40,.92);color:#fff}
 
@@ -159,7 +159,7 @@ body.hub-mode #glitch-overlay{display:none!important}
 #info-btn{background:linear-gradient(135deg,#ff0,#a80);color:#000;box-shadow:0 0 15px rgba(255,200,0,.7)}
 #info-btn:hover{transform:scale(1.06);box-shadow:0 0 25px rgba(255,200,0,1)}
 #exit-btn{background:linear-gradient(135deg,#999,#444);color:#fff;box-shadow:0 0 15px rgba(160,160,160,.7)}
-#exit-btn:hover:not(:disabled){transform:scale(1.06);box-shadow:0 0 25px rgba(200,200,200,1)}
+#exit-btn:hover{transform:scale(1.06);box-shadow:0 0 25px rgba(200,200,200,1)}
 
 #nest-synergy-status{margin-top:14px;font-size:12px;color:#8f8;letter-spacing:1px}
 
@@ -197,7 +197,8 @@ body.hub-mode #glitch-overlay{display:none!important}
 .syn-panel-buff{padding:5px 8px;background:rgba(0,0,0,.4);border:1px solid #333;border-radius:3px;display:flex;justify-content:space-between}
 .syn-panel-buff-label{color:#888}
 .syn-panel-buff-val{color:#0f0;font-weight:bold}
-.syn-panel-close{text-align:center;margin-top:16px;padding-top:12px;border-top:1px dashed #0f0;color:#8f8;font-size:12px;letter-spacing:1px;position:sticky;bottom:0;background:linear-gradient(180deg,rgba(0,10,0,.85),rgba(0,10,0,.98));padding-bottom:6px}
+.syn-panel-close{text-align:center;margin-top:16px;padding:10px;border:2px solid #0f0;border-radius:5px;background:rgba(0,60,0,.4);color:#8f8;font-size:13px;font-weight:bold;letter-spacing:1px;cursor:pointer;transition:all .15s}
+.syn-panel-close:hover{background:rgba(0,120,0,.6);color:#0f0;box-shadow:0 0 15px rgba(0,255,0,.6)}
 
 #curse-indicator{position:absolute;bottom:270px;left:20px;padding:6px 12px;background:rgba(60,0,0,.85);border:2px solid #f00;border-radius:5px;font-size:12px;color:#f88;font-weight:bold;display:none;letter-spacing:1px;box-shadow:0 0 10px rgba(255,0,0,.5)}
 #curse-indicator.show{display:block}
@@ -506,9 +507,9 @@ body.hub-mode #hub-wave{display:block}
   <p id="nest-hint">Выбери карту для покупки</p>
   <div id="nest-cards"></div>
   <div id="nest-buttons">
-    <button id="reroll-btn" class="nest-btn">🔄 РЕРОЛЛ <span class="key-hint">[A]</span></button>
-    <button id="info-btn" class="nest-btn">📊 СИНЕРГИИ <span class="key-hint">[D]</span></button>
-    <button id="exit-btn" class="nest-btn">🚪 ВЫЙТИ <span class="key-hint">[ESC]</span></button>
+    <button id="reroll-btn" class="nest-btn">🔄 РЕРОЛЛ</button>
+    <button id="info-btn" class="nest-btn">📊 СИНЕРГИИ</button>
+    <button id="exit-btn" class="nest-btn">🚪 ВЫЙТИ</button>
   </div>
   <div id="nest-synergy-status"></div>
 </div>
@@ -516,7 +517,7 @@ body.hub-mode #hub-wave{display:block}
 <div id="nest-synergy-panel">
   <div class="syn-panel-header">📊 СИНЕРГИИ И БАФФЫ</div>
   <div id="nest-synergy-panel-body"></div>
-  <div class="syn-panel-close">[D] / [ESC] — закрыть · [↑][↓] — скролл</div>
+  <div class="syn-panel-close" id="syn-panel-close-btn">✕ ЗАКРЫТЬ</div>
 </div>
 
 <!-- ═══ CASINO OVERLAY ═══ -->
@@ -529,8 +530,8 @@ body.hub-mode #hub-wave{display:block}
   </div>
   <div id="casino-info">Кредиты: <b style="color:#ff0">0💰</b> · Спин: <b>0/5</b></div>
   <div id="casino-msg"></div>
-  <button id="casino-spin-btn" class="mini-btn">[E] КРУТИТЬ (10💰)</button>
-  <button class="mini-close" onclick="hub.closeCasino()">[ESC] ЗАКРЫТЬ</button>
+  <button id="casino-spin-btn" class="mini-btn">КРУТИТЬ (10💰)</button>
+  <button class="mini-close" onclick="hub.closeCasino()">ЗАКРЫТЬ</button>
 </div>
 
 <!-- ═══ DICE OVERLAY ═══ -->
@@ -539,8 +540,8 @@ body.hub-mode #hub-wave{display:block}
   <div id="dice-result">?</div>
   <div id="dice-info">Кредиты: <b style="color:#ff0">0💰</b> · Бросок: <b>0/5</b></div>
   <div id="dice-msg"></div>
-  <button id="dice-roll-btn" class="mini-btn">[E] БРОСИТЬ (5💰)</button>
-  <button class="mini-close" onclick="hub.closeDice()">[ESC] ЗАКРЫТЬ</button>
+  <button id="dice-roll-btn" class="mini-btn">БРОСИТЬ (5💰)</button>
+  <button class="mini-close" onclick="hub.closeDice()">ЗАКРЫТЬ</button>
 </div>
 
 <!-- ═══ BLOOD STATION OVERLAY ═══ -->
@@ -552,8 +553,8 @@ body.hub-mode #hub-wave{display:block}
     Нельзя опустить HP ниже <b style="color:#f00">30</b>
   </p>
   <div id="blood-msg"></div>
-  <button id="blood-donate-btn" class="mini-btn">[E] СДАТЬ 20 HP (+10💰)</button>
-  <button class="mini-close" onclick="hub.closeBloodStation()">[ESC] ЗАКРЫТЬ</button>
+  <button id="blood-donate-btn" class="mini-btn">СДАТЬ 20 HP (+10💰)</button>
+  <button class="mini-close" onclick="hub.closeBloodStation()">ЗАКРЫТЬ</button>
 </div>
 
 <div id="game-over">
