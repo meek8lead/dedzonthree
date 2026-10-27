@@ -1,5 +1,5 @@
 'use strict';
-// INDUSTRIAL ROGUE SHOOTER v6.0 — GAME (Pity + Credits + Shop + Hub)
+// INDUSTRIAL ROGUE SHOOTER v6.1 — GAME (Pity + Credits + Shop + Hub)
 
 let doomThisWave = false;
 let nextWaveDoom = false;
@@ -10,17 +10,15 @@ let isSynergyPanelOpen = false;
 let pickLocked = false;
 let waveSpawnTimers = [];
 
-// Кредиты + PITY
 let credits = 0;
 let _lastEnemiesKilled = 0;
 let pityCounters = {};
 SYNERGY_TAGS.forEach(t => pityCounters[t] = 0);
 
-// Цены карт
 const CARD_PRICES = { common: 20, rare: 40, epic: 70, legendary: 120, curse: 10 };
 const REROLL_PRICE = 20;
+const CARD_KEY_LABELS = ['Q','W','E','R','T'];
 
-// PITY SYSTEM
 function updatePityAfterPick(pickedCard){
   const pickedTags = (pickedCard && pickedCard.tags) || [];
   for(const tag of SYNERGY_TAGS){
@@ -58,19 +56,13 @@ function rollCardSmart(isElite = false){
   if(guaranteed.length > 0){
     const tag = guaranteed[Math.floor(Math.random()*guaranteed.length)];
     const card = pickCardForTag(tag);
-    if(card){
-      card.pityForced = tag;
-      return card;
-    }
+    if(card){ card.pityForced = tag; return card; }
   }
   const boosted = SYNERGY_TAGS.filter(t => pityCounters[t] >= PITY.boostAfter);
   if(boosted.length > 0 && Math.random() < 0.5){
     const tag = boosted[Math.floor(Math.random()*boosted.length)];
     const card = pickCardForTag(tag);
-    if(card){
-      card.pityBoosted = tag;
-      return card;
-    }
+    if(card){ card.pityBoosted = tag; return card; }
   }
   return rollCard(isElite);
 }
@@ -506,7 +498,7 @@ function createCardElement(card, idx){
     cardDesc = card.utility.desc;
   }
   if(card.isMemWeapon) typeName = '💀 МЕМ-ОРУЖИЕ';
-  const keyLabels = ['Q', 'W', 'E', 'R', 'T'];
+  const keyLabels = CARD_KEY_LABELS;
   let pityHint = '';
   if(card.pityForced) pityHint = `<div class="nest-card-hint" style="color:#0ff">🎁 ГАРАНТИЯ: ${SYNERGY_META[card.pityForced].icon}</div>`;
   else if(card.pityBoosted) pityHint = `<div class="nest-card-hint" style="color:#8f8">✨ БУСТ: ${SYNERGY_META[card.pityBoosted].icon}</div>`;
@@ -540,6 +532,30 @@ function updateRerollButton(){
   btn.disabled = !canAfford;
   btn.innerHTML = `🔄 РЕРОЛЛ (-${REROLL_PRICE}💰) <span class="key-hint">[A]</span>`;
 }
+function refreshNestCards(){
+  if(!DOM.nestCards) return;
+  const els = DOM.nestCards.querySelectorAll('.nest-card');
+  currentDraft.forEach((card, i) => {
+    const el = els[i];
+    if(!el) return;
+    const price = cardPrice(card);
+    const affordable = credits >= price;
+    if(card.bought){
+      el.classList.add('bought');
+      el.classList.remove('no-money');
+      const p = el.querySelector('.nest-card-price');
+      if(p){ p.classList.remove('poor'); p.textContent = '✓ КУПЛЕНО'; }
+    } else {
+      el.classList.toggle('no-money', !affordable);
+      const p = el.querySelector('.nest-card-price');
+      if(p){
+        p.classList.toggle('poor', !affordable);
+        p.textContent = `💰 ${price}  [${CARD_KEY_LABELS[i] || '?'}]`;
+      }
+    }
+  });
+  updateRerollButton();
+}
 function renderNestScreen(){
   if(!DOM.nestScreen) return;
   DOM.nestScreen.style.display = 'block';
@@ -551,6 +567,10 @@ function renderNestScreen(){
     const cardEl = createCardElement(card, i);
     cardEl.style.opacity = '0';
     cardsEl.appendChild(cardEl);
+    cardEl.addEventListener('click', (e) => {
+      e.stopPropagation();
+      pickCard(i);
+    });
     setTimeout(() => {
       cardEl.style.transition = 'opacity .4s';
       cardEl.style.opacity = '1';
@@ -600,8 +620,7 @@ function pickCard(idx){
   card.bought = true;
   audio.cardPick();
   updateUI();
-  // Перерисовываем — купленная карта становится серой
-  renderNestScreen();
+  refreshNestCards();
   renderNestSynergyStatus();
 }
 
@@ -637,7 +656,6 @@ function closeDraft(){
   }
 }
 
-// continueToWave вызывается ИЗ hub.exit() при телепорте — стартует следующую волну
 function continueToWave(){
   const ns = document.getElementById('nest-screen');
   if(ns) ns.style.display = 'none';
@@ -804,7 +822,6 @@ function animate(){
   if(hitstopTime > 0){ hitstopTime -= realDt; dt = Math.min(realDt, .1)*.08 }
   if(isGameOver){ renderer.render(scene, camera); return }
 
-  // HUB MODE
   if(hubMode){
     if(hub) hub.update(dt);
     renderer.render(hubScene, camera);
@@ -1443,7 +1460,6 @@ function animate(){
               createBloodEffect(hitResult.pos, 'robot');
             }
           } else if(p.userData.isSun){
-            // proximity handled
           } else {
             if(p.userData.hitEnemies && p.userData.hitEnemies.includes(e)) continue;
             const hitDmg = getFalloffDamage(p.userData.damage, p, hitResult.pos);
@@ -1581,7 +1597,9 @@ function buildOpts(p){
 }
 
 document.addEventListener('keydown', e=>{
-  if(hubMode) return;
+  // В хабе играем только если открыт драфт/синергии. Иначе hub.js обрабатывает.
+  if(hubMode && !isNestActive && !isSynergyPanelOpen) return;
+
   if(isSynergyPanelOpen){
     if(e.code === 'KeyD' || e.code === 'Escape'){ toggleSynergyPanel(); e.preventDefault(); return; }
     const panel = document.getElementById('nest-synergy-panel');
@@ -1607,6 +1625,7 @@ document.addEventListener('keydown', e=>{
     if(e.code === 'KeyD'){ toggleSynergyPanel(); e.preventDefault(); return; }
     return;
   }
+
   keys[e.code] = true;
   if(e.code === 'KeyR' && !isGameOver && !isNestActive) reload();
   if(e.code === 'Space' && !isGameOver && !isNestActive){
@@ -1642,7 +1661,6 @@ document.addEventListener('mouseup', e=>{
 });
 document.addEventListener('contextmenu', e=>e.preventDefault());
 document.addEventListener('wheel', e=>{
-  if(hubMode) return;
   if(isNestActive || ownedWeapons.length < 2) return;
   switchSlot(e.deltaY > 0 ? 1 : -1);
 });
@@ -1669,7 +1687,6 @@ if(exitBtn) exitBtn.addEventListener('click', e=>{ e.stopPropagation(); if(isNes
 const infoBtn = document.getElementById('info-btn');
 if(infoBtn) infoBtn.addEventListener('click', e=>{ e.stopPropagation(); if(isNestActive) toggleSynergyPanel() });
 
-// Устаревшие doom-функции (диалог убран)
 function doomAccept(){ pendingDoomChoice = false; nextWaveDoom = true; }
 function doomSkip(){ pendingDoomChoice = false; nextWaveDoom = false; }
 
@@ -1733,5 +1750,5 @@ window.onerror = function(message, source, lineno, colno, error){
   }
 };
 window.addEventListener('unhandledrejection', event=>{ GameLogger.error(`UNHANDLED PROMISE: ${event.reason}`) });
-GameLogger.info('=== v6.1 STARTED (Hub economy + combat sandbox) ===');
+GameLogger.info('=== v6.2 STARTED (Hub shooting + stage + economy) ===');
 window.GameLogger = GameLogger;
