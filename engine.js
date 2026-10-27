@@ -1,5 +1,5 @@
 'use strict';
-// INDUSTRIAL ROGUE SHOOTER v5.0 — ENGINE (with Nest synergy system)
+// INDUSTRIAL ROGUE SHOOTER v6.0 — ENGINE (audio, scene, state, synergy system)
 
 // ═══ AUDIO ═══
 class AudioManager {
@@ -119,7 +119,6 @@ class AudioManager {
     this._noise(.1,.2,400,2000);
     setTimeout(()=>this._tone(1400,300,'sawtooth',.1,.25),80);
   }
-  // NEW: Nest sounds
   slotDing(){this._tone(1800,2400,'sine',.12,.5);this._tone(2800,3600,'triangle',.08,.22)}
   slotSpin(){this._tone(400,600,'square',.05,.1)}
   synergyUp(){
@@ -139,7 +138,7 @@ class AudioManager {
 }
 const audio = new AudioManager();
 
-// ═══ GLITCH / TRICKSTER (unchanged) ═══
+// ═══ GLITCH / TRICKSTER ═══
 let lastGlitchTime = 0;
 function damageGlitch(intensity){
   const now = performance.now();
@@ -243,7 +242,7 @@ const DOM = {};
   DOM[id.replace(/-([a-z])/g,(m,c)=>c.toUpperCase())] = document.getElementById(id);
 });
 
-// ═══ STATE ═══
+// ═══ GLOBAL STATE ═══
 let recoilPitchAccum = 0, recoilRollAccum = 0;
 let isAiming = false;
 const player = {
@@ -269,7 +268,7 @@ let bonusRerolls = 0;
 let perditionLevel = 0;
 let perditionActive = false;
 
-// ═══ PLAYER BUFFS (от апгрейдов) ═══
+// ═══ PLAYER BUFFS ═══
 const playerBuffs = {
   damageMult: 1.0,
   critChance: 0.0,
@@ -325,11 +324,8 @@ let debugToastTimer = null;
 let modifiers = [];
 let wave = 1, enemiesKilled = 0, waveTotalEnemies = 0;
 let isNestActive = false, nestUsedThisWave = false, isSpinning = false, waveSpawning = false;
-let currentDraft = []; // 3-4 cards
+let currentDraft = [];
 let rerollsUsedThisWave = 0;
-let isDoomPending = false;
-let isDoomActive = false;
-let isGoldenDraft = false;
 let keys = {};
 let mouseDown = false, isPointerLocked = false;
 let wasMouseDown = false;
@@ -400,7 +396,6 @@ function triggerSynergyUp(tag, level){
   showSynergyBanner(meta.icon + ' ' + bonus.name + ' — ' + bonus.desc);
   audio.synergyUp();
   spawnPlayerAura(meta.color);
-  // Tank R1/R2 — постоянные бонусы
   if(tag === 'tank'){
     if(level === 1){
       player.maxHealth += 25;
@@ -448,7 +443,7 @@ function renderSynergyHUD(){
     const activeCls = s.count > 0 ? 'active' : '';
     html += `<div class="syn-item ${classStr} ${activeCls}" title="${meta.name}">
       <span class="syn-icon">${meta.icon}</span>
-      <span class="syn-count">${Math.min(9,s.count)}/3</span>
+      <span class="syn-count">${Math.min(9,s.count)}/${SYNERGY_THRESHOLDS[0]}</span>
     </div>`;
   });
   el.innerHTML = html;
@@ -479,7 +474,6 @@ function updateCurseIndicator(){
 // ═══ APPLY CARDS ═══
 function applyCardEffect(card){
   if(!card) return;
-  // 1. Применить теги
   if(card.tags && card.tags.length > 0){
     card.tags.forEach(t => {
       if(t === 'random'){
@@ -490,7 +484,6 @@ function applyCardEffect(card){
       }
     });
   }
-  // 2. Применить эффект по типу
   if(card.cardType === 'weapon' && card.weapon){
     applyWeaponCard(card.weapon);
   } else if(card.cardType === 'modifier' && card.modifier){
@@ -502,7 +495,6 @@ function applyCardEffect(card){
   } else if(card.cardType === 'utility' && card.utility){
     applyUtilityCard(card.utility);
   }
-  // 3. Handle random tag for curse
   if(card.curse && card.curse.id === 'c_curse'){
     addTag(SYNERGY_TAGS[Math.floor(Math.random()*SYNERGY_TAGS.length)]);
     addTag(SYNERGY_TAGS[Math.floor(Math.random()*SYNERGY_TAGS.length)]);
@@ -519,23 +511,26 @@ function applyModifierCard(mod){
     player.maxHealth = Math.max(20, Math.floor(player.maxHealth*.5));
     player.health = Math.min(player.health, player.maxHealth);
   }
-  // Apply permanent effects
   if(mod.id === 'regen') playerBuffs.regenRate += 1;
-  if(mod.id === 'more_ammo') {}
 }
 function applyUpgradeCard(upgrade){
   if(!upgrade) return;
   if(upgrade.effect === 'player'){
     const key = upgrade.key;
-    if(upgrade.op === 'add') player[key] = (player[key]||0) + upgrade.value;
-    else if(upgrade.op === 'mul') player[key] = (player[key]||0) * upgrade.value;
+    if(upgrade.op === 'add'){
+      const oldMax = player.maxHealth;
+      player[key] = (player[key]||0) + upgrade.value;
+      if(key === 'maxHealth' && player.maxHealth > oldMax){
+        player.health += (player.maxHealth - oldMax);
+      }
+    } else if(upgrade.op === 'mul') player[key] = (player[key]||0) * upgrade.value;
   } else if(upgrade.effect === 'playerBuff'){
     const key = upgrade.key;
     if(upgrade.op === 'add') playerBuffs[key] = (playerBuffs[key]||0) + upgrade.value;
     else if(upgrade.op === 'mul') playerBuffs[key] = (playerBuffs[key]||1) * upgrade.value;
   }
-  // Clamp HP
   if(player.health > player.maxHealth) player.health = player.maxHealth;
+  updateUI();
 }
 function applyCurseCard(curse){
   if(!curse) return;
@@ -551,7 +546,10 @@ function applyCurseCard(curse){
           if(k === 'maxHealth') player.maxHealth = Math.max(20, Math.floor(player.maxHealth * m));
         } else if(v.startsWith('+')){
           const a = parseFloat(v.slice(1));
-          player[k] = (player[k]||0) + a;
+          if(k === 'maxHealth'){
+            player.maxHealth += a;
+            player.health += a;
+          } else player[k] = (player[k]||0) + a;
         } else if(v.startsWith('-')){
           const a = parseFloat(v.slice(1));
           player[k] = Math.max(0, (player[k]||0) - a);
@@ -570,8 +568,6 @@ function applyCurseCard(curse){
   if(app.selfDamageOnDash) playerBuffs.selfDamageOnDash = app.selfDamageOnDash;
   if(app.selfDamageOnShot) playerBuffs.selfDamageOnShot = app.selfDamageOnShot;
   if(app.disableRegen) playerBuffs.disableRegen = true;
-  if(app.randomDoubleTag) {}
-  // Clamp
   player.maxHealth = Math.max(20, player.maxHealth);
   if(player.health > player.maxHealth) player.health = player.maxHealth;
   updateCurseIndicator();
@@ -595,7 +591,7 @@ function applyUtilityCard(util){
   if(app.buff && app.buff.nextWaveSlow) playerBuffs.nextWaveSlow = app.buff.nextWaveSlow;
 }
 
-// ═══ COLLISIONS (unchanged) ═══
+// ═══ COLLISIONS ═══
 function hasLineOfSight(from, to){
   if(modifiers.includes('ghost_bullets')) return true;
   const dir = new THREE.Vector3().subVectors(to, from);
@@ -780,11 +776,9 @@ function getFalloffDamage(baseDmg, p, hitPos){
   return baseDmg*(1-(1-minMult)*t);
 }
 
-// ═══ DAMAGE PLAYER (расширено с TANK R3) ═══
+// ═══ DAMAGE PLAYER ═══
 function damagePlayer(dmg, src, glitchIntensity, opts){
   opts = opts || {};
-  // TIME TANK duo - reduced damage in slow-time
-  if(hgState === 'slow' && activeDuos.includes('timetank')) dmg *= 0.6;
   let armorToTake = 0, hpToTake = dmg;
   const armorEff = hasSynergy('tank',3) ? 0.70 : 0.5;
   if(opts.armorMult !== undefined || opts.hpMult !== undefined){
@@ -796,7 +790,6 @@ function damagePlayer(dmg, src, glitchIntensity, opts){
   }
   if(player.armor > 0 && armorToTake > 0) player.armor -= Math.min(player.armor, armorToTake);
   player.health -= hpToTake;
-  // TANK R3 reflect
   if(hasSynergy('tank',3) && hpToTake > 0){
     const reflectDmg = hpToTake * 0.25;
     enemies.slice().forEach(e=>{
@@ -805,7 +798,6 @@ function damagePlayer(dmg, src, glitchIntensity, opts){
       }
     });
   }
-  // TOXIC TANK duo - poison attackers
   if(activeDuos.includes('toxictank') && hpToTake > 0){
     enemies.slice().forEach(e=>{
       if(!e.dead && e.group.position.distanceTo(player.position) < 3){
@@ -842,7 +834,7 @@ function disposeProjectile(p){
   scene.remove(p);
 }
 
-// ═══ PICKUPS (unchanged) ═══
+// ═══ PICKUPS ═══
 function spawnMedkit(pos){
   while(medkits.length >= 3){
     const old = medkits.shift();
@@ -933,7 +925,7 @@ function spawnSlowTrap(pos){
   slowTraps.push({group, ring, beacon, light, life:10, maxLife:10, radius});
 }
 
-// ═══ SHIELD / TURRET / EFFECTS (unchanged) ═══
+// ═══ SHIELD ═══
 function createShieldImpact(pos){
   const now = performance.now();
   if(!createShieldImpact._last || now-createShieldImpact._last > 50){
@@ -1051,9 +1043,8 @@ class Turret {
       const dx = nearest.group.position.x - this.group.position.x;
       const dz = nearest.group.position.z - this.group.position.z;
       this.headGroup.rotation.y = Math.atan2(dx,dz)+Math.PI;
-      const fireRate = hasSynergy('summon',1) ? TURRET_FIRE_RATE*1.5 : TURRET_FIRE_RATE;
       this.fireTimer += dt;
-      if(this.fireTimer >= fireRate){
+      if(this.fireTimer >= TURRET_FIRE_RATE){
         this.fireTimer = 0;
         this.shoot(nearest);
       }
@@ -1069,7 +1060,6 @@ class Turret {
     scene.add(beam);
     setTimeout(()=>{scene.remove(beam);beam.geometry.dispose();beam.material.dispose()}, 100);
     let dmg = 30;
-    // SNIPER TURRETS duo - crits
     if(activeDuos.includes('sniturrets') && Math.random() < 0.25) dmg *= 3;
     target.takeDamage(dmg, to);
   }
@@ -1086,7 +1076,7 @@ class Turret {
   }
 }
 
-// ═══ EFFECTS ═══
+// ═══ VISUAL EFFECTS ═══
 function showHitmarker(isHead){
   const hm = document.getElementById('hitmarker');
   if(!hm) return;
@@ -1157,7 +1147,6 @@ function createMuzzleFlash(){
     piercing:0x00ffff, explosive:0xff8800, poison:0x88ff33
   };
   const color = cols[currentWeapon.damageType] || 0xffff00;
-  // Bigger, longer-lived flash
   const f = new THREE.Mesh(new THREE.SphereGeometry(.48,8,8), new THREE.MeshBasicMaterial({color, transparent:true, opacity:1}));
   f.position.copy(camera.position);
   const d = new THREE.Vector3(0,0,-1);
@@ -1166,7 +1155,6 @@ function createMuzzleFlash(){
   f.userData.life = 10;
   scene.add(f);
   particles.push(f);
-  // Additional side sparks
   for(let i=0;i<4;i++){
     const sp = new THREE.Mesh(new THREE.SphereGeometry(.1,4,4), new THREE.MeshBasicMaterial({color, transparent:true, opacity:1}));
     sp.position.copy(camera.position).add(d.clone().multiplyScalar(1.1));
@@ -1184,7 +1172,6 @@ function createMuzzleFlash(){
   scene.add(flash);
   setTimeout(()=>scene.remove(flash), 80);
 
-  // ═══ PISTOL SMOKE ═══
   if(currentWeapon.weaponClass === 'pistol' || currentWeapon.weaponClass === 'revolver'){
     for(let i=0;i<5;i++){
       const smoke = new THREE.Mesh(
