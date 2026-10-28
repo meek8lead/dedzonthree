@@ -1,5 +1,5 @@
 'use strict';
-// INDUSTRIAL ROGUE SHOOTER v6.5 — HUB (motorik prog rock, barmaid, cowboy, mini dog, potted verkhushka, hanging drone)
+// INDUSTRIAL ROGUE SHOOTER v6.6 — HUB (fixed limbs, hair, clickable menu buttons)
 
 let hubMode = false;
 let hubScene = null;
@@ -736,7 +736,6 @@ class Hub {
     };
   }
 
-  // ═══════════════ ГОРШОК С ВЕРШКОМ ═══════════════
   buildPottedVerkhushka(x, z){
     const g = new THREE.Group();
     g.position.set(x, 0, z);
@@ -752,42 +751,31 @@ class Hub {
     const eyePupilM = new THREE.MeshBasicMaterial({color:0x1a0a00});
     const blushM = new THREE.MeshBasicMaterial({color:0xff8888, transparent:true, opacity:.5});
 
-    // Горшок
     this.cyl(.32, .22, .38, 16, potM, 0, .19, 0, g);
     this.tor(.32, .035, 6, 24, potRimM, 0, .38, 0, g, Math.PI/2, 0, 0);
-    // Земля
     this.cyl(.28, .28, .02, 16, soilM, 0, .375, 0, g);
 
-    // Вершок — группа для покачивания
     const verkhG = new THREE.Group();
     verkhG.position.set(0, .5, 0);
     g.add(verkhG);
 
-    // Тело — картошка
     const body = this.sph(.28, 14, 12, bodyM, 0, .08, 0, verkhG);
     body.scale.set(1, 1.2, 1);
-    // Затемнение снизу
     this.sph(.22, 12, 8, bodyShadowM, 0, -.08, 0, verkhG).scale.set(1, .6, 1);
 
-    // Глаза — большие жёлтые, добрые
     const eyeL = this.sph(.055, 10, 10, eyeM, -.1, .15, .22, verkhG);
     const eyeR = this.sph(.055, 10, 10, eyeM, .1, .15, .22, verkhG);
-    // Зрачки
     this.sph(.028, 8, 8, eyePupilM, -.09, .15, .27, verkhG);
     this.sph(.028, 8, 8, eyePupilM, .11, .15, .27, verkhG);
-    // Блики
     this.sph(.01, 6, 6, new THREE.MeshBasicMaterial({color:0xffffff}), -.085, .17, .28, verkhG);
     this.sph(.01, 6, 6, new THREE.MeshBasicMaterial({color:0xffffff}), .115, .17, .28, verkhG);
 
-    // Улыбка — торус
     const smile = this.tor(.07, .012, 4, 12, new THREE.MeshBasicMaterial({color:0x4a1a10}), 0, .02, .26, verkhG, Math.PI/2, 0, 0);
     smile.scale.set(1.2, .6, 1);
 
-    // Румянец
     this.sph(.05, 8, 8, blushM, -.15, .04, .22, verkhG);
     this.sph(.05, 8, 8, blushM, .15, .04, .22, verkhG);
 
-    // Листья — 4 штуки торчат
     const leaves = [];
     for(let i=0; i<5; i++){
       const a = i/5 * Math.PI * 2 + Math.PI/4;
@@ -801,27 +789,22 @@ class Hub {
       leafG.add(blade);
       leaves.push(leafG);
     }
-    // Центральный росток — маленький кустик
     const centerLeaf = new THREE.Mesh(new THREE.ConeGeometry(.1, .4, 5), leafM);
     centerLeaf.position.set(0, .55, 0);
     verkhG.add(centerLeaf);
 
     this.parts.pottedVerkhushka = {
-      group: g,
-      verkhGroup: verkhG,
-      body,
+      group: g, verkhGroup: verkhG, body,
       eyeL, eyeR, leaves,
       phase: Math.random() * Math.PI * 2,
       blinkTimer: 2 + Math.random() * 3,
     };
 
-    // Мягкий зелёный свет
     const light = new THREE.PointLight(0x88ff88, .35, 1.2);
     light.position.set(0, .7, 0);
     g.add(light);
   }
 
-  // ═══════════════ ПОДВЕСНОЙ ДРОН ═══════════════
   buildHangingDrone(x, y, z){
     const g = new THREE.Group();
     g.position.set(x, 0, z);
@@ -829,12 +812,9 @@ class Hub {
 
     const ropeM = new THREE.MeshStandardMaterial({color:0x3a2a1a, roughness:.95, metalness:.05});
     const ropeLen = this.roomHeight - y;
-    // Верёвка от потолка
     this.cyl(.012, .012, ropeLen, 6, ropeM, 0, y + ropeLen/2, 0, g);
-    // Петля на потолке
     this.tor(.05, .008, 6, 12, ropeM, 0, this.roomHeight - .02, 0, g, Math.PI/2, 0, 0);
 
-    // Дрон
     const droneG = new THREE.Group();
     droneG.position.set(0, y, 0);
     g.add(droneG);
@@ -844,19 +824,12 @@ class Hub {
     const propM = new THREE.MeshStandardMaterial({color:0x333333, metalness:.7, roughness:.4});
     const accentM = new THREE.MeshStandardMaterial({color:0xccccff, metalness:.9, roughness:.15});
 
-    // Тело
-    const body = this.sph(.4, 14, 12, bodyM, 0, 0, 0, droneG);
-
-    // Крепление верёвки к дрону
+    this.sph(.4, 14, 12, bodyM, 0, 0, 0, droneG);
     this.cyl(.06, .06, .18, 6, ropeM, 0, .38, 0, droneG);
     this.cyl(.09, .09, .04, 8, accentM, 0, .29, 0, droneG);
-
-    // Передний глаз — большой
     this.sph(.14, 12, 10, eyeM, 0, 0, .34, droneG);
-    // Кольцо вокруг глаза
     this.tor(.17, .022, 6, 16, accentM, 0, 0, .32, droneG, 0, 0, 0);
 
-    // Пропеллеры — 4 группы
     const propG = new THREE.Group();
     propG.position.y = .38;
     droneG.add(propG);
@@ -866,17 +839,13 @@ class Hub {
       const armG = new THREE.Group();
       armG.rotation.y = a;
       propG.add(armG);
-      // Стойка-луч
       this.cyl(.018, .018, .3, 6, propM, .15, 0, 0, armG, Math.PI/2);
-      // Мотор
       this.cyl(.055, .055, .1, 8, accentM, .3, 0, 0, armG, 0);
-      // Лопасти
       const blade1 = this.box(.28, .012, .06, propM, .3, .06, 0, armG);
       const blade2 = this.box(.06, .012, .28, propM, .3, .06, 0, armG);
       propellers.push({group: armG, blades: [blade1, blade2]});
     }
 
-    // Габаритные огни — маленькие сферы по низу
     const blinkLights = [];
     for(let i=0; i<4; i++){
       const a = i/4 * Math.PI * 2;
@@ -884,23 +853,16 @@ class Hub {
       blinkLights.push(lightMesh);
     }
 
-    // Нижняя панель
     this.sph(.2, 10, 8, accentM, 0, -.22, 0, droneG).scale.set(1, .5, 1);
 
-    // Небольшой источник света
     const droneLight = new THREE.PointLight(0x8888ff, .8, 2.5);
     droneLight.position.set(0, y - .1, 0);
     g.add(droneLight);
 
     this.parts.hangingDrone = {
-      group: g,
-      droneGroup: droneG,
-      propellers,
-      blinkLights,
-      baseY: y,
-      phase: Math.random() * Math.PI * 2,
-      swingPhase: Math.random() * Math.PI * 2,
-      light: droneLight,
+      group: g, droneGroup: droneG, propellers, blinkLights,
+      baseY: y, phase: Math.random() * Math.PI * 2,
+      swingPhase: Math.random() * Math.PI * 2, light: droneLight,
     };
   }
 
@@ -1038,6 +1000,7 @@ class Hub {
     g.add(rl);
   }
 
+  // ═══════════════ БАРМЕНША (иерархия конечностей, чистые волосы) ═══════════════
   buildBarmaid(x, z){
     const g = new THREE.Group();
     g.position.set(x, 0, z);
@@ -1054,11 +1017,15 @@ class Hub {
     const lipM = new THREE.MeshBasicMaterial({color:0xcc0022});
     const eyeM = new THREE.MeshBasicMaterial({color:0x1a0a05});
     const eyeWhiteM = new THREE.MeshBasicMaterial({color:0xf8f8f0});
+    const whiteM = new THREE.MeshBasicMaterial({color:0xffffff});
+    const blushM = new THREE.MeshBasicMaterial({color:0xdd6688, transparent:true, opacity:.35});
     const goldM = new THREE.MeshStandardMaterial({color:0xffd700, metalness:.95, roughness:.15});
     const drinkM = new THREE.MeshStandardMaterial({color:0xffaa22, transparent:true, opacity:.85, metalness:.1, roughness:.05, emissive:0xff6600, emissiveIntensity:.2});
     const glassM = new THREE.MeshStandardMaterial({color:0x88ccff, transparent:true, opacity:.4, metalness:.3, roughness:.05});
+    const oliveM = new THREE.MeshStandardMaterial({color:0x6a8a0a, roughness:.6});
     const shoesM = new THREE.MeshStandardMaterial({color:0x1a0000, roughness:.4, metalness:.6});
 
+    // Стул
     this.cyl(.32, .38, .05, 16, chromeM, 0, .025, 0, g);
     this.cyl(.055, .055, .8, 8, chromeM, 0, .45, 0, g);
     this.tor(.2, .022, 6, 20, chromeM, 0, .28, 0, g, Math.PI/2, 0, 0);
@@ -1068,133 +1035,350 @@ class Hub {
     this.cyl(.03, .03, .3, 6, chromeM, .2, 1.05, -.22, g);
     this.cyl(.22, .22, .1, 16, seatM, 0, 1.25, -.22, g);
 
-    this.sph(.24, 14, 12, dressM, 0, 1.0, 0, g).scale.set(1.25, .75, 1.15);
+    // Таз
+    const pelvis = new THREE.Mesh(new THREE.SphereGeometry(.24, 14, 12), dressM);
+    pelvis.position.set(0, 1.0, 0);
+    pelvis.scale.set(1.25, .75, 1.15);
+    g.add(pelvis);
 
-    this.cyl(.1, .08, .55, 10, skinM, .13, .68, .05, g);
-    this.cyl(.08, .07, .5, 10, skinM, .13, .22, .15, g);
-    this.box(.1, .08, .22, shoesM, .13, .02, .28, g);
-    this.cone(.05, .08, 6, shoesM, .13, -.01, .42, g);
+    // ─── ПРАВАЯ НОГА ───
+    const hipR = new THREE.Group();
+    hipR.position.set(.13, .95, 0);
+    hipR.rotation.x = .35;
+    g.add(hipR);
+    const thighR = new THREE.Mesh(new THREE.CylinderGeometry(.1, .085, .45, 10), skinM);
+    thighR.position.set(0, -.225, 0);
+    hipR.add(thighR);
+    const kneeR = new THREE.Mesh(new THREE.SphereGeometry(.085, 10, 8), skinM);
+    kneeR.position.set(0, -.45, 0);
+    hipR.add(kneeR);
+    const shinR = new THREE.Group();
+    shinR.position.set(0, -.45, 0);
+    shinR.rotation.x = -.35;
+    hipR.add(shinR);
+    const shinRMesh = new THREE.Mesh(new THREE.CylinderGeometry(.08, .06, .45, 10), skinM);
+    shinRMesh.position.set(0, -.225, 0);
+    shinR.add(shinRMesh);
+    const ankleR = new THREE.Mesh(new THREE.SphereGeometry(.055, 8, 8), skinM);
+    ankleR.position.set(0, -.45, 0);
+    shinR.add(ankleR);
+    const footR = new THREE.Group();
+    footR.position.set(0, -.45, 0);
+    shinR.add(footR);
+    const shoeR = new THREE.Mesh(new THREE.BoxGeometry(.1, .08, .22), shoesM);
+    shoeR.position.set(0, -.04, .1);
+    footR.add(shoeR);
+    const heelR = new THREE.Mesh(new THREE.BoxGeometry(.05, .07, .05), shoesM);
+    heelR.position.set(0, -.07, -.02);
+    footR.add(heelR);
+    const toeR = new THREE.Mesh(new THREE.ConeGeometry(.045, .1, 8), shoesM);
+    toeR.position.set(0, -.04, .22);
+    toeR.rotation.x = Math.PI/2;
+    footR.add(toeR);
 
-    this.cyl(.1, .08, .5, 10, skinM, -.15, .7, .1, g);
-    this.cyl(.08, .07, .48, 10, skinM, -.2, .25, .2, g);
-    this.box(.1, .08, .22, shoesM, -.2, .04, .32, g);
-    this.cone(.05, .08, 6, shoesM, -.2, .01, .46, g);
+    // ─── ЛЕВАЯ НОГА (чуть закинута) ───
+    const hipL = new THREE.Group();
+    hipL.position.set(-.13, .95, 0);
+    hipL.rotation.x = .5;
+    hipL.rotation.z = .12;
+    g.add(hipL);
+    const thighL = new THREE.Mesh(new THREE.CylinderGeometry(.1, .085, .45, 10), skinM);
+    thighL.position.set(0, -.225, 0);
+    hipL.add(thighL);
+    const kneeL = new THREE.Mesh(new THREE.SphereGeometry(.085, 10, 8), skinM);
+    kneeL.position.set(0, -.45, 0);
+    hipL.add(kneeL);
+    const shinL = new THREE.Group();
+    shinL.position.set(0, -.45, 0);
+    shinL.rotation.x = -.6;
+    shinL.rotation.z = -.12;
+    hipL.add(shinL);
+    const shinLMesh = new THREE.Mesh(new THREE.CylinderGeometry(.08, .06, .45, 10), skinM);
+    shinLMesh.position.set(0, -.225, 0);
+    shinL.add(shinLMesh);
+    const ankleL = new THREE.Mesh(new THREE.SphereGeometry(.055, 8, 8), skinM);
+    ankleL.position.set(0, -.45, 0);
+    shinL.add(ankleL);
+    const footL = new THREE.Group();
+    footL.position.set(0, -.45, 0);
+    shinL.add(footL);
+    const shoeL = new THREE.Mesh(new THREE.BoxGeometry(.1, .08, .22), shoesM);
+    shoeL.position.set(0, -.04, .1);
+    footL.add(shoeL);
+    const heelL = new THREE.Mesh(new THREE.BoxGeometry(.05, .07, .05), shoesM);
+    heelL.position.set(0, -.07, -.02);
+    footL.add(heelL);
+    const toeL = new THREE.Mesh(new THREE.ConeGeometry(.045, .1, 8), shoesM);
+    toeL.position.set(0, -.04, .22);
+    toeL.rotation.x = Math.PI/2;
+    footL.add(toeL);
 
-    this.cyl(.24, .26, .18, 14, dressM, 0, 1.18, 0, g);
-    this.cyl(.19, .22, .18, 14, dressM, 0, 1.32, 0, g);
-    this.cyl(.24, .2, .25, 14, dressM, 0, 1.5, 0, g);
-    this.sph(.115, 12, 10, dressM, -.1, 1.55, .14, g).scale.set(1, 1, 1.1);
-    this.sph(.115, 12, 10, dressM, .1, 1.55, .14, g).scale.set(1, 1, 1.1);
-    this.box(.3, .04, .05, skinM, 0, 1.62, .12, g);
-    this.cyl(.21, .21, .035, 14, dressDarkM, 0, 1.22, 0, g);
+    // ─── ТОРС ───
+    const skirt = new THREE.Mesh(new THREE.CylinderGeometry(.24, .26, .2, 16), dressM);
+    skirt.position.set(0, 1.16, 0);
+    g.add(skirt);
+    const waist = new THREE.Mesh(new THREE.CylinderGeometry(.19, .22, .18, 14), dressM);
+    waist.position.set(0, 1.34, 0);
+    g.add(waist);
+    const chest = new THREE.Mesh(new THREE.CylinderGeometry(.24, .2, .25, 14), dressM);
+    chest.position.set(0, 1.52, 0);
+    g.add(chest);
+    const bustL = new THREE.Mesh(new THREE.SphereGeometry(.115, 12, 10), dressM);
+    bustL.position.set(-.1, 1.57, .14);
+    bustL.scale.set(1, 1, 1.1);
+    g.add(bustL);
+    const bustR = new THREE.Mesh(new THREE.SphereGeometry(.115, 12, 10), dressM);
+    bustR.position.set(.1, 1.57, .14);
+    bustR.scale.set(1, 1, 1.1);
+    g.add(bustR);
+    const neckLine = new THREE.Mesh(new THREE.BoxGeometry(.3, .04, .05), skinM);
+    neckLine.position.set(0, 1.64, .12);
+    g.add(neckLine);
+    const belt = new THREE.Mesh(new THREE.CylinderGeometry(.21, .21, .035, 14), dressDarkM);
+    belt.position.set(0, 1.23, 0);
+    g.add(belt);
 
-    this.sph(.09, 10, 8, skinM, -.24, 1.68, 0, g);
-    this.sph(.09, 10, 8, skinM, .24, 1.68, 0, g);
+    // Плечи
+    const shoulderL = new THREE.Mesh(new THREE.SphereGeometry(.09, 10, 8), skinM);
+    shoulderL.position.set(-.24, 1.68, 0);
+    g.add(shoulderL);
+    const shoulderR = new THREE.Mesh(new THREE.SphereGeometry(.09, 10, 8), skinM);
+    shoulderR.position.set(.24, 1.68, 0);
+    g.add(shoulderR);
 
-    const upperArmR = this.cyl(.055, .048, .32, 8, skinM, .28, 1.55, .02, g);
-    upperArmR.rotation.z = -.35;
-    const foreArmR = this.cyl(.048, .04, .3, 8, skinM, .38, 1.27, .08, g);
-    foreArmR.rotation.x = -.25;
-    foreArmR.rotation.z = -.1;
-    this.sph(.055, 10, 8, skinM, .4, 1.12, .13, g);
+    // ─── ПРАВАЯ РУКА (на бедре) ───
+    const armR = new THREE.Group();
+    armR.position.set(.24, 1.68, 0);
+    armR.rotation.z = -.12;
+    armR.rotation.x = .1;
+    g.add(armR);
+    const upperArmRMesh = new THREE.Mesh(new THREE.CylinderGeometry(.055, .05, .34, 10), skinM);
+    upperArmRMesh.position.set(0, -.17, 0);
+    armR.add(upperArmRMesh);
+    const elbowR = new THREE.Mesh(new THREE.SphereGeometry(.052, 10, 8), skinM);
+    elbowR.position.set(0, -.34, 0);
+    armR.add(elbowR);
+    const forearmR = new THREE.Group();
+    forearmR.position.set(0, -.34, 0);
+    forearmR.rotation.x = -.25;
+    forearmR.rotation.z = -.08;
+    armR.add(forearmR);
+    const foreArmRMesh = new THREE.Mesh(new THREE.CylinderGeometry(.05, .042, .3, 10), skinM);
+    foreArmRMesh.position.set(0, -.15, 0);
+    forearmR.add(foreArmRMesh);
+    const wristR = new THREE.Mesh(new THREE.SphereGeometry(.04, 8, 8), skinM);
+    wristR.position.set(0, -.3, 0);
+    forearmR.add(wristR);
+    const handR = new THREE.Mesh(new THREE.SphereGeometry(.055, 10, 8), skinM);
+    handR.position.set(0, -.36, .02);
+    handR.scale.set(1, .9, .7);
+    forearmR.add(handR);
     for(let i=0; i<4; i++){
-      this.cyl(.012, .01, .07, 6, skinM, .36 + i*.025, 1.07, .14, g, 0);
+      const f = new THREE.Mesh(new THREE.CylinderGeometry(.011, .009, .06, 6), skinM);
+      f.position.set(-.02 + i*.015, -.4, .04);
+      f.rotation.x = .35;
+      forearmR.add(f);
     }
 
-    const upperArmL = this.cyl(.055, .048, .32, 8, skinM, -.28, 1.55, .05, g);
-    upperArmL.rotation.z = .3;
-    upperArmL.rotation.x = -.15;
-    const foreArmL = this.cyl(.048, .04, .3, 8, skinM, -.4, 1.42, .2, g);
-    foreArmL.rotation.x = -.9;
-    foreArmL.rotation.z = .1;
-    this.sph(.055, 10, 8, skinM, -.42, 1.28, .35, g);
+    // ─── ЛЕВАЯ РУКА (с бокалом) ───
+    const armL = new THREE.Group();
+    armL.position.set(-.24, 1.68, 0);
+    armL.rotation.z = .12;
+    g.add(armL);
+    const upperArmLMesh = new THREE.Mesh(new THREE.CylinderGeometry(.055, .05, .34, 10), skinM);
+    upperArmLMesh.position.set(0, -.17, 0);
+    armL.add(upperArmLMesh);
+    const elbowL = new THREE.Mesh(new THREE.SphereGeometry(.052, 10, 8), skinM);
+    elbowL.position.set(0, -.34, 0);
+    armL.add(elbowL);
+    const forearmL = new THREE.Group();
+    forearmL.position.set(0, -.34, 0);
+    forearmL.rotation.x = -1.3;
+    armL.add(forearmL);
+    const foreArmLMesh = new THREE.Mesh(new THREE.CylinderGeometry(.05, .042, .3, 10), skinM);
+    foreArmLMesh.position.set(0, -.15, 0);
+    forearmL.add(foreArmLMesh);
+    const wristL = new THREE.Mesh(new THREE.SphereGeometry(.04, 8, 8), skinM);
+    wristL.position.set(0, -.3, 0);
+    forearmL.add(wristL);
+    const handL = new THREE.Mesh(new THREE.SphereGeometry(.055, 10, 8), skinM);
+    handL.position.set(0, -.35, .02);
+    handL.scale.set(1, .9, .8);
+    forearmL.add(handL);
 
+    // Бокал — дочерний к forearmL
     const drinkG = new THREE.Group();
-    drinkG.position.set(-.42, 1.32, .38);
-    g.add(drinkG);
-    this.cyl(.07, .07, .01, 14, glassM, 0, 0, 0, drinkG);
-    this.cyl(.012, .012, .1, 8, glassM, 0, .055, 0, drinkG);
-    this.cyl(.1, .012, .14, 14, glassM, 0, .17, 0, drinkG);
-    this.sph(.075, 12, 10, drinkM, 0, .17, 0, drinkG);
-    this.sph(.025, 8, 8, new THREE.MeshStandardMaterial({color:0x6a8a0a, roughness:.6}), .02, .22, .03, drinkG);
-    this.cyl(.004, .004, .12, 4, goldM, -.02, .21, -.02, drinkG, .3);
-    this.parts.barmaidDrink = drinkG;
+    drinkG.position.set(0, -.35, .06);
+    forearmL.add(drinkG);
+    const drinkBase = new THREE.Mesh(new THREE.CylinderGeometry(.07, .07, .01, 14), glassM);
+    drinkG.add(drinkBase);
+    const drinkStem = new THREE.Mesh(new THREE.CylinderGeometry(.012, .012, .1, 8), glassM);
+    drinkStem.position.set(0, .055, 0);
+    drinkG.add(drinkStem);
+    const drinkCup = new THREE.Mesh(new THREE.CylinderGeometry(.1, .012, .14, 14), glassM);
+    drinkCup.position.set(0, .17, 0);
+    drinkG.add(drinkCup);
+    const drinkLiquid = new THREE.Mesh(new THREE.SphereGeometry(.075, 12, 10), drinkM);
+    drinkLiquid.position.set(0, .17, 0);
+    drinkG.add(drinkLiquid);
+    const drinkOlive = new THREE.Mesh(new THREE.SphereGeometry(.025, 8, 8), oliveM);
+    drinkOlive.position.set(.02, .22, .03);
+    drinkG.add(drinkOlive);
+    const drinkStick = new THREE.Mesh(new THREE.CylinderGeometry(.004, .004, .12, 4), goldM);
+    drinkStick.position.set(-.02, .21, -.02);
+    drinkStick.rotation.z = .3;
+    drinkG.add(drinkStick);
 
-    this.cyl(.06, .07, .12, 10, skinM, 0, 1.78, 0, g);
-    this.tor(.08, .008, 4, 16, goldM, 0, 1.74, .02, g, Math.PI/2, 0, 0);
-    this.sph(.022, 8, 8, goldM, 0, 1.68, .1, g);
+    // Шея
+    const neck = new THREE.Mesh(new THREE.CylinderGeometry(.06, .07, .12, 10), skinM);
+    neck.position.set(0, 1.79, 0);
+    g.add(neck);
+    this.tor(.08, .008, 4, 16, goldM, 0, 1.75, .02, g, Math.PI/2, 0, 0);
+    this.sph(.022, 8, 8, goldM, 0, 1.69, .1, g);
 
+    // ─── ГОЛОВА ───
     const headG = new THREE.Group();
     headG.position.set(0, 1.94, 0);
     g.add(headG);
     this.parts.barmaidHead = headG;
 
-    const head = this.sph(.16, 16, 14, skinM, 0, 0, 0, headG);
-    head.scale.set(.92, 1.08, .98);
-    this.sph(.09, 10, 8, skinM, 0, -.08, .06, headG);
+    const headMesh = new THREE.Mesh(new THREE.SphereGeometry(.16, 18, 16), skinM);
+    headMesh.scale.set(.92, 1.08, .98);
+    headG.add(headMesh);
+    const jaw = new THREE.Mesh(new THREE.SphereGeometry(.09, 10, 8), skinM);
+    jaw.position.set(0, -.08, .06);
+    headG.add(jaw);
 
+    // Глаза
     for(let s of [-1, 1]){
-      const eyeW = this.sph(.038, 10, 8, eyeWhiteM, s*.065, .02, .13, headG);
+      const eyeW = new THREE.Mesh(new THREE.SphereGeometry(.038, 12, 10), eyeWhiteM);
+      eyeW.position.set(s*.065, .02, .13);
       eyeW.scale.set(1, .85, .7);
-      const eye = this.sph(.024, 8, 8, eyeM, s*.065, .02, .145, headG);
-      this.sph(.008, 6, 6, new THREE.MeshBasicMaterial({color:0xffffff}), s*.06, .03, .165, headG);
+      headG.add(eyeW);
+      const eye = new THREE.Mesh(new THREE.SphereGeometry(.024, 10, 8), eyeM);
+      eye.position.set(s*.065, .02, .14);
+      headG.add(eye);
+      const spark = new THREE.Mesh(new THREE.SphereGeometry(.008, 6, 6), whiteM);
+      spark.position.set(s*.06, .03, .158);
+      headG.add(spark);
       for(let j=0; j<3; j++){
-        const lash = this.cyl(.004, .001, .04, 4, eyeM, s*.055 + j*s*.018, .055, .15, headG, -.3);
+        const lash = new THREE.Mesh(new THREE.CylinderGeometry(.004, .001, .04, 4), eyeM);
+        lash.position.set(s*.055 + j*s*.018, .055, .148);
         lash.rotation.z = s * (.15 + j*.15);
+        lash.rotation.x = -.3;
+        headG.add(lash);
       }
-      const brow = this.box(.06, .008, .015, hairM, s*.065, .08, .14, headG);
+      const brow = new THREE.Mesh(new THREE.BoxGeometry(.06, .008, .015), hairM);
+      brow.position.set(s*.065, .08, .14);
       brow.rotation.z = s * .12;
+      headG.add(brow);
     }
 
-    this.sph(.022, 8, 8, skinM, 0, -.02, .16, headG).scale.set(.8, 1, 1.1);
+    // Нос
+    const nose = new THREE.Mesh(new THREE.SphereGeometry(.022, 8, 8), skinM);
+    nose.position.set(0, -.02, .16);
+    nose.scale.set(.8, 1, 1.1);
+    headG.add(nose);
 
-    const upperLip = this.sph(.045, 10, 8, lipM, 0, -.07, .145, headG);
+    // Губы
+    const upperLip = new THREE.Mesh(new THREE.SphereGeometry(.045, 10, 8), lipM);
+    upperLip.position.set(0, -.07, .145);
     upperLip.scale.set(1.1, .35, .55);
-    const lowerLip = this.sph(.05, 10, 8, lipM, 0, -.085, .145, headG);
+    headG.add(upperLip);
+    const lowerLip = new THREE.Mesh(new THREE.SphereGeometry(.05, 10, 8), lipM);
+    lowerLip.position.set(0, -.085, .145);
     lowerLip.scale.set(1.15, .4, .6);
+    headG.add(lowerLip);
 
-    this.sph(.035, 8, 8, new THREE.MeshBasicMaterial({color:0xdd6688, transparent:true, opacity:.35}), -.1, -.01, .12, headG);
-    this.sph(.035, 8, 8, new THREE.MeshBasicMaterial({color:0xdd6688, transparent:true, opacity:.35}), .1, -.01, .12, headG);
+    // Румянец
+    const blushL = new THREE.Mesh(new THREE.SphereGeometry(.035, 8, 8), blushM);
+    blushL.position.set(-.1, -.01, .12);
+    headG.add(blushL);
+    const blushR = new THREE.Mesh(new THREE.SphereGeometry(.035, 8, 8), blushM);
+    blushR.position.set(.1, -.01, .12);
+    headG.add(blushR);
 
-    const hairTop = this.sph(.18, 14, 12, hairM, 0, .04, -.02, headG);
-    hairTop.scale.set(1.05, 1, 1.05);
-    const hairBack = this.box(.3, .55, .14, hairM, 0, -.35, -.15, headG);
+    // ─── ВОЛОСЫ (полусферы: макушка + затылок, лицо чистое) ───
+    // Задняя половина (затылок, z<0) — полусфера phi π..2π
+    const hairBackHalf = new THREE.Mesh(
+      new THREE.SphereGeometry(.17, 20, 16, Math.PI, Math.PI, 0, Math.PI),
+      new THREE.MeshStandardMaterial({color:0x2a1008, roughness:.65, metalness:.15, side: THREE.DoubleSide})
+    );
+    hairBackHalf.position.set(0, .02, -.01);
+    hairBackHalf.scale.set(1.05, 1.12, 1.0);
+    headG.add(hairBackHalf);
+
+    // Верхняя крышка (макушка) — полусфера theta 0..π/2, не заходит на лицо
+    const hairTopCap = new THREE.Mesh(
+      new THREE.SphereGeometry(.17, 20, 12, 0, Math.PI*2, 0, Math.PI*0.5),
+      hairM
+    );
+    hairTopCap.position.set(0, .05, -.02);
+    hairTopCap.scale.set(1.06, .8, 1.06);
+    headG.add(hairTopCap);
+
+    // Длинная масса сзади до плеч
+    const hairBack = new THREE.Mesh(new THREE.BoxGeometry(.3, .55, .14), hairM);
+    hairBack.position.set(0, -.35, -.15);
     hairBack.rotation.x = -.08;
+    headG.add(hairBack);
+
+    // Пряди каскадом
+    const hairLocks = [];
     for(let i=0; i<5; i++){
-      const lock = this.cyl(.03 - i*.003, .015, .35 - i*.03, 6, i%2===0 ? hairM : hairHiM,
-        -.15 + i*.075, -.25, -.18 + i*.01, headG);
+      const lock = new THREE.Mesh(
+        new THREE.CylinderGeometry(.03 - i*.003, .015, .35 - i*.03, 6),
+        i%2===0 ? hairM : hairHiM
+      );
+      lock.position.set(-.15 + i*.075, -.25, -.18 + i*.01);
       lock.rotation.x = -.05 + i*.02;
       lock.rotation.z = (i - 2) * .08;
+      headG.add(lock);
+      hairLocks.push(lock);
     }
-    for(let s of [-1, 1]){
-      const sideLock = this.cyl(.035, .02, .3, 6, hairM, s*.16, -.2, -.02, headG);
-      sideLock.rotation.z = s * .1;
-    }
-    this.sph(.16, 12, 8, hairM, 0, .09, .09, headG).scale.set(1, .4, .8);
-    for(let s of [-1, 1]){
-      const strand = this.cyl(.025, .018, .22, 6, hairM, s*.13, -.06, .1, headG);
-      strand.rotation.z = s * .15;
-      strand.rotation.x = -.1;
-    }
-    this.box(.02, .02, .3, hairM, .05, .13, .02, headG);
 
+    // Боковые пряди
     for(let s of [-1, 1]){
-      this.sph(.012, 6, 6, goldM, s*.16, -.05, 0, headG);
-      this.cyl(.004, .004, .04, 4, goldM, s*.16, -.08, 0, headG, 0);
-      this.sph(.018, 8, 6, goldM, s*.16, -.12, 0, headG).scale.set(1, 1.4, .8);
+      const sideLock = new THREE.Mesh(new THREE.CylinderGeometry(.035, .02, .3, 6), hairM);
+      sideLock.position.set(s*.16, -.2, -.02);
+      sideLock.rotation.z = s * .1;
+      headG.add(sideLock);
+    }
+
+    // Передние пряди (по бокам от лица, не на глазах)
+    for(let s of [-1, 1]){
+      const strand = new THREE.Mesh(new THREE.CylinderGeometry(.025, .018, .22, 6), hairM);
+      strand.position.set(s*.15, -.04, .06);
+      strand.rotation.z = s * .12;
+      strand.rotation.x = -.08;
+      headG.add(strand);
+    }
+
+    // Серьги
+    for(let s of [-1, 1]){
+      const earringTop = new THREE.Mesh(new THREE.SphereGeometry(.012, 6, 6), goldM);
+      earringTop.position.set(s*.16, -.05, 0);
+      headG.add(earringTop);
+      const earringLink = new THREE.Mesh(new THREE.CylinderGeometry(.004, .004, .04, 4), goldM);
+      earringLink.position.set(s*.16, -.08, 0);
+      headG.add(earringLink);
+      const earringDrop = new THREE.Mesh(new THREE.SphereGeometry(.018, 8, 6), goldM);
+      earringDrop.position.set(s*.16, -.12, 0);
+      earringDrop.scale.set(1, 1.4, .8);
+      headG.add(earringDrop);
     }
 
     this.barmaid = {
-      group: g,
-      headGroup: headG,
-      hairBack, hairTop,
+      group: g, headGroup: headG,
+      hairBack, hairTopCap, hairBackHalf, hairLocks,
       drink: drinkG,
-      upperArmL, foreArmL,
-      upperArmR, foreArmR,
+      armL, armR, forearmL, forearmR,
+      hipL, hipR, shinL, shinR,
       phase: Math.random() * Math.PI * 2,
     };
   }
 
+  // ═══════════════ КОВБОЙ (иерархия конечностей) ═══════════════
   buildCowboy(x, z){
     const g = new THREE.Group();
     g.position.set(x, 0, z);
@@ -1217,7 +1401,13 @@ class Hub {
     const hairM = new THREE.MeshStandardMaterial({color:0x2a1a0a, roughness:.9, metalness:.05});
     const iceM = new THREE.MeshStandardMaterial({color:0xcceeff, transparent:true, opacity:.7});
     const mouthM = new THREE.MeshBasicMaterial({color:0x4a1a10});
+    const eyeWhiteM = new THREE.MeshBasicMaterial({color:0xf8f8f0});
+    const irisM = new THREE.MeshBasicMaterial({color:0x2a1a0a});
+    const whiteM = new THREE.MeshBasicMaterial({color:0xffffff});
+    const nostrilM = new THREE.MeshBasicMaterial({color:0x4a2a10});
+    const stubM = new THREE.MeshBasicMaterial({color:0x1a0a05});
 
+    // Стул
     this.cyl(.32, .38, .05, 16, chromeM, 0, .025, 0, g);
     this.cyl(.055, .055, .8, 8, chromeM, 0, .45, 0, g);
     this.tor(.2, .022, 6, 20, chromeM, 0, .28, 0, g, Math.PI/2, 0, 0);
@@ -1226,113 +1416,289 @@ class Hub {
     this.cyl(.03, .03, .3, 6, chromeM, .2, 1.05, -.22, g);
     this.cyl(.22, .22, .1, 16, seatM, 0, 1.25, -.22, g);
 
-    this.sph(.26, 14, 12, jeansM, 0, 1.02, 0, g).scale.set(1.3, .75, 1.2);
+    // Таз
+    const pelvis = new THREE.Mesh(new THREE.SphereGeometry(.26, 14, 12), jeansM);
+    pelvis.position.set(0, 1.02, 0);
+    pelvis.scale.set(1.3, .75, 1.2);
+    g.add(pelvis);
 
-    this.cyl(.11, .09, .6, 10, jeansM, .14, .7, .05, g);
-    this.cyl(.09, .08, .55, 10, jeansM, .14, .2, .18, g);
-    this.box(.11, .12, .28, bootsM, .14, .04, .3, g);
-    this.cone(.055, .1, 6, bootsM, .14, -.02, .46, g);
+    // ─── ПРАВАЯ НОГА ───
+    const hipR = new THREE.Group();
+    hipR.position.set(.14, .98, 0);
+    hipR.rotation.x = .3;
+    g.add(hipR);
+    const thighR = new THREE.Mesh(new THREE.CylinderGeometry(.11, .09, .55, 10), jeansM);
+    thighR.position.set(0, -.275, 0);
+    hipR.add(thighR);
+    const kneeR = new THREE.Mesh(new THREE.SphereGeometry(.09, 10, 8), jeansM);
+    kneeR.position.set(0, -.55, 0);
+    hipR.add(kneeR);
+    const shinR = new THREE.Group();
+    shinR.position.set(0, -.55, 0);
+    shinR.rotation.x = -.3;
+    hipR.add(shinR);
+    const shinRMesh = new THREE.Mesh(new THREE.CylinderGeometry(.09, .08, .45, 10), jeansM);
+    shinRMesh.position.set(0, -.225, 0);
+    shinR.add(shinRMesh);
+    const bootR = new THREE.Group();
+    bootR.position.set(0, -.45, 0);
+    shinR.add(bootR);
+    const bootBodyR = new THREE.Mesh(new THREE.BoxGeometry(.11, .12, .28), bootsM);
+    bootBodyR.position.set(0, -.04, .1);
+    bootR.add(bootBodyR);
+    const bootToeR = new THREE.Mesh(new THREE.ConeGeometry(.055, .1, 8), bootsM);
+    bootToeR.position.set(0, -.06, .28);
+    bootToeR.rotation.x = Math.PI/2;
+    bootR.add(bootToeR);
+    const bootTopR = new THREE.Mesh(new THREE.CylinderGeometry(.09, .085, .18, 10), bootsM);
+    bootTopR.position.set(0, .07, 0);
+    bootR.add(bootTopR);
 
-    this.cyl(.11, .09, .5, 10, jeansM, -.18, .72, .12, g);
-    this.cyl(.09, .08, .45, 10, jeansM, -.22, .3, .32, g);
-    this.box(.11, .12, .28, bootsM, -.22, .1, .44, g);
-    this.cone(.055, .1, 6, bootsM, -.22, .04, .6, g);
+    // ─── ЛЕВАЯ НОГА (согнута) ───
+    const hipL = new THREE.Group();
+    hipL.position.set(-.14, .98, 0);
+    hipL.rotation.x = .55;
+    g.add(hipL);
+    const thighL = new THREE.Mesh(new THREE.CylinderGeometry(.11, .09, .55, 10), jeansM);
+    thighL.position.set(0, -.275, 0);
+    hipL.add(thighL);
+    const kneeL = new THREE.Mesh(new THREE.SphereGeometry(.09, 10, 8), jeansM);
+    kneeL.position.set(0, -.55, 0);
+    hipL.add(kneeL);
+    const shinL = new THREE.Group();
+    shinL.position.set(0, -.55, 0);
+    shinL.rotation.x = -.9;
+    hipL.add(shinL);
+    const shinLMesh = new THREE.Mesh(new THREE.CylinderGeometry(.09, .08, .45, 10), jeansM);
+    shinLMesh.position.set(0, -.225, 0);
+    shinL.add(shinLMesh);
+    const bootL = new THREE.Group();
+    bootL.position.set(0, -.45, 0);
+    shinL.add(bootL);
+    const bootBodyL = new THREE.Mesh(new THREE.BoxGeometry(.11, .12, .28), bootsM);
+    bootBodyL.position.set(0, -.04, .1);
+    bootL.add(bootBodyL);
+    const bootToeL = new THREE.Mesh(new THREE.ConeGeometry(.055, .1, 8), bootsM);
+    bootToeL.position.set(0, -.06, .28);
+    bootToeL.rotation.x = Math.PI/2;
+    bootL.add(bootToeL);
+    const bootTopL = new THREE.Mesh(new THREE.CylinderGeometry(.09, .085, .18, 10), bootsM);
+    bootTopL.position.set(0, .07, 0);
+    bootL.add(bootTopL);
 
-    this.cyl(.26, .27, .08, 14, hatM, 0, 1.24, 0, g);
-    this.box(.12, .08, .03, buckleM, 0, 1.24, .15, g);
-    this.cyl(.24, .26, .55, 12, shirtM, 0, 1.55, 0, g);
+    // ─── ТОРС ───
+    const belt = new THREE.Mesh(new THREE.CylinderGeometry(.26, .27, .08, 14), hatM);
+    belt.position.set(0, 1.24, 0);
+    g.add(belt);
+    const buckle = new THREE.Mesh(new THREE.BoxGeometry(.12, .08, .03), buckleM);
+    buckle.position.set(0, 1.24, .15);
+    g.add(buckle);
+    const shirt = new THREE.Mesh(new THREE.CylinderGeometry(.24, .26, .55, 12), shirtM);
+    shirt.position.set(0, 1.55, 0);
+    g.add(shirt);
     for(let i=0; i<3; i++){
-      this.cyl(.245 - i*.005, .245 - i*.005, .02, 12, shirtLineM, 0, 1.35 + i*.15, 0, g);
+      const stripe = new THREE.Mesh(new THREE.CylinderGeometry(.245 - i*.005, .245 - i*.005, .02, 12), shirtLineM);
+      stripe.position.set(0, 1.35 + i*.15, 0);
+      g.add(stripe);
     }
-    this.box(.02, .5, .02, shirtLineM, 0, 1.55, .16, g);
+    const zipper = new THREE.Mesh(new THREE.BoxGeometry(.02, .5, .02), shirtLineM);
+    zipper.position.set(0, 1.55, .16);
+    g.add(zipper);
 
-    this.sph(.11, 10, 8, shirtM, -.26, 1.76, 0, g);
-    this.sph(.11, 10, 8, shirtM, .26, 1.76, 0, g);
+    const shoulderL = new THREE.Mesh(new THREE.SphereGeometry(.11, 10, 8), shirtM);
+    shoulderL.position.set(-.26, 1.76, 0);
+    g.add(shoulderL);
+    const shoulderR = new THREE.Mesh(new THREE.SphereGeometry(.11, 10, 8), shirtM);
+    shoulderR.position.set(.26, 1.76, 0);
+    g.add(shoulderR);
 
-    this.cyl(.11, .11, .08, 12, bandanaM, 0, 1.82, .02, g);
-    this.cone(.06, .15, 4, bandanaM, 0, 1.72, -.14, g);
-    this.cone(.04, .1, 4, bandanaM, .03, 1.72, -.15, g);
+    // Бандана
+    const bandana = new THREE.Mesh(new THREE.CylinderGeometry(.11, .11, .08, 12), bandanaM);
+    bandana.position.set(0, 1.82, .02);
+    g.add(bandana);
+    const bandanaTail1 = new THREE.Mesh(new THREE.ConeGeometry(.06, .15, 4), bandanaM);
+    bandanaTail1.position.set(0, 1.72, -.14);
+    g.add(bandanaTail1);
+    const bandanaTail2 = new THREE.Mesh(new THREE.ConeGeometry(.04, .1, 4), bandanaM);
+    bandanaTail2.position.set(.03, 1.72, -.15);
+    g.add(bandanaTail2);
 
-    const upperArmR = this.cyl(.065, .06, .35, 8, shirtM, .32, 1.6, .02, g);
-    upperArmR.rotation.z = -.32;
-    const foreArmR = this.cyl(.06, .055, .32, 8, skinM, .42, 1.32, .1, g);
-    foreArmR.rotation.x = -.2;
-    foreArmR.rotation.z = -.1;
-    this.sph(.06, 8, 8, skinM, .44, 1.15, .16, g);
+    // ─── ПРАВАЯ РУКА (на бедре) ───
+    const armR = new THREE.Group();
+    armR.position.set(.26, 1.76, 0);
+    armR.rotation.z = -.12;
+    armR.rotation.x = .1;
+    g.add(armR);
+    const upperArmRMesh = new THREE.Mesh(new THREE.CylinderGeometry(.065, .06, .34, 10), shirtM);
+    upperArmRMesh.position.set(0, -.17, 0);
+    armR.add(upperArmRMesh);
+    const elbowR = new THREE.Mesh(new THREE.SphereGeometry(.06, 10, 8), shirtM);
+    elbowR.position.set(0, -.34, 0);
+    armR.add(elbowR);
+    const forearmR = new THREE.Group();
+    forearmR.position.set(0, -.34, 0);
+    forearmR.rotation.x = -.25;
+    armR.add(forearmR);
+    const foreArmRMesh = new THREE.Mesh(new THREE.CylinderGeometry(.06, .052, .32, 10), skinM);
+    foreArmRMesh.position.set(0, -.16, 0);
+    forearmR.add(foreArmRMesh);
+    const wristR = new THREE.Mesh(new THREE.SphereGeometry(.045, 8, 8), skinM);
+    wristR.position.set(0, -.32, 0);
+    forearmR.add(wristR);
+    const handR = new THREE.Mesh(new THREE.SphereGeometry(.06, 10, 8), skinM);
+    handR.position.set(0, -.38, .02);
+    handR.scale.set(1, .9, .7);
+    forearmR.add(handR);
 
-    const upperArmL = this.cyl(.065, .06, .35, 8, shirtM, -.32, 1.6, .05, g);
-    upperArmL.rotation.z = .3;
-    upperArmL.rotation.x = -.1;
-    const foreArmL = this.cyl(.06, .055, .3, 8, skinM, -.44, 1.45, .22, g);
-    foreArmL.rotation.x = -.8;
-    foreArmL.rotation.z = .1;
-    this.sph(.06, 8, 8, skinM, -.46, 1.32, .35, g);
+    // ─── ЛЕВАЯ РУКА (с виски) ───
+    const armL = new THREE.Group();
+    armL.position.set(-.26, 1.76, 0);
+    armL.rotation.z = .12;
+    g.add(armL);
+    const upperArmLMesh = new THREE.Mesh(new THREE.CylinderGeometry(.065, .06, .34, 10), shirtM);
+    upperArmLMesh.position.set(0, -.17, 0);
+    armL.add(upperArmLMesh);
+    const elbowL = new THREE.Mesh(new THREE.SphereGeometry(.06, 10, 8), shirtM);
+    elbowL.position.set(0, -.34, 0);
+    armL.add(elbowL);
+    const forearmL = new THREE.Group();
+    forearmL.position.set(0, -.34, 0);
+    forearmL.rotation.x = -1.2;
+    armL.add(forearmL);
+    const foreArmLMesh = new THREE.Mesh(new THREE.CylinderGeometry(.06, .052, .3, 10), skinM);
+    foreArmLMesh.position.set(0, -.15, 0);
+    forearmL.add(foreArmLMesh);
+    const wristL = new THREE.Mesh(new THREE.SphereGeometry(.045, 8, 8), skinM);
+    wristL.position.set(0, -.3, 0);
+    forearmL.add(wristL);
+    const handL = new THREE.Mesh(new THREE.SphereGeometry(.06, 10, 8), skinM);
+    handL.position.set(0, -.35, .02);
+    handL.scale.set(1, .9, .8);
+    forearmL.add(handL);
 
+    // Виски
     const drinkG = new THREE.Group();
-    drinkG.position.set(-.46, 1.36, .38);
-    g.add(drinkG);
-    this.cyl(.07, .065, .12, 12, glassM, 0, 0, 0, drinkG);
-    this.cyl(.065, .06, .08, 12, whiskeyM, 0, -.015, 0, drinkG);
-    this.box(.04, .04, .04, iceM, .02, .01, 0, drinkG);
-    this.box(.035, .035, .035, iceM, -.025, .015, .01, drinkG);
-    this.parts.cowboyDrink = drinkG;
+    drinkG.position.set(0, -.35, .06);
+    forearmL.add(drinkG);
+    const glassBody = new THREE.Mesh(new THREE.CylinderGeometry(.07, .065, .12, 12), glassM);
+    drinkG.add(glassBody);
+    const whiskey = new THREE.Mesh(new THREE.CylinderGeometry(.065, .06, .08, 12), whiskeyM);
+    whiskey.position.set(0, -.015, 0);
+    drinkG.add(whiskey);
+    const ice1 = new THREE.Mesh(new THREE.BoxGeometry(.04, .04, .04), iceM);
+    ice1.position.set(.02, .01, 0);
+    drinkG.add(ice1);
+    const ice2 = new THREE.Mesh(new THREE.BoxGeometry(.035, .035, .035), iceM);
+    ice2.position.set(-.025, .015, .01);
+    drinkG.add(ice2);
 
-    this.cyl(.07, .08, .12, 10, skinM, 0, 1.92, 0, g);
+    // Шея
+    const neck = new THREE.Mesh(new THREE.CylinderGeometry(.07, .08, .12, 10), skinM);
+    neck.position.set(0, 1.92, 0);
+    g.add(neck);
 
+    // ─── ГОЛОВА ───
     const headG = new THREE.Group();
     headG.position.set(0, 2.08, 0);
     g.add(headG);
     this.parts.cowboyHead = headG;
 
-    const head = this.sph(.16, 16, 14, skinM, 0, 0, 0, headG);
-    head.scale.set(.95, 1.05, .98);
-    this.sph(.09, 10, 8, skinM, 0, -.08, .06, headG);
+    const headMesh = new THREE.Mesh(new THREE.SphereGeometry(.16, 18, 16), skinM);
+    headMesh.scale.set(.95, 1.05, .98);
+    headG.add(headMesh);
+    const jaw = new THREE.Mesh(new THREE.SphereGeometry(.09, 10, 8), skinM);
+    jaw.position.set(0, -.08, .06);
+    headG.add(jaw);
 
+    // Глаза
     for(let s of [-1, 1]){
-      this.sph(.035, 10, 8, new THREE.MeshBasicMaterial({color:0xf8f8f0}), s*.06, .02, .13, headG).scale.set(1, .85, .7);
-      this.sph(.022, 8, 8, new THREE.MeshBasicMaterial({color:0x2a1a0a}), s*.06, .02, .145, headG);
-      this.sph(.007, 6, 6, new THREE.MeshBasicMaterial({color:0xffffff}), s*.055, .03, .165, headG);
-      const brow = this.box(.07, .014, .02, hairM, s*.06, .08, .14, headG);
+      const eyeW = new THREE.Mesh(new THREE.SphereGeometry(.035, 12, 10), eyeWhiteM);
+      eyeW.position.set(s*.06, .02, .13);
+      eyeW.scale.set(1, .85, .7);
+      headG.add(eyeW);
+      const eye = new THREE.Mesh(new THREE.SphereGeometry(.022, 10, 8), irisM);
+      eye.position.set(s*.06, .02, .14);
+      headG.add(eye);
+      const spark = new THREE.Mesh(new THREE.SphereGeometry(.007, 6, 6), whiteM);
+      spark.position.set(s*.055, .03, .158);
+      headG.add(spark);
+      const brow = new THREE.Mesh(new THREE.BoxGeometry(.07, .014, .02), hairM);
+      brow.position.set(s*.06, .08, .14);
       brow.rotation.z = s * .2;
+      headG.add(brow);
     }
 
-    this.sph(.024, 8, 8, skinM, 0, -.02, .16, headG).scale.set(.9, 1, 1.1);
+    // Нос
+    const nose = new THREE.Mesh(new THREE.SphereGeometry(.024, 8, 8), skinM);
+    nose.position.set(0, -.02, .16);
+    nose.scale.set(.9, 1, 1.1);
+    headG.add(nose);
     for(let s of [-1, 1]){
-      this.sph(.008, 6, 6, new THREE.MeshBasicMaterial({color:0x4a2a10}), s*.02, -.03, .17, headG);
+      const nostril = new THREE.Mesh(new THREE.SphereGeometry(.008, 6, 6), nostrilM);
+      nostril.position.set(s*.02, -.03, .17);
+      headG.add(nostril);
     }
 
-    this.box(.13, .03, .03, hairM, 0, -.06, .155, headG);
+    // Усы
+    const mustache = new THREE.Mesh(new THREE.BoxGeometry(.13, .03, .03), hairM);
+    mustache.position.set(0, -.06, .155);
+    headG.add(mustache);
     for(let s of [-1, 1]){
-      const curl = this.cyl(.012, .008, .05, 6, hairM, s*.07, -.045, .155, headG);
+      const curl = new THREE.Mesh(new THREE.CylinderGeometry(.012, .008, .05, 6), hairM);
+      curl.position.set(s*.07, -.045, .155);
       curl.rotation.z = s * .8;
+      headG.add(curl);
     }
 
-    this.box(.05, .008, .01, mouthM, 0, -.09, .155, headG);
+    // Рот
+    const mouth = new THREE.Mesh(new THREE.BoxGeometry(.05, .008, .01), mouthM);
+    mouth.position.set(0, -.09, .155);
+    headG.add(mouth);
 
+    // Щетина
     for(let i=0; i<8; i++){
       const angle = -Math.PI/4 + i * Math.PI/16;
-      this.sph(.008, 4, 4, new THREE.MeshBasicMaterial({color:0x1a0a05}), Math.cos(angle)*.11, -.13, .13, headG);
+      const stub = new THREE.Mesh(new THREE.SphereGeometry(.008, 4, 4), stubM);
+      stub.position.set(Math.cos(angle)*.11, -.13, .13);
+      headG.add(stub);
     }
 
-    this.cyl(.14, .16, .18, 14, hatM, 0, .17, 0, headG);
-    this.box(.14, .06, .02, hatM, 0, .2, 0, headG);
-    this.cyl(.32, .32, .025, 24, hatM, 0, .08, 0, headG);
+    // Шляпа
+    const hatTop = new THREE.Mesh(new THREE.CylinderGeometry(.14, .16, .18, 14), hatM);
+    hatTop.position.set(0, .17, 0);
+    headG.add(hatTop);
+    const hatDent = new THREE.Mesh(new THREE.BoxGeometry(.14, .06, .02), hatM);
+    hatDent.position.set(0, .2, 0);
+    headG.add(hatDent);
+    const brim = new THREE.Mesh(new THREE.CylinderGeometry(.32, .32, .025, 24), hatM);
+    brim.position.set(0, .08, 0);
+    headG.add(brim);
     for(let i=0; i<8; i++){
       const a = i/8 * Math.PI * 2;
-      this.cyl(.06, .07, .015, 6, hatM, Math.cos(a)*.3, .085, Math.sin(a)*.3, headG);
+      const curl = new THREE.Mesh(new THREE.CylinderGeometry(.06, .07, .015, 6), hatM);
+      curl.position.set(Math.cos(a)*.3, .085, Math.sin(a)*.3);
+      headG.add(curl);
     }
-    this.cyl(.17, .17, .04, 14, hatBandM, 0, .1, 0, headG);
-    this.box(.05, .04, .015, buckleM, .12, .1, .1, headG);
-    this.cyl(.16, .16, .02, 12, new THREE.MeshBasicMaterial({color:0x1a1208, transparent:true, opacity:.35}), 0, .08, .06, headG).rotation.x = -.05;
+    const hatBand = new THREE.Mesh(new THREE.CylinderGeometry(.17, .17, .04, 14), hatBandM);
+    hatBand.position.set(0, .1, 0);
+    headG.add(hatBand);
+    const hatBuckle = new THREE.Mesh(new THREE.BoxGeometry(.05, .04, .015), buckleM);
+    hatBuckle.position.set(.12, .1, .1);
+    headG.add(hatBuckle);
+    const shadow = new THREE.Mesh(new THREE.CylinderGeometry(.16, .16, .02, 12), new THREE.MeshBasicMaterial({color:0x1a1208, transparent:true, opacity:.35}));
+    shadow.position.set(0, .08, .06);
+    shadow.rotation.x = -.05;
+    headG.add(shadow);
 
-    this.box(.3, .08, .14, hairM, 0, .05, -.1, headG);
+    // Волосы под шляпой
+    const hairUnder = new THREE.Mesh(new THREE.BoxGeometry(.3, .08, .14), hairM);
+    hairUnder.position.set(0, .05, -.1);
+    headG.add(hairUnder);
 
     this.cowboy = {
-      group: g,
-      headGroup: headG,
-      drink: drinkG,
-      upperArmL, foreArmL,
-      upperArmR, foreArmR,
+      group: g, headGroup: headG, drink: drinkG,
+      armL, armR, forearmL, forearmR,
+      hipL, hipR, shinL, shinR,
       phase: Math.random() * Math.PI * 2,
     };
   }
@@ -1567,7 +1933,6 @@ class Hub {
   isPlayerPosFree(x, z){
     if(x*x + z*z > (this.roomRadius - .6) * (this.roomRadius - .6)) return false;
     if(z > 6.8) return false;
-    // Горшок с вершком
     const dxPot = x - 7, dzPot = z + 8;
     if(dxPot*dxPot + dzPot*dzPot < 0.55*0.55) return false;
     return true;
@@ -1706,12 +2071,10 @@ class Hub {
     if(!this.parts.pottedVerkhushka) return;
     const pv = this.parts.pottedVerkhushka;
     const t = Date.now() * 0.001 + pv.phase;
-    // Покачивание тела
     if(pv.verkhGroup){
       pv.verkhGroup.rotation.z = Math.sin(t * 0.8) * 0.06;
       pv.verkhGroup.rotation.x = Math.sin(t * 1.1) * 0.04;
     }
-    // Листья шевелятся
     if(pv.leaves){
       pv.leaves.forEach((leaf, i) => {
         const ph = t * 1.4 + i * 0.7;
@@ -1719,7 +2082,6 @@ class Hub {
         leaf.rotation.x = Math.sin(i * Math.PI * 2 / 5 + Math.PI/4) * .5 + Math.cos(ph * 1.3) * 0.08;
       });
     }
-    // Моргание
     pv.blinkTimer -= dt;
     if(pv.blinkTimer <= 0){
       pv.blinkTimer = 2.5 + Math.random() * 4;
@@ -1738,23 +2100,19 @@ class Hub {
     if(!this.parts.hangingDrone) return;
     const hd = this.parts.hangingDrone;
     const t = Date.now() * 0.001;
-    // Маятниковое качание на верёвке
     if(hd.droneGroup){
       const swing = Math.sin(t * 0.7 + hd.swingPhase) * 0.12;
       hd.droneGroup.position.x = Math.sin(t * 0.7 + hd.swingPhase) * 0.35;
       hd.droneGroup.position.z = Math.cos(t * 0.55 + hd.swingPhase * 1.2) * 0.3;
       hd.droneGroup.rotation.z = -swing;
       hd.droneGroup.rotation.x = Math.cos(t * 0.55 + hd.swingPhase * 1.2) * 0.08;
-      // Лёгкий подъём-опускание
       hd.droneGroup.position.y = hd.baseY + Math.sin(t * 1.3 + hd.phase) * 0.06;
     }
-    // Пропеллеры вращаются
     if(hd.propellers){
       hd.propellers.forEach(p => {
         p.group.rotation.y += dt * 32;
       });
     }
-    // Габариты мигают
     if(hd.blinkLights){
       hd.blinkLights.forEach((l, i) => {
         const isRed = i % 2 === 0;
@@ -1766,7 +2124,6 @@ class Hub {
         );
       });
     }
-    // Мягкое пульсирование света
     if(hd.light){
       hd.light.intensity = 0.6 + Math.sin(t * 2 + hd.phase) * 0.3;
     }
@@ -1785,10 +2142,12 @@ class Hub {
     }
     if(this.barmaid.hairBack){
       this.barmaid.hairBack.rotation.z = Math.sin(t * 1.2) * 0.03;
-      this.barmaid.hairBack.rotation.x = -.08 + Math.sin(t * 1.5) * 0.02;
     }
-    if(this.barmaid.foreArmL){
-      this.barmaid.foreArmL.rotation.x = -.9 + Math.sin(t * 0.8) * 0.08;
+    if(this.barmaid.forearmL){
+      this.barmaid.forearmL.rotation.x = -1.3 + Math.sin(t * 0.8) * 0.08;
+    }
+    if(this.barmaid.armR){
+      this.barmaid.armR.rotation.z = -.12 + Math.sin(t * 1.4) * 0.02;
     }
     if(this.barmaid.drink){
       this.barmaid.drink.rotation.z = Math.sin(t * 1.3) * 0.04;
@@ -1806,10 +2165,10 @@ class Hub {
     if(this.cowboy.group){
       this.cowboy.group.position.y = Math.sin(t * 1.5) * 0.004;
     }
-    if(this.cowboy.foreArmL){
+    if(this.cowboy.forearmL){
       const sip = Math.sin(t * 0.4);
       const sipAmount = sip > 0.85 ? (sip - 0.85) * 6.6 : 0;
-      this.cowboy.foreArmL.rotation.x = -.8 - sipAmount * 0.5;
+      this.cowboy.forearmL.rotation.x = -1.2 - sipAmount * 0.5;
     }
     if(this.cowboy.drink){
       this.cowboy.drink.rotation.z = Math.sin(t * 0.6) * 0.05;
@@ -2408,6 +2767,52 @@ function openHubDraft(){
   if(document.pointerLockElement) document.exitPointerLock();
 }
 
+// ═══════════════ ОБРАБОТЧИКИ КНОПОК ═══════════════
+// Кнопки action в менюшках работают ТОЛЬКО через клик мыши
+(function registerMenuClickHandlers(){
+  function bind(id, handler){
+    const el = document.getElementById(id);
+    if(!el) return;
+    el.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      e.preventDefault();
+      handler();
+    });
+  }
+  bind('casino-spin-btn', ()=>{ if(hub && hubCasinoActive) hub.spinCasino(); });
+  bind('dice-roll-btn', ()=>{ if(hub && hubDiceActive) hub.rollDice(); });
+  bind('blood-donate-btn', ()=>{ if(hub && hubBloodActive) hub.donateBlood(); });
+
+  // Кнопки закрытия — через querySelector внутри оверлеев
+  const casinoClose = document.querySelector('#casino-overlay .mini-close');
+  if(casinoClose){
+    casinoClose.removeAttribute('onclick');
+    casinoClose.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      e.preventDefault();
+      if(hub) hub.closeCasino();
+    });
+  }
+  const diceClose = document.querySelector('#dice-overlay .mini-close');
+  if(diceClose){
+    diceClose.removeAttribute('onclick');
+    diceClose.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      e.preventDefault();
+      if(hub) hub.closeDice();
+    });
+  }
+  const bloodClose = document.querySelector('#blood-overlay .mini-close');
+  if(bloodClose){
+    bloodClose.removeAttribute('onclick');
+    bloodClose.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      e.preventDefault();
+      if(hub) hub.closeBloodStation();
+    });
+  }
+})();
+
 document.addEventListener('keydown', e=>{
   if(!hubMode) return;
   if(hubCasinoActive) return;
@@ -2446,4 +2851,4 @@ document.addEventListener('mouseup', e=>{
   if(e.button === 0){ if(hub) hub.mouseDown = false; }
 });
 
-console.log('🏨 hub.js загружен (v6.5 — potted verkhushka + hanging drone)');
+console.log('🏨 hub.js загружен (v6.6 — limbs hierarchy, clean hair, clickable menu buttons)');
